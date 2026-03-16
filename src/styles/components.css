@@ -5,7 +5,7 @@
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
     padding: 20px;
-    transition: box-shadow 0.2s ease;
+    transition: var(--transition-base);
 }
 
 .card:hover {
@@ -38,17 +38,70 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
+    border-top: 3px solid transparent;
     padding: 20px;
     display: flex;
     align-items: flex-start;
     gap: 16px;
-    transition: all 0.2s ease;
+    transition: var(--transition-base);
     cursor: default;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    opacity: 0.04;
+    transform: translate(20px, -20px);
+    transition: var(--transition-base);
 }
 
 .stat-card:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-2px);
+}
+
+.stat-card:hover::after {
+    opacity: 0.07;
+    transform: translate(16px, -16px) scale(1.1);
+}
+
+.stat-card.blue-accent {
+    border-top-color: var(--primary-500);
+}
+
+.stat-card.blue-accent::after {
+    background: var(--primary-500);
+}
+
+.stat-card.teal-accent {
+    border-top-color: var(--secondary-500);
+}
+
+.stat-card.teal-accent::after {
+    background: var(--secondary-500);
+}
+
+.stat-card.red-accent {
+    border-top-color: var(--danger-500);
+}
+
+.stat-card.red-accent::after {
+    background: var(--danger-500);
+}
+
+.stat-card.green-accent {
+    border-top-color: var(--success-500);
+}
+
+.stat-card.green-accent::after {
+    background: var(--success-500);
 }
 
 .stat-card .stat-icon {
@@ -87,27 +140,29 @@
 }
 
 .stat-card .stat-info h4 {
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: 0.72rem;
+    font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
 }
 
 .stat-card .stat-info .value {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.6rem;
+    font-weight: 800;
     color: var(--text-primary);
-    line-height: 1.2;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
 }
 
 .stat-card .stat-info .change {
-    font-size: 0.75rem;
-    margin-top: 4px;
+    font-size: 0.72rem;
+    margin-top: 6px;
     display: flex;
     align-items: center;
     gap: 4px;
+    font-weight: 500;
 }
 
 .stat-card .stat-info .change.up {
@@ -122,68 +177,86 @@
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     padding: 8px 16px;
     border-radius: var(--radius-md);
     font-family: inherit;
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     border: none;
-    transition: all 0.15s ease;
+    transition: var(--transition-base);
     white-space: nowrap;
+    letter-spacing: 0.01em;
 }
 
 .btn:active {
     transform: scale(0.97);
 }
 
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
 .btn-primary {
-    background: var(--primary-600);
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-700) 100%);
     color: #fff;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 .btn-primary:hover {
-    background: var(--primary-700);
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-800) 100%);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    transform: translateY(-1px);
 }
 
 .btn-secondary {
     background: transparent;
     color: var(--primary-600);
-    border: 1px solid var(--primary-200);
+    border: 1.5px solid var(--primary-300);
 }
 
 .btn-secondary:hover {
     background: var(--primary-50);
+    border-color: var(--primary-500);
 }
 
 .btn-success {
-    background: var(--success-500);
+    background: linear-gradient(135deg, var(--success-500) 0%, var(--success-600) 100%);
     color: #fff;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
 }
 
 .btn-success:hover {
     background: var(--success-600);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    transform: translateY(-1px);
 }
 
 .btn-danger {
-    background: var(--danger-500);
+    background: linear-gradient(135deg, var(--danger-500) 0%, var(--danger-600) 100%);
     color: #fff;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 }
 
 .btn-danger:hover {
     background: var(--danger-600);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    transform: translateY(-1px);
 }
 
 .btn-ghost {
     background: transparent;
     color: var(--text-secondary);
-    border: 1px solid var(--border-color);
+    border: 1.5px solid var(--border-color);
 }
 
 .btn-ghost:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
+    border-color: var(--gray-300);
 }
 
 .btn-icon {
@@ -195,7 +268,7 @@
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    transition: all 0.15s;
+    transition: var(--transition-base);
 }
 
 .btn-icon:hover {
@@ -209,9 +282,9 @@
 }
 
 .btn-lg {
-    padding: 12px 24px;
-    font-size: 1rem;
-    font-weight: 600;
+    padding: 11px 24px;
+    font-size: 0.95rem;
+    font-weight: 700;
 }
 
 /* --- Forms --- */
@@ -221,28 +294,29 @@
 
 .form-group label {
     display: block;
-    font-size: 0.8rem;
-    font-weight: 500;
+    font-size: 0.78rem;
+    font-weight: 600;
     color: var(--text-secondary);
     margin-bottom: 6px;
+    letter-spacing: 0.02em;
 }
 
 .form-control {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid var(--border-color);
+    border: 1.5px solid var(--border-color);
     border-radius: var(--radius-md);
     font-family: inherit;
     font-size: 0.9rem;
     color: var(--text-primary);
     background: var(--bg-input);
-    transition: all 0.15s ease;
+    transition: var(--transition-base);
     outline: none;
 }
 
 .form-control:focus {
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    box-shadow: var(--shadow-focus);
 }
 
 .form-control::placeholder {
@@ -252,7 +326,7 @@
 select.form-control {
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     padding-right: 36px;
@@ -270,7 +344,7 @@ textarea.form-control {
 }
 
 .form-hint {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--text-muted);
     margin-top: 4px;
 }
@@ -292,12 +366,12 @@ thead th {
     background: var(--gray-50);
     padding: 12px 16px;
     text-align: left;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid var(--border-color);
+    letter-spacing: 0.6px;
+    border-bottom: 1.5px solid var(--border-color);
     position: sticky;
     top: 0;
     white-space: nowrap;
@@ -306,8 +380,9 @@ thead th {
 tbody td {
     padding: 12px 16px;
     border-bottom: 1px solid var(--border-color);
-    font-size: 0.85rem;
-    transition: background 0.15s;
+    font-size: 0.875rem;
+    transition: background 0.12s;
+    vertical-align: middle;
 }
 
 tbody tr:last-child td {
@@ -318,8 +393,14 @@ tbody tr:nth-child(even) {
     background: var(--bg-stripe);
 }
 
+tbody tr {
+    border-left: 3px solid transparent;
+    transition: var(--transition-base);
+}
+
 tbody tr:hover {
     background: var(--primary-50);
+    border-left-color: var(--primary-400);
 }
 
 /* --- Badges --- */
@@ -327,37 +408,42 @@ tbody tr:hover {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 10px;
+    padding: 4px 12px;
     border-radius: 100px;
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.4px;
 }
 
 .badge-success {
     background: var(--success-50);
     color: var(--success-600);
+    border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .badge-danger {
     background: var(--danger-50);
     color: var(--danger-600);
+    border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .badge-warning {
     background: var(--warning-50);
     color: var(--warning-600);
+    border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .badge-info {
     background: var(--primary-50);
     color: var(--primary-600);
+    border: 1px solid rgba(37, 99, 235, 0.15);
 }
 
 .badge-secondary {
     background: var(--gray-100);
     color: var(--gray-600);
+    border: 1px solid var(--gray-200);
 }
 
 .badge-danger.pulse {
@@ -380,8 +466,9 @@ tbody tr:hover {
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -392,13 +479,14 @@ tbody tr:hover {
 
 .modal {
     background: var(--bg-card);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-xl);
+    border-radius: var(--radius-2xl);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18), 0 8px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
     width: 100%;
     max-width: 560px;
     max-height: 90vh;
     overflow-y: auto;
-    animation: scaleIn 0.2s ease;
+    animation: scaleIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .modal-lg {
@@ -418,7 +506,8 @@ tbody tr:hover {
 }
 
 .modal-header h3 {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+    font-weight: 700;
 }
 
 .modal-body {
@@ -446,12 +535,12 @@ tbody tr:hover {
 
 @keyframes scaleIn {
     from {
-        transform: scale(0.95);
+        transform: scale(0.93) translateY(8px);
         opacity: 0;
     }
 
     to {
-        transform: scale(1);
+        transform: scale(1) translateY(0);
         opacity: 1;
     }
 }
@@ -464,7 +553,7 @@ tbody tr:hover {
     z-index: 2000;
     display: flex;
     flex-direction: column-reverse;
-    gap: 8px;
+    gap: 10px;
 }
 
 .toast {
@@ -478,7 +567,7 @@ tbody tr:hover {
     gap: 12px;
     min-width: 300px;
     max-width: 420px;
-    animation: slideUp 0.3s ease;
+    animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .toast.success {
@@ -505,11 +594,12 @@ tbody tr:hover {
 .toast .toast-message strong {
     display: block;
     margin-bottom: 2px;
+    font-weight: 700;
 }
 
 @keyframes slideUp {
     from {
-        transform: translateY(20px);
+        transform: translateY(24px);
         opacity: 0;
     }
 
@@ -536,30 +626,39 @@ tbody tr:hover {
 
 .pagination-buttons button {
     padding: 6px 10px;
-    border: 1px solid var(--border-color);
+    border: 1.5px solid var(--border-color);
     background: var(--bg-card);
     color: var(--text-secondary);
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 0.8rem;
     font-family: inherit;
-    transition: all 0.15s;
+    font-weight: 500;
+    transition: var(--transition-base);
 }
 
 .pagination-buttons button:hover {
     background: var(--bg-hover);
+    border-color: var(--primary-300);
+    color: var(--primary-600);
 }
 
 .pagination-buttons button.active {
     background: var(--primary-600);
     color: #fff;
     border-color: var(--primary-600);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.pagination-buttons button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 /* --- Empty State --- */
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 64px 20px;
     color: var(--text-secondary);
 }
 
@@ -578,13 +677,15 @@ tbody tr:hover {
 .empty-state h3 {
     color: var(--text-primary);
     margin-bottom: 8px;
+    font-weight: 700;
 }
 
 .empty-state p {
     max-width: 360px;
     margin: 0 auto 20px;
-    font-size: 0.85rem;
-    line-height: 1.6;
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
 }
 
 /* --- Checkbox --- */
@@ -636,7 +737,7 @@ tbody tr:hover {
     padding: 14px 20px;
     background: var(--gray-50);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: var(--transition-base);
 }
 
 .tree-header:hover {
@@ -662,7 +763,7 @@ tbody tr:hover {
     gap: 12px;
     padding: 10px 20px 10px 52px;
     border-top: 1px solid var(--border-color);
-    transition: background 0.15s;
+    transition: var(--transition-base);
 }
 
 .tree-child:hover {

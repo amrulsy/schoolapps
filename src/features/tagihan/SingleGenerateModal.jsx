@@ -66,7 +66,7 @@ export default function SingleGenerateModal({ students, categories, MONTHS, form
                             setKategoriId(val)
                         }
                     }}>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.nama} — {formatRupiah(c.nominal)}</option>)}
+                        {categories.map(c => <option key={c.id} value={c.id}>[{c.kode}] {c.nama} — {formatRupiah(c.nominal)}</option>)}
                         <option value="custom">+ Input Kustom</option>
                     </select>
                 </div>

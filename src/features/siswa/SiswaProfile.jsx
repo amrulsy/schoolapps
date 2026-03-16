@@ -1,221 +1,412 @@
-import { useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useApp } from '../../context/AppContext'
-import { useReactToPrint } from 'react-to-print'
-import { ArrowLeft, Printer } from 'lucide-react'
+import {
+    ArrowLeft, User, Users, FileText,
+    Phone, GraduationCap,
+    IdCard, Heart, Wallet, FileCheck, Search, Download,
+    Shield, Activity, Home, Hash, Eye, EyeOff,
+    CheckCircle2, Pencil, Printer, Upload, Save, X,
+    Droplets, BookOpen, Star, MapPin, Globe, Book,
+    AlertCircle, Info, ChevronDown
+} from 'lucide-react'
 
+/* ─────────────── helpers ─────────────── */
+const fmtDate = (d) => {
+    if (!d) return '-'
+    try { return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) }
+    catch { return d }
+}
+
+const GOLDAR = ['A', 'B', 'AB', 'O']
+const AGAMA = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu']
+const PEND = ['SD/MI', 'SMP/MTs', 'SMA/SMK/MA', 'D3', 'S1', 'S2', 'S3', 'Tidak Sekolah']
+const JENIS_TINGGAL = ['Bersama Orang Tua', 'Kost', 'Asrama', 'Bersama Wali']
+const STATUS_HIDUP = ['Hidup', 'Meninggal']
+const KEWARGANEGARAAN = ['WNI', 'WNA']
+
+/* ─────────────── sub-components ─────────────── */
+
+/** Satu field read/edit */
+function Field({ label, value, editValue, isEditing, onChange, type = 'text', options = [], span = 1, displayValue }) {
+    const display = displayValue || value || '-'
+    if (isEditing) {
+        if (type === 'select') {
+            return (
+                <div style={{ gridColumn: `span ${span}` }}>
+                    <span className="info-item-label">{label}</span>
+                    <select className="edit-input" value={editValue ?? value} onChange={e => onChange(e.target.value)}>
+                        {options.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                </div>
+            )
+        }
+        if (type === 'textarea') {
+            return (
+                <div style={{ gridColumn: `span ${span}` }}>
+                    <span className="info-item-label">{label}</span>
+                    <textarea className="edit-input" style={{ resize: 'vertical', minHeight: 72 }} value={editValue ?? value} onChange={e => onChange(e.target.value)} />
+                </div>
+            )
+        }
+        return (
+            <div style={{ gridColumn: `span ${span}` }}>
+                <span className="info-item-label">{label}</span>
+                <input type={type} className="edit-input" value={editValue ?? value} onChange={e => onChange(e.target.value)} />
+            </div>
+        )
+    }
+    return (
+        <div style={{ gridColumn: `span ${span}` }}>
+            <span className="info-item-label">{label}</span>
+            <div className="info-item-value">{display}</div>
+        </div>
+    )
+}
+
+/** Section card wrapper */
+function SectionCard({ icon, title, children, columns = 2 }) {
+    return (
+        <div className="parent-card">
+            <h5 className="section-card-title">{icon}{title}</h5>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: '18px 28px' }}>
+                {children}
+            </div>
+        </div>
+    )
+}
+
+/** Parent bio card */
+function ParentSection({ title, icon, prefix, data, isEditing, formData, onChange, formatRupiah }) {
+    const d = data || {}
+    const f = (field) => formData?.[`${prefix}_${field}`] ?? d[field]
+    const ch = (field) => (val) => onChange(`${prefix}_${field}`, val)
+
+    return (
+        <div className="parent-card">
+            <h5 className="section-card-title">{icon}{title}</h5>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 28px' }}>
+                <Field label="Nama Lengkap" value={d.nama} editValue={f('nama')} isEditing={isEditing} onChange={ch('nama')} span={2} />
+                <Field label="NIK" value={d.nik} editValue={f('nik')} isEditing={isEditing} onChange={ch('nik')} />
+                <Field label="Status" value={d.status_hidup} editValue={f('status_hidup')} isEditing={isEditing} onChange={ch('status_hidup')} type="select" options={STATUS_HIDUP} />
+                <Field label="Pendidikan Terakhir" value={d.pendidikan} editValue={f('pendidikan')} isEditing={isEditing} onChange={ch('pendidikan')} type="select" options={PEND} />
+                <Field label="Pekerjaan" value={d.pekerjaan} editValue={f('pekerjaan')} isEditing={isEditing} onChange={ch('pekerjaan')} />
+                <Field label="Penghasilan" value={d.penghasilan} editValue={f('penghasilan')} isEditing={isEditing} onChange={ch('penghasilan')} type="number"
+                    displayValue={d.penghasilan > 0 ? formatRupiah(d.penghasilan) : 'Tidak ada'} />
+                <Field label="No. Handphone" value={d.hp} editValue={f('hp')} isEditing={isEditing} onChange={ch('hp')} />
+                {data?.hubungan !== undefined && (
+                    <Field label="Hubungan" value={d.hubungan} editValue={f('hubungan')} isEditing={isEditing} onChange={ch('hubungan')} />
+                )}
+                {data?.alamat !== undefined && (
+                    <Field label="Alamat" value={d.alamat} editValue={f('alamat')} isEditing={isEditing} onChange={ch('alamat')} span={2} type="textarea" />
+                )}
+            </div>
+        </div>
+    )
+}
+
+/** Document card */
+function DocumentCard({ doc }) {
+    const fileInputRef = useRef(null)
+    const [fileName, setFileName] = useState(null)
+
+    const isNone = doc.status === 'Tidak Ada'
+    const isVerif = doc.status === 'Terverifikasi'
+    const statusClass = isVerif ? 'doc-status-verif' : isNone ? 'doc-status-none' : 'doc-status-unverif'
+
+    const handleFile = (e) => {
+        const file = e.target.files[0]
+        if (file) setFileName(file.name)
+    }
+
+    return (
+        <div className="document-card">
+            <div className={`doc-icon-wrapper ${isNone ? 'empty' : ''}`}>
+                <FileText size={22} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {doc.nama}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span className={`doc-status-badge ${statusClass}`}>{doc.status}</span>
+                    {!isNone && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{fileName || doc.size}</span>}
+                </div>
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFile} accept=".pdf,.jpg,.jpeg,.png" />
+                {!isNone && (
+                    <>
+                        <button className="btn-icon" style={{ width: 30, height: 30, padding: 0 }} title="Pratinjau"><Search size={14} /></button>
+                        <button className="btn-icon" style={{ width: 30, height: 30, padding: 0 }} title="Unduh"><Download size={14} /></button>
+                    </>
+                )}
+                <button
+                    className="btn-icon"
+                    style={{ width: 30, height: 30, padding: 0, color: isNone ? 'var(--primary-600)' : 'inherit', background: isNone ? 'var(--primary-50)' : undefined, borderRadius: 7 }}
+                    title="Unggah" onClick={() => fileInputRef.current?.click()}
+                >
+                    <Upload size={14} />
+                </button>
+            </div>
+        </div>
+    )
+}
+
+/* ═══════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════ */
 export default function SiswaProfile({ data, onClose }) {
-    const { bills, formatRupiah, MONTHS, tahunAjaran } = useApp()
-    const kartuRef = useRef(null)
+    const { formatRupiah, updateStudent, addToast } = useApp()
+    const [activeTab, setActiveTab] = useState('diri')
+    const [showNik, setShowNik] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [form, setForm] = useState({})
 
-    // react-to-print: mencetak HANYA area kartu SPP (div .printable-spp)
-    const handlePrintKartu = useReactToPrint({
-        contentRef: kartuRef,
-        documentTitle: `Kartu SPP - ${data.nama}`,
-        pageStyle: `
-            @page { size: A4 portrait; margin: 10px 10px; }
-            @media print {
-                html, body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                .no-print { display: none !important; }
-                .printable-spp { 
-                    display: block; 
-                    width: 100%; 
-                    padding: 12mm 15mm; 
-                    box-sizing: border-box;
-                    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                }
-                tr { 
-                    page-break-inside: avoid;
-                    page-break-after: auto; }
-                table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
-                th, td { border: none; border-bottom: 1px solid #e2e8f0; padding: 5px 8px !important; font-size: 11px !important; }
-                th { background: #f8fafc !important; color: #475569 !important; font-weight: 700 !important; text-transform: uppercase; }
-            }
-        `,
-    })
+    const p = data // "profile" shorthand — always reads from live `data` prop
 
-    // Filter bills for this student and current active academic year
-    const studentBills = bills.filter(b => b.siswaId === data.id && b.tahunAjaran === tahunAjaran)
-    const totalTunggakan = studentBills.filter(b => b.status === 'belum').reduce((s, b) => s + b.nominal, 0)
-    const totalBayar = studentBills.filter(b => b.status === 'lunas').reduce((s, b) => s + b.nominal, 0)
-    const totalSemua = studentBills.reduce((s, b) => s + b.nominal, 0)
+    const maskNik = (nik) => {
+        if (!nik || nik === '-') return '-'
+        if (showNik) return nik
+        return nik.substring(0, 6) + '●●●●●●' + nik.substring(nik.length - 4)
+    }
 
-    // Agrupasi by Category
-    const categoriesMap = {}
-    studentBills.forEach(b => {
-        if (!categoriesMap[b.kategori]) categoriesMap[b.kategori] = []
-        categoriesMap[b.kategori].push(b)
-    })
+    /* ── CRUD ── */
+    const handleEdit = () => {
+        // Flatten nested objects into form with prefix keys
+        const flat = { ...data }
+        if (data.ayah) Object.entries(data.ayah).forEach(([k, v]) => { flat[`ayah_${k}`] = v })
+        if (data.ibu) Object.entries(data.ibu).forEach(([k, v]) => { flat[`ibu_${k}`] = v })
+        if (data.wali_detail) Object.entries(data.wali_detail).forEach(([k, v]) => { flat[`wali_${k}`] = v })
+        setForm(flat)
+        setIsEditing(true)
+    }
+
+    const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+
+    const handleSave = () => {
+        // Re-nest nested objects
+        const ayahFields = ['nama', 'nik', 'pendidikan', 'pekerjaan', 'penghasilan', 'hp', 'status_hidup']
+        const ibuFields = [...ayahFields]
+        const waliFields = [...ayahFields, 'hubungan', 'alamat']
+
+        const payload = { ...form }
+        payload.ayah = {}
+        ayahFields.forEach(k => { payload.ayah[k] = form[`ayah_${k}`] ?? data.ayah?.[k]; delete payload[`ayah_${k}`] })
+        payload.ibu = {}
+        ibuFields.forEach(k => { payload.ibu[k] = form[`ibu_${k}`] ?? data.ibu?.[k]; delete payload[`ibu_${k}`] })
+        payload.wali_detail = {}
+        waliFields.forEach(k => { payload.wali_detail[k] = form[`wali_${k}`] ?? data.wali_detail?.[k]; delete payload[`wali_${k}`] })
+
+        updateStudent(data.id, payload)
+        addToast('success', 'Profil Diperbarui', `Data ${data.nama} berhasil disimpan`)
+        setIsEditing(false)
+    }
+
+    const handleCancel = () => { setForm({}); setIsEditing(false) }
+
+    const tabs = [
+        { id: 'diri', icon: <User size={17} />, label: 'Data Identitas' },
+        { id: 'ortu', icon: <Users size={17} />, label: 'Orang Tua & Wali' },
+        { id: 'dokumen', icon: <FileCheck size={17} />, label: 'Berkas Digital' },
+    ]
+
+    /* ────────────── fv = form value helper ────────────── */
+    const fv = (field) => isEditing ? (form[field] ?? p[field]) : p[field]
 
     return (
         <div className="fade-in">
-            <div className="page-header no-print">
+            {/* ── Page Header ── */}
+            <div className="page-header no-print" style={{ marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <button className="btn-icon" onClick={onClose}><ArrowLeft size={20} /></button>
-                    <h1>Detail Siswa</h1>
-                </div>
-                <div className="actions">
-                    <button className="btn btn-primary" onClick={handlePrintKartu}>
-                        <Printer size={16} /> Cetak Kartu SPP
-                    </button>
-                </div>
-            </div>
-
-            <div className="profile-card no-print" style={{ padding: 0, overflow: 'hidden', marginBottom: '20px' }}>
-                <div className="profile-banner" style={{ height: '100px', background: 'linear-gradient(135deg, var(--primary-600), var(--primary-800))' }} />
-                <div style={{ padding: '0 32px 32px 32px', marginTop: '-40px' }}>
-                    <div className="profile-header" style={{ marginBottom: '24px', position: 'relative' }}>
-                        <div className="profile-avatar" style={{
-                            width: '80px', height: '80px', fontSize: '2rem',
-                            background: 'white', color: 'var(--primary-600)',
-                            boxShadow: 'var(--shadow-md)', border: '4px solid white',
-                            marginBottom: '16px'
-                        }}>
-                            {data.nama.charAt(0)}
-                        </div>
-                        <div className="profile-info">
-                            <h2 style={{ fontSize: '1.5rem', marginBottom: 4 }}>
-                                {data.nama} <span className="badge badge-info">{data.kelas}</span>
-                            </h2>
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>NISN: {data.nisn}</p>
-                        </div>
-                        <div className="profile-tunggakan" style={{ marginLeft: 'auto', textAlign: 'right', background: 'var(--bg-card)', padding: '12px 20px', borderRadius: ' var(--radius-lg)', border: '1px solid var(--border-color)' }}>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                Tunggakan ({tahunAjaran})
-                            </span>
-                            <h3 className="mono" style={{ margin: '4px 0 0 0', color: totalTunggakan > 0 ? 'var(--danger-500)' : 'var(--success-500)', fontSize: '1.4rem' }}>
-                                {formatRupiah(totalTunggakan)}
-                            </h3>
-                        </div>
-                    </div>
-
-                    <div className="profile-details" style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: '24px',
-                        background: 'var(--gray-50)',
-                        padding: '24px',
-                        borderRadius: 'var(--radius-lg)'
-                    }}>
-                        <div className="detail-item">
-                            <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Gender</label>
-                            <strong>{data.jk === 'L' ? 'Laki-laki' : 'Perempuan'}</strong>
-                        </div>
-                        <div className="detail-item">
-                            <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Kelahiran</label>
-                            <strong>{data.tempatLahir}, {data.tglLahir ? new Date(data.tglLahir).toLocaleDateString('id-ID') : '-'}</strong>
-                        </div>
-                        <div className="detail-item">
-                            <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Wali Siswa</label>
-                            <strong>{data.wali || '-'}</strong>
-                        </div>
-                        <div className="detail-item">
-                            <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Telepon Wali</label>
-                            <strong>{data.telp || '-'}</strong>
-                        </div>
-                        <div className="detail-item">
-                            <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Status</label>
-                            <span className={`badge ${data.status === 'aktif' ? 'badge-success' : 'badge-secondary'}`}>{data.status?.toUpperCase()}</span>
-                        </div>
-                        <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
-                            <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Alamat</label>
-                            <strong>{data.alamat || '-'}</strong>
-                        </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Profil Siswa</h1>
+                        <span style={{ color: 'var(--text-muted)' }}>/</span>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Detail Lengkap</span>
                     </div>
                 </div>
             </div>
 
-            {/* Print Section (Kartu SPP) — ref ini yang ditarget react-to-print */}
-            <div ref={kartuRef} className="printable-spp" style={{ padding: '3mm 10mm', background: 'white', color: '#1e293b' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', borderBottom: '2px solid #1e293b', paddingBottom: '10px', marginBottom: '15px' }}>
-                    <div style={{ fontSize: '32px' }}>🏫</div>
-                    <div style={{ textAlign: 'left' }}>
-                        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a' }}>SMK PPRQ</h2>
-                        <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b', fontWeight: 500 }}>Sistem Informasi Administrasi Sekolah</p>
-                        <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>Jl. Pesantren No.1, Kota | Telp: (021) 123-4567</p>
-                    </div>
-                    <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>KARTU PEMBAYARAN</h3>
-                        <p style={{ margin: 0, fontSize: '10px', color: '#64748b' }}>Tahun Pelajaran: {tahunAjaran}</p>
-                    </div>
-                </div>
+            <div className="profile-card no-print">
+                {/* ── Banner ── */}
+                <div className="profile-banner" />
 
-                <div style={{ display: 'flex', gap: '30px', marginBottom: '15px', fontSize: '12px', background: '#f8fafc', padding: '10px 18px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ flex: 1 }}><strong>Nama:</strong> {data.nama}</div>
-                    <div style={{ flex: 1 }}><strong>Kelas/NISN:</strong> {data.kelas} / {data.nisn}</div>
-                    <div style={{ flex: 1, textAlign: 'right' }}><strong>Tahun:</strong> {tahunAjaran}</div>
-                </div>
-
-                {Object.keys(categoriesMap).length === 0 && (
-                    <div style={{ padding: 40, textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: 8 }}>
-                        Tidak ada catatan tagihan untuk tahun ajaran aktif.
-                    </div>
-                )}
-
-                {Object.keys(categoriesMap).map(kategori => (
-                    <div key={kategori} style={{ marginBottom: '15px' }}>
-                        <h4 style={{ margin: '0 0 6px 0', fontSize: '12px', fontWeight: 700, color: '#1e293b', borderLeft: '4px solid #3b82f6', paddingLeft: '10px' }}>{kategori}</h4>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1.5px solid #334155' }}>
-                                    <th style={{ textAlign: 'left', width: '30px' }}>No</th>
-                                    <th style={{ textAlign: 'left' }}>Bulan / Deskripsi</th>
-                                    <th style={{ textAlign: 'right' }}>Nominal</th>
-                                    <th style={{ textAlign: 'right' }}>Diskon</th>
-                                    <th style={{ textAlign: 'right' }}>Bayar</th>
-                                    <th style={{ textAlign: 'center' }}>Status</th>
-                                    <th style={{ textAlign: 'left' }}>Tanggal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {categoriesMap[kategori].map((b, i) => {
-                                    const nominalAsliDec = b.nominalAsli || 0
-                                    const diskon = nominalAsliDec - (b.nominal || 0)
-                                    return (
-                                        <tr key={b.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td>{i + 1}</td>
-                                            <td style={{ fontWeight: 500 }}>{b.bulan} {b.tahun}</td>
-                                            <td style={{ textAlign: 'right' }}>{formatRupiah(nominalAsliDec)}</td>
-                                            <td style={{ textAlign: 'right', color: diskon > 0 ? '#dc2626' : 'inherit' }}>{diskon > 0 ? `-${formatRupiah(diskon)}` : '-'}</td>
-                                            <td style={{ textAlign: 'right', fontWeight: 700 }}>{formatRupiah(b.nominal)}</td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                <span style={{ color: b.status === 'lunas' ? '#16a34a' : '#dc2626', fontWeight: 700, fontSize: '9px' }}>
-                                                    {b.status?.toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td style={{ fontSize: '10px', color: '#64748b' }}>{b.status === 'lunas' ? b.paidAt : '-'}</td>
-                                        </tr>
-                                    )
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                ))}
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', padding: '0 5px' }}>
-                    <div style={{ textAlign: 'center', width: '160px' }}>
-                        <p style={{ margin: 0, fontSize: '11px', color: '#475569' }}>Orang Tua / Wali</p>
-                        <div style={{ height: '50px' }}></div>
-                        <p style={{ margin: 0, fontSize: '11px', fontWeight: 600 }}>( ............................ )</p>
-                    </div>
-                    <div style={{ textAlign: 'center', width: '160px' }}>
-                        <p style={{ margin: 0, fontSize: '11px', color: '#475569' }}>Bendahara Sekolah</p>
-                        <div style={{ height: '50px' }}></div>
-                        <p style={{ margin: 0, fontSize: '11px', fontWeight: 600 }}>( ............................ )</p>
-                    </div>
-                    <div style={{ width: '220px', background: '#f8fafc', padding: '10px 15px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '11px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ color: '#64748b' }}>Total Sudah Bayar:</span>
-                            <strong style={{ color: '#16a34a' }}>{formatRupiah(totalBayar)}</strong>
+                <div style={{ padding: '0 28px 28px' }}>
+                    {/* ── Avatar + Info row ── */}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, marginBottom: 24 }}>
+                        <div className="profile-avatar-wrapper">
+                            <div className="profile-avatar-inner">{p.nama?.charAt(0)}</div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ color: '#64748b' }}>Total Tunggakan:</span>
-                            <strong style={{ color: '#dc2626' }}>{formatRupiah(totalTunggakan)}</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px dashed #cbd5e1', paddingTop: '6px', marginTop: '6px' }}>
-                            <strong style={{ color: '#0f172a' }}>TOTAL BIAYA:</strong>
-                            <strong style={{ color: '#0f172a', fontSize: '12px' }}>{formatRupiah(totalSemua)}</strong>
+
+                        <div style={{ flex: 1, paddingBottom: 4 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.03em', margin: 0 }}>{p.nama}</h2>
+                                        <span className={`badge ${p.status === 'aktif' ? 'badge-success' : p.status === 'lulus' ? 'badge-info' : 'badge-warning'}`}>
+                                            {p.status?.toUpperCase()}
+                                        </span>
+                                        <span className="verif-badge"><CheckCircle2 size={11} /> TERVERIFIKASI</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, flexWrap: 'wrap' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Hash size={14} />{p.no_reg || '-'}</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><IdCard size={14} /><span className="mono">{p.nisn}</span></span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><GraduationCap size={14} />{p.kelas}</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><BookOpen size={14} />{p.jurusan || '-'}</span>
+                                    </div>
+                                </div>
+
+                                <div className="profile-actions">
+                                    {isEditing ? (
+                                        <>
+                                            <button className="btn-action-premium secondary" onClick={handleCancel}>
+                                                <X size={16} /> Batal
+                                            </button>
+                                            <button className="btn-action-premium primary" onClick={handleSave}>
+                                                <Save size={16} /> Simpan
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <button className="btn-action-premium secondary">
+                                                <Printer size={16} /> Cetak Kartu
+                                            </button>
+                                            <button className="btn-action-premium primary" onClick={handleEdit}>
+                                                <Pencil size={16} /> Edit Profil
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    {/* ── Tabs ── */}
+                    <div className="profile-nav-tabs">
+                        {tabs.map(t => (
+                            <button key={t.id} onClick={() => setActiveTab(t.id)}
+                                className={`profile-tab-btn ${activeTab === t.id ? 'active' : ''}`}>
+                                {t.icon} {t.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* ══════════════ TAB: DATA IDENTITAS ══════════════ */}
+                    {activeTab === 'diri' && (
+                        <div className="tab-pane-content fade-in">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                                {/* Card 1 — Identitas Dasar */}
+                                <SectionCard icon={<Shield size={18} />} title="Identitas Dasar" columns={2}>
+                                    <Field label="Nama Lengkap" value={p.nama} editValue={fv('nama')} isEditing={isEditing} onChange={v => handleChange('nama', v)} span={2} />
+                                    <Field label="NIS" value={p.nis} editValue={fv('nis')} isEditing={isEditing} onChange={v => handleChange('nis', v)} />
+                                    <Field label="NISN" value={p.nisn} editValue={fv('nisn')} isEditing={isEditing} onChange={v => handleChange('nisn', v)} />
+                                    <Field label="Jenis Kelamin" value={p.jk === 'L' ? 'Laki-laki' : 'Perempuan'} editValue={fv('jk')} isEditing={isEditing} onChange={v => handleChange('jk', v)} type="select" options={['L', 'P']} displayValue={p.jk === 'L' ? 'Laki-laki' : 'Perempuan'} />
+                                    <Field label="Agama" value={p.agama} editValue={fv('agama')} isEditing={isEditing} onChange={v => handleChange('agama', v)} type="select" options={AGAMA} />
+                                    <Field label="Tempat Lahir" value={p.tempatLahir} editValue={fv('tempatLahir')} isEditing={isEditing} onChange={v => handleChange('tempatLahir', v)} />
+                                    <Field label="Tanggal Lahir" value={p.tglLahir} editValue={fv('tglLahir')} isEditing={isEditing} onChange={v => handleChange('tglLahir', v)} type="date" displayValue={fmtDate(p.tglLahir)} />
+                                    <Field label="Kewarganegaraan" value={p.kewarganegaraan} editValue={fv('kewarganegaraan')} isEditing={isEditing} onChange={v => handleChange('kewarganegaraan', v)} type="select" options={KEWARGANEGARAAN} />
+                                    <Field label="Jurusan" value={p.jurusan} editValue={fv('jurusan')} isEditing={isEditing} onChange={v => handleChange('jurusan', v)} />
+                                    <Field label="Email" value={p.email} editValue={fv('email')} isEditing={isEditing} onChange={v => handleChange('email', v)} type="email" />
+                                    <Field label="Nomor HP" value={p.telp} editValue={fv('telp')} isEditing={isEditing} onChange={v => handleChange('telp', v)} type="tel" />
+                                    <Field label="Asal Sekolah (SMP/MTs)" value={p.asal_sekolah} editValue={fv('asal_sekolah')} isEditing={isEditing} onChange={v => handleChange('asal_sekolah', v)} span={2} />
+
+                                    {/* NIK dengan mask */}
+                                    <div style={{ gridColumn: 'span 1' }}>
+                                        <span className="info-item-label">Nomor Induk Kependudukan (NIK)</span>
+                                        {isEditing ? (
+                                            <input type="text" className="edit-input mono" maxLength={16} value={fv('nik') || ''} onChange={e => handleChange('nik', e.target.value)} />
+                                        ) : (
+                                            <div className="info-item-value">
+                                                <span className="mono">{maskNik(p.nik)}</span>
+                                                <button onClick={() => setShowNik(!showNik)} className="btn-icon" style={{ width: 22, height: 22, padding: 0, marginLeft: 2 }}>
+                                                    {showNik ? <EyeOff size={13} /> : <Eye size={13} />}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Field label="No. Kartu Keluarga" value={p.no_kk} editValue={fv('no_kk')} isEditing={isEditing} onChange={v => handleChange('no_kk', v)} />
+                                    <Field label="Anak Ke-" value={p.anak_ke} editValue={fv('anak_ke')} isEditing={isEditing} onChange={v => handleChange('anak_ke', Number(v))} type="number" />
+                                    <Field label="Jumlah Saudara" value={p.jml_saudara} editValue={fv('jml_saudara')} isEditing={isEditing} onChange={v => handleChange('jml_saudara', Number(v))} type="number" />
+                                    <Field label="Hobby / Kegemaran" value={p.hobby} editValue={fv('hobby')} isEditing={isEditing} onChange={v => handleChange('hobby', v)} />
+                                    <Field label="Cita-cita" value={p.cita_cita} editValue={fv('cita_cita')} isEditing={isEditing} onChange={v => handleChange('cita_cita', v)} />
+                                </SectionCard>
+
+                                {/* Card 2 — Kesehatan */}
+                                <SectionCard icon={<Activity size={18} />} title="Kesehatan" columns={2}>
+                                    <Field label="Berat Badan" value={p.bb} editValue={fv('bb')} isEditing={isEditing} onChange={v => handleChange('bb', Number(v))} type="number" displayValue={`${p.bb || '-'} kg`} />
+                                    <Field label="Tinggi Badan" value={p.tb} editValue={fv('tb')} isEditing={isEditing} onChange={v => handleChange('tb', Number(v))} type="number" displayValue={`${p.tb || '-'} cm`} />
+                                    <Field label="Golongan Darah" value={p.gol_darah} editValue={fv('gol_darah')} isEditing={isEditing} onChange={v => handleChange('gol_darah', v)} type="select" options={GOLDAR} />
+                                    <Field label="Berkebutuhan Khusus" value={p.kebutuhan_khusus} editValue={fv('kebutuhan_khusus')} isEditing={isEditing} onChange={v => handleChange('kebutuhan_khusus', v)}
+                                        type="select" options={['Tidak', 'Tuna Netra', 'Tuna Rungu', 'Tuna Wicara', 'Lainnya']} />
+                                    <Field label="Riwayat Penyakit" value={p.riwayat_penyakit} editValue={fv('riwayat_penyakit')} isEditing={isEditing} onChange={v => handleChange('riwayat_penyakit', v)} span={2} type="textarea" />
+                                </SectionCard>
+
+                                {/* Card 3 — Domisili */}
+                                <SectionCard icon={<Home size={18} />} title="Domisili / Tempat Tinggal" columns={3}>
+                                    <Field label="Alamat Jalan" value={p.alamat} editValue={fv('alamat')} isEditing={isEditing} onChange={v => handleChange('alamat', v)} span={3} />
+                                    <Field label="RT" value={p.rt} editValue={fv('rt')} isEditing={isEditing} onChange={v => handleChange('rt', v)} />
+                                    <Field label="RW" value={p.rw} editValue={fv('rw')} isEditing={isEditing} onChange={v => handleChange('rw', v)} />
+                                    <Field label="Kode Pos" value={p.kodepos} editValue={fv('kodepos')} isEditing={isEditing} onChange={v => handleChange('kodepos', v)} />
+                                    <Field label="Desa / Kelurahan" value={p.kelurahan} editValue={fv('kelurahan')} isEditing={isEditing} onChange={v => handleChange('kelurahan', v)} />
+                                    <Field label="Kecamatan" value={p.kecamatan} editValue={fv('kecamatan')} isEditing={isEditing} onChange={v => handleChange('kecamatan', v)} />
+                                    <Field label="Kabupaten / Kota" value={p.kabupaten} editValue={fv('kabupaten')} isEditing={isEditing} onChange={v => handleChange('kabupaten', v)} />
+                                    <Field label="Provinsi" value={p.provinsi} editValue={fv('provinsi')} isEditing={isEditing} onChange={v => handleChange('provinsi', v)} />
+                                    <Field label="Jenis Tinggal" value={p.jenis_tinggal} editValue={fv('jenis_tinggal')} isEditing={isEditing} onChange={v => handleChange('jenis_tinggal', v)} type="select" options={JENIS_TINGGAL} />
+                                </SectionCard>
+
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ══════════════ TAB: ORANG TUA & WALI ══════════════ */}
+                    {activeTab === 'ortu' && (
+                        <div className="tab-pane-content fade-in">
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+                                <ParentSection
+                                    title="Biodata Ayah" icon={<Users size={17} />}
+                                    prefix="ayah" data={p.ayah}
+                                    isEditing={isEditing} formData={form} onChange={handleChange}
+                                    formatRupiah={formatRupiah}
+                                />
+                                <ParentSection
+                                    title="Biodata Ibu" icon={<Heart size={17} />}
+                                    prefix="ibu" data={p.ibu}
+                                    isEditing={isEditing} formData={form} onChange={handleChange}
+                                    formatRupiah={formatRupiah}
+                                />
+                                <ParentSection
+                                    title="Biodata Wali" icon={<Shield size={17} />}
+                                    prefix="wali" data={p.wali_detail}
+                                    isEditing={isEditing} formData={form} onChange={handleChange}
+                                    formatRupiah={formatRupiah}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ══════════════ TAB: BERKAS DIGITAL ══════════════ */}
+                    {activeTab === 'dokumen' && (
+                        <div className="tab-pane-content fade-in">
+                            {/* Summary badges */}
+                            <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+                                {[
+                                    { label: 'Terverifikasi', cls: 'badge-success', count: (p.dokumen || []).filter(d => d.status === 'Terverifikasi').length },
+                                    { label: 'Belum Verif', cls: 'badge-warning', count: (p.dokumen || []).filter(d => d.status === 'Belum Verifikasi').length },
+                                    { label: 'Tidak Ada', cls: 'badge-secondary', count: (p.dokumen || []).filter(d => d.status === 'Tidak Ada').length },
+                                ].map(b => (
+                                    <span key={b.label} className={`badge ${b.cls}`}>
+                                        {b.label}: {b.count}
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="document-grid">
+                                {(p.dokumen || []).map(doc => (
+                                    <DocumentCard key={doc.id} doc={doc} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

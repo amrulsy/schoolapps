@@ -21,6 +21,7 @@ const menuSections = [
         label: 'KEUANGAN',
         items: [
             { to: '/tagihan', icon: FileText, text: 'Tagihan' },
+            { to: '/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
             { to: '/pembayaran', icon: CreditCard, text: 'Pembayaran (POS)' },
             { to: '/riwayat', icon: History, text: 'Riwayat Transaksi' },
             { to: '/arus-kas', icon: BookOpen, text: 'Arus Kas' },

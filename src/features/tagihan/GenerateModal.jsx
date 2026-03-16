@@ -64,7 +64,7 @@ export default function GenerateModal({ allKelas, categories, MONTHS, formatRupi
                 <div className="form-group">
                     <label>Kategori Tagihan *</label>
                     <select className="form-control" value={kategoriId} onChange={e => setKategoriId(e.target.value)}>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.nama} — {formatRupiah(c.nominal)}</option>)}
+                        {categories.map(c => <option key={c.id} value={c.id}>[{c.kode}] {c.nama} — {formatRupiah(c.nominal)}</option>)}
                     </select>
                 </div>
                 <div className="form-group">

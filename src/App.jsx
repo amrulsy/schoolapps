@@ -18,6 +18,7 @@ import PembayaranPage from './pages/PembayaranPage'
 import RiwayatTransaksiPage from './pages/RiwayatTransaksiPage'
 import ArusKasPage from './pages/ArusKasPage'
 import LaporanPage from './pages/LaporanPage'
+import KartuSppPage from './pages/KartuSppPage'
 import UsersPage from './pages/UsersPage'
 import PengaturanPage from './pages/PengaturanPage'
 
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="/riwayat" element={<RiwayatTransaksiPage />} />
             <Route path="/arus-kas" element={<ArusKasPage />} />
             <Route path="/laporan" element={<LaporanPage />} />
+            <Route path="/kartu-spp" element={<KartuSppPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/pengaturan" element={<PengaturanPage />} />
           </Routes>

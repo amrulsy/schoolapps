@@ -4,110 +4,175 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, var(--primary-900) 0%, #0F172A 50%, var(--primary-800) 100%);
+    background: linear-gradient(135deg, var(--primary-900) 0%, #0A0F1E 40%, #0C1A38 70%, var(--primary-800) 100%);
     position: relative;
     overflow: hidden;
 }
 
+/* Blob 1 — Top Right */
 .login-page::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.18), transparent 65%);
+    top: -150px;
+    right: -150px;
+    border-radius: 50%;
+    animation: float-blob 8s ease-in-out infinite;
+}
+
+/* Blob 2 — Bottom Left */
+.login-page::after {
     content: '';
     position: absolute;
     width: 500px;
     height: 500px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%);
-    top: -100px;
-    right: -100px;
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.14), transparent 65%);
+    bottom: -120px;
+    left: -120px;
     border-radius: 50%;
+    animation: float-blob 10s ease-in-out infinite reverse;
 }
 
-.login-page::after {
+/* Blob 3 — Center — via a wrapper pseudo element trick */
+.login-page .login-card::before {
     content: '';
     position: absolute;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(20, 184, 166, 0.1), transparent 70%);
-    bottom: -100px;
-    left: -100px;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.12), transparent 65%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     border-radius: 50%;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes float-blob {
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    33% {
+        transform: translate(20px, -30px) scale(1.05);
+    }
+
+    66% {
+        transform: translate(-15px, 20px) scale(0.95);
+    }
 }
 
 .login-card {
     background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-xl);
-    padding: 40px;
+    border-radius: var(--radius-2xl);
+    padding: 44px 40px;
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
     position: relative;
     z-index: 1;
     color: #fff;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .login-card .brand {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 36px;
 }
 
 .login-card .brand .logo {
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
     background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.4rem;
-    margin: 0 auto 12px;
+    font-size: 1.7rem;
+    margin: 0 auto 16px;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    animation: logo-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+}
+
+@keyframes logo-pop {
+    from {
+        transform: scale(0.7) rotate(-10deg);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
 }
 
 .login-card .brand h1 {
-    font-size: 1.3rem;
-    font-weight: 700;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    -webkit-text-fill-color: #fff;
 }
 
 .login-card .brand p {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 4px;
+    color: rgba(255, 255, 255, 0.45);
+    margin-top: 6px;
+    line-height: 1.7;
+    font-weight: 400;
 }
 
 .login-card .form-group label {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 600;
+    font-size: 0.78rem;
 }
 
 .login-card .form-control {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
     color: #fff;
+    padding: 11px 14px;
 }
 
 .login-card .form-control:focus {
     border-color: var(--primary-400);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
 .login-card .form-control::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.25);
 }
 
 .login-card .btn-primary {
     width: 100%;
-    padding: 12px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    padding: 13px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-700));
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+    margin-top: 4px;
 }
 
 .login-card .btn-primary:hover {
-    background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+    background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+    transform: translateY(-1px);
 }
 
 .login-card .footer {
     text-align: center;
-    margin-top: 24px;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.3);
+    margin-top: 28px;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.25);
 }
 
 .password-field {
@@ -121,7 +186,12 @@
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.35);
     cursor: pointer;
-    padding: 2px;
+    padding: 4px;
+    transition: color 0.15s;
+}
+
+.password-field .toggle-pw:hover {
+    color: rgba(255, 255, 255, 0.7);
 }

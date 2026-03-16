@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useApp } from '../context/AppContext'
 import Modal from '../components/Modal'
 import { useReactToPrint } from 'react-to-print'
@@ -10,7 +10,7 @@ import CartSidebar from '../features/pembayaran/CartSidebar'
 import ReceiptModal from '../features/pembayaran/ReceiptModal'
 
 export default function PembayaranPage() {
-    const { students, bills, formatRupiah, processPayment, currentUser } = useApp()
+    const { students, bills, formatRupiah, processPayment, currentUser, tahunAjaran: activeTahunAjaran } = useApp()
     const [search, setSearch] = useState('')
     const [selectedStudent, setSelectedStudent] = useState(null)
     const [selectedBills, setSelectedBills] = useState([])
@@ -26,10 +26,21 @@ export default function PembayaranPage() {
         ? students.filter(s => s.status === 'aktif' && (s.nama.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search))).slice(0, 5)
         : []
 
-    // Get unpaid bills for selected student
+    // Get unpaid bills for selected student (for cart)
     const studentBills = selectedStudent
         ? bills.filter(b => b.siswaId === selectedStudent.id && b.status === 'belum')
         : []
+
+    // Agrupasi by Category for Summary Table (all bills in active TA)
+    const activeBillsForSummary = selectedStudent
+        ? bills.filter(b => b.siswaId === selectedStudent.id && b.tahunAjaran === activeTahunAjaran)
+        : []
+
+    const categoriesMap = {}
+    activeBillsForSummary.forEach(b => {
+        if (!categoriesMap[b.kategori]) categoriesMap[b.kategori] = []
+        categoriesMap[b.kategori].push(b)
+    })
 
     const totalSelected = studentBills
         .filter(b => selectedBills.includes(b.id))
@@ -109,10 +120,21 @@ export default function PembayaranPage() {
         searchRef.current?.focus()
     }, [])
 
+    // Auto-sync amount field with total selected (but still editable)
+    useEffect(() => {
+        if (totalSelected > 0) {
+            setAmountPaid(totalSelected.toString())
+        } else {
+            setAmountPaid('')
+        }
+    }, [totalSelected])
+
     // Auto-focus amount input when bills are selected
     useEffect(() => {
         if (selectedBills.length > 0 && amountRef.current) {
             amountRef.current.focus()
+            // Optional: select text to make editing easier
+            amountRef.current.select()
         }
     }, [selectedBills.length])
 
@@ -201,6 +223,59 @@ export default function PembayaranPage() {
                                 <span style={{ color: 'var(--danger-600)', fontWeight: 600, fontSize: '0.85rem' }}>
                                     Total Tunggakan: <span className="mono">{formatRupiah(studentBills.reduce((s, b) => s + b.nominal, 0))}</span> ({studentBills.length} item)
                                 </span>
+                            </div>
+                        </div>
+
+                        {/* Billing Summary Table (POS Enhancement) */}
+                        <div className="card" style={{ padding: '16px 20px' }}>
+                            <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}>
+                                <CreditCard size={18} /> Rincian Tagihan ({activeTahunAjaran})
+                            </h4>
+                            <div style={{ maxHeight: '400px', overflowY: 'auto', margin: '0 -20px' }}>
+                                <table className="compact-table" style={{ width: '100%', fontSize: '0.8rem' }}>
+                                    <thead>
+                                        <tr style={{ background: 'var(--gray-50)', position: 'sticky', top: 0 }}>
+                                            <th style={{ padding: '8px 20px', textAlign: 'left' }}>Item / Bulan</th>
+                                            <th style={{ padding: '8px 20px', textAlign: 'right' }}>Nominal</th>
+                                            <th style={{ padding: '8px 20px', textAlign: 'center' }}>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {Object.keys(categoriesMap).map(kategori => (
+                                            <React.Fragment key={kategori}>
+                                                <tr style={{ background: 'var(--gray-50)' }}>
+                                                    <td colSpan="3" style={{ padding: '4px 20px', fontWeight: 700, fontSize: '0.75rem', color: 'var(--primary-600)' }}>
+                                                        {kategori.toUpperCase()}
+                                                    </td>
+                                                </tr>
+                                                {categoriesMap[kategori].map(b => (
+                                                    <tr key={b.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                                        <td style={{ padding: '8px 20px' }}>{b.bulan} {b.tahun}</td>
+                                                        <td style={{ padding: '8px 20px', textAlign: 'right' }} className="mono">
+                                                            {formatRupiah(b.nominal)}
+                                                        </td>
+                                                        <td style={{ padding: '8px 20px', textAlign: 'center' }}>
+                                                            <span style={{
+                                                                color: b.status === 'lunas' ? 'var(--success-600)' : 'var(--danger-600)',
+                                                                fontWeight: 600,
+                                                                fontSize: '0.7rem'
+                                                            }}>
+                                                                {b.status.toUpperCase()}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
+                                        ))}
+                                        {Object.keys(categoriesMap).length === 0 && (
+                                            <tr>
+                                                <td colSpan="3" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                                    Belum ada tagihan untuk tahun ajaran ini.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
