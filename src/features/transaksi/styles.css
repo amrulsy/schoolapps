@@ -1,0 +1,41 @@
+/* --- Cash Flow Summary Cards --- */
+.cashflow-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.cashflow-card {
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+}
+
+.cashflow-card .cf-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cashflow-card .cf-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.cashflow-card.income .cf-value {
+    color: var(--success-600);
+}
+
+.cashflow-card.expense .cf-value {
+    color: var(--danger-500);
+}
+
+.cashflow-card.balance .cf-value {
+    color: var(--primary-600);
+}

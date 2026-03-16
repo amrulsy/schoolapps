@@ -1,0 +1,56 @@
+/* ============================================
+   SIAS SMK PPRQ — Design System & Global CSS
+   ============================================ */
+
+/* Core Styles */
+@import url('./styles/variables.css');
+@import url('./styles/base.css');
+@import url('./styles/layout.css');
+@import url('./styles/components.css');
+
+/* Feature-specific Styles */
+@import url('./features/auth/styles.css');
+@import url('./features/pembayaran/styles.css');
+@import url('./features/siswa/styles.css');
+@import url('./features/transaksi/styles.css');
+
+/* Global Utilities & Hacks */
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.mr-2 {
+  margin-right: 8px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.w-full {
+  width: 100%;
+}

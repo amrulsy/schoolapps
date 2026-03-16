@@ -1,0 +1,192 @@
+/* --- Nota / Receipt --- */
+.receipt {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    max-width: 380px;
+    margin: 0 auto;
+    padding: 24px;
+    background: var(--bg-card);
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+}
+
+.receipt .receipt-header {
+    text-align: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.receipt .receipt-header h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+}
+
+.receipt .receipt-header p {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.receipt .receipt-info {
+    margin-bottom: 12px;
+    font-size: 0.75rem;
+}
+
+.receipt .receipt-info span {
+    display: inline-block;
+    width: 100px;
+    color: var(--text-secondary);
+}
+
+.receipt .receipt-items {
+    border-top: 1px dashed var(--border-color);
+    border-bottom: 1px dashed var(--border-color);
+    padding: 12px 0;
+    margin-bottom: 12px;
+}
+
+.receipt .receipt-items .item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+}
+
+.receipt .receipt-total {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 4px 0;
+}
+
+.receipt .receipt-footer {
+    text-align: center;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-color);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* --- POS specific --- */
+.pos-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    height: calc(100vh - var(--header-height) - 48px);
+}
+
+.pos-student {
+    overflow-y: auto;
+}
+
+.pos-cart {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.pos-cart-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+.pos-cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.pos-cart-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.pos-cart-item:hover {
+    background: var(--bg-hover);
+}
+
+.pos-cart-item.selected {
+    background: var(--primary-50);
+    border-color: var(--primary-200);
+}
+
+.pos-cart-item .item-info {
+    flex: 1;
+}
+
+.pos-cart-item .item-info .item-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.pos-cart-item .item-info .item-period {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.pos-cart-item .item-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.pos-cart-footer {
+    padding: 20px;
+    border-top: 2px solid var(--border-color);
+}
+
+.pos-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.pos-total-row .label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.pos-total-row .amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-600);
+}
+
+.pos-pay-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--success-500), #16A34A);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+}
+
+.pos-pay-btn:hover {
+    background: linear-gradient(135deg, #16A34A, #15803D);
+}
+
+.pos-pay-btn:disabled {
+    background: var(--gray-300);
+    cursor: not-allowed;
+}
