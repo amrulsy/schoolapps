@@ -9,12 +9,13 @@
  * @param {string} htmlContent - HTML string konten yang akan dicetak
  * @param {string} title - Judul dokumen cetak
  * @param {string} [extraCss=''] - CSS tambahan opsional
+ * @returns {boolean} - True jika popup berhasil dibuka, false jika diblokir
  */
 export function printHtml(htmlContent, title = 'Cetak', extraCss = '') {
     const popup = window.open('', '_blank', 'width=800,height=600,scrollbars=yes')
     if (!popup) {
-        alert('Popup diblokir. Mohon izinkan popup dari halaman ini untuk mencetak.')
-        return
+        console.error('Popup diblokir. Mohon izinkan popup dari halaman ini untuk mencetak.')
+        return false // Let the caller handle the UI alert if needed
     }
 
     popup.document.write(`<!DOCTYPE html>
@@ -43,6 +44,7 @@ export function printHtml(htmlContent, title = 'Cetak', extraCss = '') {
 </body>
 </html>`)
     popup.document.close()
+    return true
 }
 
 /**
@@ -107,7 +109,7 @@ export function printReceipt(receipt, formatRupiah) {
             Metode: Tunai &nbsp;|&nbsp; ${receipt.status === 'voided' ? 'NOTA DIBATALKAN' : 'Terima kasih 🙏'}
         </p>
     `
-    printHtml(html, `Nota ${receipt.invoiceNo}`)
+    return printHtml(html, `Nota ${receipt.invoiceNo}`)
 }
 
 /**
@@ -171,5 +173,5 @@ export function printKartuSPP(student, categoriesMap, MONTHS, formatRupiah, tahu
             </div>
         </div>
     `
-    printHtml(html, `Kartu SPP - ${student.nama}`)
+    return printHtml(html, `Kartu SPP - ${student.nama}`)
 }

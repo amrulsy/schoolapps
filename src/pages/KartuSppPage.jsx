@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { downloadFile } from '../utils/downloadHelper'
 import { printKartuSPP } from '../utils/printHelper'
+import { useCustomAlert } from '../hooks/useCustomAlert'
 import SiswaSppDetail from '../features/pembayaran/SiswaSppDetail'
 
 export default function KartuSppPage() {
@@ -13,6 +14,7 @@ export default function KartuSppPage() {
         students, bills, units, tahunAjaranList, tahunAjaran: activeTahunAjaran,
         formatRupiah, MONTHS, addToast
     } = useApp()
+    const { showError } = useCustomAlert()
 
     const [search, setSearch] = useState('')
     const [filterKelas, setFilterKelas] = useState('')
@@ -136,7 +138,10 @@ export default function KartuSppPage() {
                 categoriesMap[b.kategori].push(b)
             })
 
-            printKartuSPP(student, categoriesMap, MONTHS, formatRupiah, filterTahun)
+            const success = printKartuSPP(student, categoriesMap, MONTHS, formatRupiah, filterTahun)
+            if (success === false) {
+                showError('Popup Diblokir', 'Mohon izinkan popup di browser Anda untuk mencetak kartu SPP.')
+            }
         })
     }
 

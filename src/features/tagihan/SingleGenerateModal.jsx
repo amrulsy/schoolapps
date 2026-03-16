@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import Modal from '../../components/Modal'
 import { AlertCircle } from 'lucide-react'
+import { useCustomAlert } from '../../hooks/useCustomAlert'
 
 export default function SingleGenerateModal({ students, categories, MONTHS, formatRupiah, addToast, onGenerate, onClose }) {
+    const { showError } = useCustomAlert()
     const activeStudents = students.filter(s => s.status === 'aktif')
     const [siswaId, setSiswaId] = useState(activeStudents[0]?.id || '')
     const [kategoriId, setKategoriId] = useState(categories[0]?.id || 0)
@@ -22,7 +24,7 @@ export default function SingleGenerateModal({ students, categories, MONTHS, form
     const handleGenerate = () => {
         if (!siswaId) return
         if (isCustom && (!customName || Number(customNominal) <= 0)) {
-            addToast('warning', 'Validasi Gagal', 'Nama kategori kustom dan nominal harus diisi dengan benar.')
+            showError('Validasi Gagal', 'Nama kategori kustom dan nominal harus diisi dengan benar.')
             return
         }
 

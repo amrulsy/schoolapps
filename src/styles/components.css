@@ -586,6 +586,16 @@ tbody tr:hover {
     border-left: 4px solid var(--primary-500);
 }
 
+/* --- SweetAlert2 Customizations --- */
+.swal-custom-popup {
+    border-radius: 12px !important;
+    font-family: inherit !important;
+}
+
+.swal2-actions {
+    gap: 12px;
+}
+
 .toast .toast-message {
     flex: 1;
     font-size: 0.85rem;

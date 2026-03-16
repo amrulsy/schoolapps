@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState'
 import { downloadFile } from '../utils/downloadHelper'
 import { useDropzone } from 'react-dropzone'
 import { Search, Plus, Upload, Download, Edit2, Trash2, Users, AlertTriangle, Eye } from 'lucide-react'
+import { useCustomAlert } from '../hooks/useCustomAlert'
 
 // Features
 import SiswaForm from '../features/siswa/SiswaForm'
@@ -13,6 +14,7 @@ import ImportDropzoneModal from '../features/siswa/ImportDropzoneModal'
 
 export default function SiswaPage() {
     const { students, addStudent, updateStudent, deleteStudent, units, formatRupiah, addToast } = useApp()
+    const { confirmDelete } = useCustomAlert()
     const [search, setSearch] = useState('')
     const [filterKelas, setFilterKelas] = useState('')
     const [filterStatus, setFilterStatus] = useState('semua')
@@ -50,8 +52,12 @@ export default function SiswaPage() {
         setShowModal(true)
     }
 
-    const handleDelete = (student) => {
-        if (confirm(`Hapus data siswa "${student.nama}"?`)) {
+    const handleDelete = async (student) => {
+        const isConfirmed = await confirmDelete(
+            `Hapus Siswa "${student.nama}"?`,
+            "Data profil dan seluruh riwayat tagihan siswa ini akan dihapus secara permanen."
+        )
+        if (isConfirmed) {
             deleteStudent(student.id)
         }
     }

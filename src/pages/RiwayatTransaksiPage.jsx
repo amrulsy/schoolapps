@@ -6,9 +6,11 @@ import { useReactToPrint } from 'react-to-print'
 import { downloadFile } from '../utils/downloadHelper'
 import { FileText, Printer, FileDown, RotateCcw, Search, Eye } from 'lucide-react'
 import ReceiptReprintModal from '../features/transaksi/ReceiptReprintModal'
+import { useCustomAlert } from '../hooks/useCustomAlert'
 
 export default function RiwayatTransaksiPage() {
     const { transactions, revertTransaction, formatRupiah, students } = useApp()
+    const { confirmDelete } = useCustomAlert()
     const [search, setSearch] = useState('')
     const [page, setPage] = useState(1)
     const [receipt, setReceipt] = useState(null)
@@ -28,8 +30,12 @@ export default function RiwayatTransaksiPage() {
         setReceipt({ ...tx, student })
     }
 
-    const handleVoid = (tx) => {
-        if (confirm(`Apakah Anda yakin ingin membatalkan transaksi ${tx.invoiceNo} dari ${tx.siswaName}?\n\nTagihan akan dikembalikan menjadi 'Belum Lunas' dan kas akan ditarik. Tindakan ini tidak dapat dibatalkan.`)) {
+    const handleVoid = async (tx) => {
+        const isConfirmed = await confirmDelete(
+            `Batalkan Transaksi ${tx.invoiceNo}?`,
+            `Dibatalkan oleh: ${tx.siswaName}\n\nTagihan akan dikembalikan menjadi 'Belum Lunas' dan kas akan ditarik. Tindakan ini tidak dapat dibatalkan.`
+        )
+        if (isConfirmed) {
             revertTransaction(tx.id)
         }
     }

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
+import { useCustomAlert } from '../hooks/useCustomAlert'
 import Modal from '../components/Modal'
 import { Plus, Edit2, Trash2, Info } from 'lucide-react'
 
 export default function KategoriTagihanPage() {
     const { categories, addCategory, deleteCategory } = useApp()
     const { formatRupiah } = useApp()
+    const { confirmDelete } = useCustomAlert()
     const [showModal, setShowModal] = useState(false)
 
     const handleAdd = (data) => {
@@ -13,8 +15,12 @@ export default function KategoriTagihanPage() {
         setShowModal(false)
     }
 
-    const handleDelete = (cat) => {
-        if (confirm(`Hapus kategori "${cat.nama}"?`)) {
+    const handleDelete = async (cat) => {
+        const isConfirmed = await confirmDelete(
+            `Hapus Kategori "${cat.nama}"?`,
+            "Tagihan yang sudah dibuat dengan kategori ini mungkin akan terpengaruh."
+        )
+        if (isConfirmed) {
             deleteCategory(cat.id)
         }
     }

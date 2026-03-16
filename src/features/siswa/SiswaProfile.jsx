@@ -1,14 +1,7 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../../context/AppContext'
-import {
-    ArrowLeft, User, Users, FileText,
-    Phone, GraduationCap,
-    IdCard, Heart, Wallet, FileCheck, Search, Download,
-    Shield, Activity, Home, Hash, Eye, EyeOff,
-    CheckCircle2, Pencil, Printer, Upload, Save, X,
-    Droplets, BookOpen, Star, MapPin, Globe, Book,
-    AlertCircle, Info, ChevronDown
-} from 'lucide-react'
+import { useCustomAlert } from '../../hooks/useCustomAlert'
+import { User, Phone, MapPin, Calendar, FileText, Download, Search, Upload, CheckCircle2, AlertCircle, Briefcase, GraduationCap, Users, Shield, ArrowLeft, HeartPulse, CreditCard, Save, X, Edit3, Trash2, IdCard, BookOpen } from 'lucide-react'
 
 /* ─────────────── helpers ─────────────── */
 const fmtDate = (d) => {
@@ -156,7 +149,8 @@ function DocumentCard({ doc }) {
    MAIN COMPONENT
 ═══════════════════════════════════════════════ */
 export default function SiswaProfile({ data, onClose }) {
-    const { formatRupiah, updateStudent, addToast } = useApp()
+    const { formatRupiah, updateStudent, addToast, deleteStudent } = useApp()
+    const { confirmDelete } = useCustomAlert()
     const [activeTab, setActiveTab] = useState('diri')
     const [showNik, setShowNik] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
@@ -255,24 +249,27 @@ export default function SiswaProfile({ data, onClose }) {
                                         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><BookOpen size={14} />{p.jurusan || '-'}</span>
                                     </div>
                                 </div>
-
-                                <div className="profile-actions">
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                     {isEditing ? (
                                         <>
-                                            <button className="btn-action-premium secondary" onClick={handleCancel}>
-                                                <X size={16} /> Batal
-                                            </button>
-                                            <button className="btn-action-premium primary" onClick={handleSave}>
-                                                <Save size={16} /> Simpan
-                                            </button>
+                                            <button className="btn btn-primary" onClick={handleSave} style={{ fontSize: '0.875rem' }}><Save size={16} /> Simpan Perubahan</button>
+                                            <button className="btn btn-secondary" onClick={handleCancel} style={{ fontSize: '0.875rem' }}><X size={16} /> Batal</button>
                                         </>
                                     ) : (
                                         <>
-                                            <button className="btn-action-premium secondary">
-                                                <Printer size={16} /> Cetak Kartu
-                                            </button>
-                                            <button className="btn-action-premium primary" onClick={handleEdit}>
-                                                <Pencil size={16} /> Edit Profil
+                                            <button className="btn btn-primary" onClick={handleEdit} style={{ fontSize: '0.875rem' }}><Edit3 size={16} /> Edit Profil</button>
+                                            <button className="btn btn-outline" style={{ fontSize: '0.875rem', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+                                                onClick={async () => {
+                                                    const isConfirmed = await confirmDelete(
+                                                        `Hapus Siswa "${p.nama}"?`,
+                                                        "Tindakan ini akan menghapus data siswa beserta tagihannya secara permanen."
+                                                    )
+                                                    if (isConfirmed) {
+                                                        deleteStudent(p.id)
+                                                        onClose()
+                                                    }
+                                                }}>
+                                                <Trash2 size={16} /> Hapus
                                             </button>
                                         </>
                                     )}
