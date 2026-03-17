@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Play, X } from 'lucide-react'
 import { usePortal } from '../context/PortalContext'
 
 export default function PortalHome() {
@@ -8,6 +9,7 @@ export default function PortalHome() {
     const [posts, setPosts] = useState([])
     const [banners, setBanners] = useState([])
     const [loading, setLoading] = useState(true)
+    const [isVideoOpen, setIsVideoOpen] = useState(false)
 
     useEffect(() => {
         async function loadData() {
@@ -47,28 +49,78 @@ export default function PortalHome() {
                 </div>
 
                 <div className="portal-hero-content hero-centered">
-                    <div className="portal-hero-badge">
-                        🎓 Penerimaan Peserta Didik Baru {loading ? '...' : (stats?.ppdb_year || '2026/2027')}
-                    </div>
-                    <h1 className="hero-majestic">
-                        Raih Masa Depan <br />
-                        <span className="portal-text-gradient">Cemerlang Bersama</span> <br />
-                        SMK PPRQ
-                    </h1>
-                    <p className="portal-hero-subtitle subtitle-majestic">
-                        Sekolah Menengah Kejuruan yang mencetak lulusan siap kerja,
-                        berkompetensi tinggi, dan berakhlak mulia. Bergabunglah bersama kami!
-                    </p>
-                    <div className="portal-hero-actions actions-centered">
-                        <Link to="/portal/ppdb" className="portal-btn portal-btn-primary portal-btn-lg">
-                            ✨ Daftar Sekarang
-                        </Link>
-                        <Link to="/portal/informasi" className="portal-btn portal-btn-outline portal-btn-lg">
-                            📖 Pelajari Lebih Lanjut
-                        </Link>
+                    <div className="portal-hero-grid">
+                        <div className="portal-hero-text-column">
+                            <div className="portal-hero-badge">
+                                🎓 Penerimaan Peserta Didik Baru {loading ? '...' : (stats?.ppdb_year || '2026/2027')}
+                            </div>
+                            <h1 className="hero-majestic">
+                                Raih Masa Depan <br />
+                                <span className="portal-text-gradient">Cemerlang Bersama</span> <br />
+                                SMK PPRQ
+                            </h1>
+                            <p className="portal-hero-subtitle subtitle-majestic">
+                                Sekolah Menengah Kejuruan yang mencetak lulusan siap kerja,
+                                berkompetensi tinggi, dan berakhlak mulia. Bergabunglah bersama kami!
+                            </p>
+                            <div className="portal-hero-actions actions-centered">
+                                <Link to="/portal/ppdb" className="portal-btn portal-btn-primary portal-btn-lg">
+                                    ✨ Daftar Sekarang
+                                </Link>
+                                <Link to="/portal/informasi" className="portal-btn portal-btn-outline portal-btn-lg">
+                                    📖 Pelajari Lebih Lanjut
+                                </Link>
+                                <button
+                                    onClick={() => setIsVideoOpen(true)}
+                                    className="portal-btn portal-btn-video portal-btn-lg portal-btn-mobile-only"
+                                >
+                                    <Play size={20} fill="currentColor" />
+                                    <span>Tonton Video</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="portal-hero-video-column">
+                            <div className="portal-video-frame-wrapper">
+                                <div className="portal-video-frame">
+                                    <iframe
+                                        width="100%"
+                                        height="100%"
+                                        src="https://www.youtube.com/embed/8y1PekgEC6E?autoplay=0&mute=0"
+                                        title="School Profile Video"
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    ></iframe>
+                                </div>
+                                <div className="portal-video-glow" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
+
+            {/* ====== VIDEO MODAL ====== */}
+            {isVideoOpen && (
+                <div className="portal-video-modal" onClick={() => setIsVideoOpen(false)}>
+                    <div className="portal-video-modal-content" onClick={e => e.stopPropagation()}>
+                        <button className="portal-video-close" onClick={() => setIsVideoOpen(false)}>
+                            <X size={24} />
+                        </button>
+                        <div className="portal-video-player-container">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                src="https://www.youtube.com/embed/8y1PekgEC6E?autoplay=1"
+                                title="School Profile Video"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ====== PARTNER LOGOS SECTION ====== */}
             <section className="portal-section" style={{ paddingTop: 0, paddingBottom: 0, overflow: 'visible', zIndex: 30 }}>
