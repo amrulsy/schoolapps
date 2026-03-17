@@ -7,7 +7,7 @@ import {
     ACTIVITY_LOG,
 } from '../data/seedData'
 
-const API_BASE = 'http://localhost:3000/api'
+const API_BASE = `http://${window.location.hostname}:3000/api`
 
 export function AppProvider({ children }) {
     const [theme, setTheme] = useState('light')

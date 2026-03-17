@@ -40,6 +40,17 @@ const menuSections = [
             { to: '/users', icon: UserCog, text: 'Manajemen User' },
             { to: '/pengaturan', icon: Settings, text: 'Pengaturan' },
         ]
+    },
+    {
+        label: 'KONTEN PORTAL (CMS)',
+        items: [
+            { to: '/cms/banners', icon: FileText, text: 'Banners' },
+            { to: '/cms/posts', icon: FileText, text: 'Pengumuman & Berita' },
+            { to: '/cms/pages', icon: FileText, text: 'Halaman Statis' },
+            { to: '/cms/ppdb', icon: ClipboardList, text: 'Pendaftaran PPDB' },
+            { to: '/cms/settings', icon: Settings, text: 'Pengaturan Portal' },
+            { to: '/cms/contacts', icon: Users, text: 'Pesan Kontak' },
+        ]
     }
 ]
 
