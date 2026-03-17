@@ -68,36 +68,36 @@ export default function ReceiptModal({ receipt, formatRupiah, onClose }) {
 
                 <div className="receipt-info">
                     <div><span>No. Nota</span>: {receipt.invoiceNo}</div>
-                    <div><span>Tanggal</span>: {new Date(receipt.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                    <div><span>Tanggal</span>: {receipt.tanggal ? new Date(receipt.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</div>
                     <div><span>Kasir</span>: {receipt.kasir}</div>
                 </div>
 
                 <div className="receipt-info" style={{ borderTop: '1px dashed #ccc', paddingTop: 8 }}>
-                    <div><span>Siswa</span>: {receipt.student?.nama}</div>
-                    <div><span>NISN</span>: {receipt.student?.nisn}</div>
-                    <div><span>Kelas</span>: {receipt.student?.kelas}</div>
+                    <div><span>Siswa</span>: {receipt?.student?.nama || '-'}</div>
+                    <div><span>NISN</span>: {receipt?.student?.nisn || '-'}</div>
+                    <div><span>Kelas</span>: {receipt?.student?.kelas || '-'}</div>
                 </div>
 
                 <div className="receipt-items">
-                    {receipt.items.map(item => (
+                    {(receipt?.items || []).map(item => (
                         <div key={item.id} className="item">
-                            <span>{item.kategori} {item.bulan}'{item.tahun.toString().slice(-2)} ({item.tahunAjaran})</span>
-                            <span>{formatRupiah(item.nominal)}</span>
+                            <span>{item.kategori_nama || item.kategori || 'Tagihan'} ({item.kelas_nama || '-'}) {item.bulan}'{(item.tahun || '').toString().slice(-2)} ({item.tahun_ajaran || item.tahunAjaran || '-'})</span>
+                            <span>{formatRupiah(Number(item.nominal || 0))}</span>
                         </div>
                     ))}
                 </div>
 
                 <div className="receipt-total">
                     <span>TOTAL</span>
-                    <span>{formatRupiah(receipt.total)}</span>
+                    <span>{formatRupiah(Number(receipt?.total || 0))}</span>
                 </div>
                 <div className="item" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#666' }}>
                     <span>Uang Diterima</span>
-                    <span>{formatRupiah(receipt.amountPaid)}</span>
+                    <span>{formatRupiah(Number(receipt?.amountPaid || 0))}</span>
                 </div>
                 <div className="item" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#666' }}>
                     <span>Kembalian</span>
-                    <span>{formatRupiah(receipt.change)}</span>
+                    <span>{formatRupiah(Number(receipt?.change || 0))}</span>
                 </div>
 
                 <div className="receipt-footer">

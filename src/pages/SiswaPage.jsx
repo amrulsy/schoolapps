@@ -221,9 +221,11 @@ export default function SiswaPage() {
                                         <td>{s.jk}</td>
                                         <td>{statusBadge(s.status)}</td>
                                         <td>
-                                            <button className="btn-icon" onClick={() => setViewData(s)} title="Lihat Profil"><Eye size={16} /></button>
-                                            <button className="btn-icon" onClick={() => handleEdit(s)} title="Edit"><Edit2 size={16} /></button>
-                                            <button className="btn-icon danger" onClick={() => handleDelete(s)} title="Hapus"><Trash2 size={16} /></button>
+                                            <div className="action-group">
+                                                <button className="btn-icon btn-view" onClick={() => setViewData(s)} title="Lihat Profil"><Eye size={20} /></button>
+                                                <button className="btn-icon btn-edit" onClick={() => handleEdit(s)} title="Edit"><Edit2 size={20} /></button>
+                                                <button className="btn-icon btn-delete danger" onClick={() => handleDelete(s)} title="Hapus"><Trash2 size={20} /></button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

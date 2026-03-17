@@ -51,8 +51,8 @@ export default function CartSidebar({
                                 tabIndex={-1}
                             />
                             <div className="item-info">
-                                <div className="item-name">{bill.kategori}</div>
-                                <div className="item-period">{bill.bulan}'{bill.tahun.toString().slice(-2)} ({bill.tahunAjaran})</div>
+                                <div className="item-name">{bill.kategori_nama || bill.kategori || 'Tagihan'} <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>({bill.kelas_nama || '-'})</span></div>
+                                <div className="item-period">{bill.bulan}'{(bill.tahun || '').toString().slice(-2)} ({bill.tahun_ajaran || bill.tahunAjaran || '-'})</div>
                             </div>
                             <div className="item-amount" onClick={e => e.stopPropagation()}>
                                 {selectedBills.includes(bill.id) ? (
@@ -62,8 +62,10 @@ export default function CartSidebar({
                                         style={{ width: 110, padding: '4px 8px', height: 28, fontSize: '0.85rem', textAlign: 'right' }}
                                         value={partialPay[bill.id] || ''}
                                         onChange={e => {
-                                            const val = Number(e.target.value)
-                                            setPartialPay(p => ({ ...p, [bill.id]: val }))
+                                            const val = e.target.value === '' ? 0 : Number(e.target.value)
+                                            if (!isNaN(val)) {
+                                                setPartialPay(p => ({ ...p, [bill.id]: val }))
+                                            }
                                         }}
                                         title="Edit nominal cicilan"
                                     />

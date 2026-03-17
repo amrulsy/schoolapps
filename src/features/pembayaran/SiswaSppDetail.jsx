@@ -35,28 +35,29 @@ export default function SiswaSppDetail({ data, onClose, year }) {
     })
 
     // Filter bills for this student and the target academic year
-    const studentBills = bills.filter(b => b.siswaId === data.id && b.tahunAjaran === targetTahun)
-    const totalTunggakan = studentBills.filter(b => b.status === 'belum').reduce((s, b) => s + b.nominal, 0)
-    const totalBayar = studentBills.filter(b => b.status === 'lunas').reduce((s, b) => s + b.nominal, 0)
-    const totalSemua = studentBills.reduce((s, b) => s + b.nominal, 0)
+    const studentBills = bills.filter(b => b.siswa_id === data.id && b.tahun_ajaran === targetTahun)
+    const totalTunggakan = studentBills.filter(b => b.status === 'belum').reduce((s, b) => s + Number(b.nominal), 0)
+    const totalBayar = studentBills.filter(b => b.status === 'lunas').reduce((s, b) => s + Number(b.nominal), 0)
+    const totalSemua = studentBills.reduce((s, b) => s + Number(b.nominal), 0)
 
     // Agrupasi by Category
     const categoriesMap = {}
     studentBills.forEach(b => {
-        if (!categoriesMap[b.kategori]) categoriesMap[b.kategori] = []
-        categoriesMap[b.kategori].push(b)
+        const catName = b.kategori_nama || b.kategori || 'Lain-lain'
+        if (!categoriesMap[catName]) categoriesMap[catName] = []
+        categoriesMap[catName].push(b)
     })
 
     return (
         <div className="fade-in">
             <div className="page-header no-print">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <button className="btn-icon" onClick={onClose}><ArrowLeft size={20} /></button>
+                    <button className="btn-icon" onClick={onClose}><ArrowLeft size={24} /></button>
                     <h1>Detail Kartu SPP</h1>
                 </div>
                 <div className="actions">
-                    <button className="btn btn-primary" onClick={handlePrintKartu}>
-                        <Printer size={16} /> Cetak Kartu SPP
+                    <button className="btn-primary btn" onClick={handlePrintKartu}>
+                        <Printer size={20} /> Cetak Kartu SPP
                     </button>
                 </div>
             </div>
@@ -183,7 +184,7 @@ export default function SiswaSppDetail({ data, onClose, year }) {
                                                     {b.status?.toUpperCase()}
                                                 </span>
                                             </td>
-                                            <td style={{ fontSize: '10px', color: '#64748b' }}>{b.status === 'lunas' ? b.paidAt : '-'}</td>
+                                            <td style={{ fontSize: '10px', color: '#64748b' }}>{b.status === 'lunas' ? b.paid_at : '-'}</td>
                                         </tr>
                                     )
                                 })}

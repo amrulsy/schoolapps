@@ -14,6 +14,7 @@ import TahunAjaranPage from './pages/TahunAjaranPage'
 import KategoriTagihanPage from './pages/KategoriTagihanPage'
 import RekeningPage from './pages/RekeningPage'
 import TagihanPage from './pages/TagihanPage'
+import RiwayatGeneratePage from './pages/RiwayatGeneratePage'
 import PembayaranPage from './pages/PembayaranPage'
 import RiwayatTransaksiPage from './pages/RiwayatTransaksiPage'
 import ArusKasPage from './pages/ArusKasPage'
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="/kategori-tagihan" element={<KategoriTagihanPage />} />
             <Route path="/rekening" element={<RekeningPage />} />
             <Route path="/tagihan" element={<TagihanPage />} />
+            <Route path="/riwayat-generate" element={<RiwayatGeneratePage />} />
             <Route path="/pembayaran" element={<PembayaranPage />} />
             <Route path="/riwayat" element={<RiwayatTransaksiPage />} />
             <Route path="/arus-kas" element={<ArusKasPage />} />

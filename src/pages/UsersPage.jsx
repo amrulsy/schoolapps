@@ -36,7 +36,9 @@ export default function UsersPage() {
                                     </span>
                                 </td>
                                 <td>
-                                    <button className="btn-icon" title="Edit"><UserCog size={16} /></button>
+                                    <div className="action-group">
+                                        <button className="btn-icon btn-edit" title="Edit"><UserCog size={20} /></button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

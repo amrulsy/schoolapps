@@ -59,8 +59,10 @@ export default function KategoriTagihanPage() {
                                 <td><span className="badge badge-secondary" style={{ textTransform: 'capitalize' }}>{cat.tipe}</span></td>
                                 <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{cat.keterangan || '-'}</td>
                                 <td>
-                                    <button className="btn-icon" title="Edit"><Edit2 size={16} /></button>
-                                    <button className="btn-icon danger" onClick={() => handleDelete(cat)} title="Hapus"><Trash2 size={16} /></button>
+                                    <div className="action-group">
+                                        <button className="btn-icon btn-edit" title="Edit"><Edit2 size={20} /></button>
+                                        <button className="btn-icon btn-delete danger" onClick={() => handleDelete(cat)} title="Hapus"><Trash2 size={20} /></button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -106,10 +108,10 @@ function KategoriForm({ onSave, onClose }) {
                 <div className="form-group">
                     <label>Tipe Tagihan *</label>
                     <select className="form-control" value={form.tipe} onChange={e => setForm(prev => ({ ...prev, tipe: e.target.value }))}>
-                        <option value="bulanan">Bulanan</option>
-                        <option value="3bulanan">3 Bulanan (Triwulan)</option>
-                        <option value="semesteran">Semesteran</option>
-                        <option value="tahunan">Tahunan</option>
+                        <option value="bulanan">1 Bulanan sekali</option>
+                        <option value="3bulanan">3 Bulanan sekali (Triwulan)</option>
+                        <option value="semesteran">Semesteran sekali</option>
+                        <option value="tahunan">Tahunan sekali</option>
                     </select>
                 </div>
             </div>

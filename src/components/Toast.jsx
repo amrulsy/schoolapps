@@ -9,7 +9,7 @@ const icons = {
 }
 
 export default function Toast() {
-    const { toasts } = useApp()
+    const { toasts, removeToast } = useApp()
 
     if (toasts.length === 0) return null
 
@@ -19,11 +19,17 @@ export default function Toast() {
                 const Icon = icons[toast.type] || Info
                 return (
                     <div key={toast.id} className={`toast ${toast.type}`}>
-                        <Icon size={20} />
+                        <div className="toast-icon">
+                            <Icon size={20} />
+                        </div>
                         <div className="toast-message">
                             <strong>{toast.title}</strong>
-                            {toast.message}
+                            <span>{toast.message}</span>
                         </div>
+                        <button className="toast-close" onClick={() => removeToast(toast.id)}>
+                            <X size={14} />
+                        </button>
+                        <div className="toast-progress"></div>
                     </div>
                 )
             })}

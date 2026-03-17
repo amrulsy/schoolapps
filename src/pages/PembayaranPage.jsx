@@ -23,28 +23,29 @@ export default function PembayaranPage() {
 
     // Filtered suggestions
     const suggestions = search.length >= 2
-        ? students.filter(s => s.status === 'aktif' && (s.nama.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search))).slice(0, 5)
+        ? students.filter(s => s.status === 'aktif' && ((s.nama || '').toLowerCase().includes(search.toLowerCase()) || String(s.nisn || '').includes(search))).slice(0, 5)
         : []
 
     // Get unpaid bills for selected student (for cart)
     const studentBills = selectedStudent
-        ? bills.filter(b => b.siswaId === selectedStudent.id && b.status === 'belum')
+        ? bills.filter(b => (b.siswa_id === selectedStudent.id || b.siswaId === selectedStudent.id) && b.status === 'belum')
         : []
 
     // Agrupasi by Category for Summary Table (all bills in active TA)
     const activeBillsForSummary = selectedStudent
-        ? bills.filter(b => b.siswaId === selectedStudent.id && b.tahunAjaran === activeTahunAjaran)
+        ? bills.filter(b => (b.siswa_id === selectedStudent.id || b.siswaId === selectedStudent.id) && (b.tahun_ajaran === activeTahunAjaran || b.tahunAjaran === activeTahunAjaran))
         : []
 
     const categoriesMap = {}
     activeBillsForSummary.forEach(b => {
-        if (!categoriesMap[b.kategori]) categoriesMap[b.kategori] = []
-        categoriesMap[b.kategori].push(b)
+        const cat = b.kategori_nama || b.kategori
+        if (!categoriesMap[cat]) categoriesMap[cat] = []
+        categoriesMap[cat].push(b)
     })
 
     const totalSelected = studentBills
         .filter(b => selectedBills.includes(b.id))
-        .reduce((s, b) => s + (partialPay[b.id] || b.nominal), 0)
+        .reduce((s, b) => s + Number(partialPay[b.id] ?? b.nominal ?? 0), 0)
 
     const paidAmount = Number(amountPaid) || 0
     const change = paidAmount - totalSelected
@@ -64,7 +65,7 @@ export default function PembayaranPage() {
                 setPartialPay(p => { const np = { ...p }; delete np[bill.id]; return np; })
                 return prev.filter(x => x !== bill.id)
             } else {
-                setPartialPay(p => ({ ...p, [bill.id]: bill.nominal }))
+                setPartialPay(p => ({ ...p, [bill.id]: Number(bill.nominal) }))
                 return [...prev, bill.id]
             }
         })
@@ -77,22 +78,32 @@ export default function PembayaranPage() {
         } else {
             setSelectedBills(studentBills.map(b => b.id))
             const newPartial = {}
-            studentBills.forEach(b => newPartial[b.id] = b.nominal)
+            studentBills.forEach(b => newPartial[b.id] = Number(b.nominal))
             setPartialPay(newPartial)
         }
     }
 
-    const handlePay = () => {
+    const handlePay = async () => {
         if (!canPay) return
-        const result = processPayment(selectedBills, paidAmount, partialPay)
-        if (result) {
-            result.student = selectedStudent
-            setReceipt(result)
-            setSelectedStudent(null)
-            setSelectedBills([])
-            setPartialPay({})
-            setAmountPaid('')
-            setSearch('')
+        try {
+            const result = await processPayment(selectedBills, paidAmount, partialPay)
+            if (result) {
+                // Ensure student data is attached for the receipt
+                const receiptData = {
+                    ...result,
+                    student: selectedStudent
+                }
+                setReceipt(receiptData)
+
+                // Reset state
+                setSelectedStudent(null)
+                setSelectedBills([])
+                setPartialPay({})
+                setAmountPaid('')
+                setSearch('')
+            }
+        } catch (err) {
+            console.error("Payment submission error:", err)
         }
     }
 
@@ -204,10 +215,10 @@ export default function PembayaranPage() {
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     color: '#fff', fontWeight: 700, fontSize: '1.2rem',
                                 }}>
-                                    {selectedStudent.nama.charAt(0)}
+                                    {(selectedStudent.nama || '?').charAt(0)}
                                 </div>
                                 <div>
-                                    <h2 style={{ marginBottom: 2 }}>{selectedStudent.nama}</h2>
+                                    <h2 style={{ marginBottom: 2 }}>{selectedStudent.nama || 'Tanpa Nama'}</h2>
                                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                                         NISN: <span className="mono">{selectedStudent.nisn}</span>
                                     </p>
@@ -221,7 +232,7 @@ export default function PembayaranPage() {
                             </div>
                             <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--danger-50)', borderRadius: 'var(--radius-md)' }}>
                                 <span style={{ color: 'var(--danger-600)', fontWeight: 600, fontSize: '0.85rem' }}>
-                                    Total Tunggakan: <span className="mono">{formatRupiah(studentBills.reduce((s, b) => s + b.nominal, 0))}</span> ({studentBills.length} item)
+                                    Total Tunggakan: <span className="mono">{formatRupiah(studentBills.reduce((s, b) => s + Number(b.nominal), 0))}</span> ({studentBills.length} item)
                                 </span>
                             </div>
                         </div>
@@ -250,7 +261,12 @@ export default function PembayaranPage() {
                                                 </tr>
                                                 {categoriesMap[kategori].map(b => (
                                                     <tr key={b.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                        <td style={{ padding: '8px 20px' }}>{b.bulan} {b.tahun}</td>
+                                                        <td style={{ padding: '8px 20px' }}>
+                                                            {b.bulan} {b.tahun}
+                                                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                                                                Kelas: {b.kelas_nama || '-'} | ({b.tahun_ajaran || b.tahunAjaran || '-'})
+                                                            </div>
+                                                        </td>
                                                         <td style={{ padding: '8px 20px', textAlign: 'right' }} className="mono">
                                                             {formatRupiah(b.nominal)}
                                                         </td>

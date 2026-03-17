@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Modal from '../components/Modal'
 import EmptyState from '../components/EmptyState'
-import { Search, Zap, FileText, AlertCircle } from 'lucide-react'
+import { Search, Zap, FileText, AlertCircle, History } from 'lucide-react'
 
 // Features
 import GenerateModal from '../features/tagihan/GenerateModal'
@@ -10,7 +11,9 @@ import SingleGenerateModal from '../features/tagihan/SingleGenerateModal'
 import DiscountModal from '../features/tagihan/DiscountModal'
 
 export default function TagihanPage() {
-    const { bills, categories, units, students, formatRupiah, generateBulkBills, generateSingleBill, MONTHS, applyDiscountToBills, addToast } = useApp()
+    const navigate = useNavigate()
+    const { bills, categories, units, students, formatRupiah, generateBulkBills, generateSingleBill, MONTHS, applyDiscountToBills, addToast, tahunAjaranList } = useApp()
+    const [filterTahunAjaran, setFilterTahunAjaran] = useState('')
     const [search, setSearch] = useState('')
     const [filterKelas, setFilterKelas] = useState('')
     const [filterKategori, setFilterKategori] = useState('')
@@ -25,11 +28,12 @@ export default function TagihanPage() {
     const allKelas = units.flatMap(u => u.kelas)
 
     const filtered = bills.filter(b => {
-        const matchSearch = b.siswaName.toLowerCase().includes(search.toLowerCase())
-        const matchKelas = !filterKelas || b.kelas === filterKelas
-        const matchKategori = !filterKategori || b.kategori === filterKategori
+        const matchSearch = (b.siswa_nama || '').toLowerCase().includes(search.toLowerCase())
+        const matchKelas = !filterKelas || (b.kelas_nama === filterKelas || b.kelas === filterKelas)
+        const matchKategori = !filterKategori || (b.kategori_nama === filterKategori || b.kategori === filterKategori)
         const matchStatus = filterStatus === 'semua' || b.status === filterStatus
-        return matchSearch && matchKelas && matchKategori && matchStatus
+        const matchTA = !filterTahunAjaran || (b.tahun_ajaran === filterTahunAjaran || b.tahunAjaran === filterTahunAjaran)
+        return matchSearch && matchKelas && matchKategori && matchStatus && matchTA
     })
 
     const handleApplyDiscount = (type, value) => {
@@ -51,6 +55,9 @@ export default function TagihanPage() {
                             🏷️ Beri Diskon ({selectedBills.length})
                         </button>
                     )}
+                    <button className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }} onClick={() => navigate('/riwayat-generate')}>
+                        <History size={16} /> Riwayat
+                    </button>
                     <button className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }} onClick={() => setShowSingleGenerate(true)}>
                         <FileText size={16} /> Buat Tagihan Tunggal
                     </button>
@@ -77,6 +84,10 @@ export default function TagihanPage() {
                     <option value="semua">Semua Status</option>
                     <option value="belum">Belum Lunas</option>
                     <option value="lunas">Lunas</option>
+                </select>
+                <select className="form-control" value={filterTahunAjaran} onChange={e => { setFilterTahunAjaran(e.target.value); setPage(1) }}>
+                    <option value="">Semua Thn Ajaran</option>
+                    {tahunAjaranList.map(ta => <option key={ta.id} value={ta.tahun}>{ta.tahun}</option>)}
                 </select>
             </div>
 
@@ -135,23 +146,23 @@ export default function TagihanPage() {
                                             />
                                         </td>
                                         <td>{(page - 1) * PER_PAGE + i + 1}</td>
-                                        <td style={{ fontWeight: 500 }}>{b.siswaName}</td>
-                                        <td>{b.kelas}</td>
-                                        <td>{b.kategori}</td>
+                                        <td style={{ fontWeight: 500 }}>{b.siswa_nama}</td>
+                                        <td>{b.kelas_nama}</td>
+                                        <td>{b.kategori_nama}</td>
                                         <td>
                                             {b.bulan}'{b.tahun.toString().slice(-2)}
-                                            <br /><span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>({b.tahunAjaran})</span>
+                                            <br /><span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>({b.tahun_ajaran})</span>
                                         </td>
                                         <td className="mono">
-                                            {b.isDiskon && (
+                                            {b.is_diskon && (
                                                 <span style={{ textDecoration: 'line-through', color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>
-                                                    {formatRupiah(b.nominalAsli || b.nominal)}
+                                                    {formatRupiah(b.nominal_asli || b.nominal)}
                                                 </span>
                                             )}
-                                            <span style={{ color: b.isDiskon ? 'var(--warning-600)' : 'inherit', fontWeight: b.isDiskon ? 600 : 400 }}>
+                                            <span style={{ color: b.is_diskon ? 'var(--warning-600)' : 'inherit', fontWeight: b.is_diskon ? 600 : 400 }}>
                                                 {formatRupiah(b.nominal)}
                                             </span>
-                                            {b.isDiskon && (
+                                            {b.is_diskon && (
                                                 <span className="badge badge-warning" style={{ display: 'block', width: 'max-content', marginTop: 4, fontSize: '0.65rem' }}>🏷️ Diskon</span>
                                             )}
                                         </td>
@@ -190,6 +201,7 @@ export default function TagihanPage() {
                     formatRupiah={formatRupiah}
                     onGenerate={generateBulkBills}
                     onClose={() => setShowGenerate(false)}
+                    tahunAjaranList={tahunAjaranList}
                 />
             )}
 
@@ -202,6 +214,7 @@ export default function TagihanPage() {
                     addToast={addToast}
                     onGenerate={generateSingleBill}
                     onClose={() => setShowSingleGenerate(false)}
+                    tahunAjaranList={tahunAjaranList}
                 />
             )}
 

@@ -118,9 +118,11 @@ CREATE TABLE IF NOT EXISTS tagihan (
     diskon_notes TEXT,
     status ENUM('belum', 'lunas') DEFAULT 'belum',
     paid_at DATE NULL,
+    transaksi_id BIGINT,
     FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE,
     FOREIGN KEY (kategori_id) REFERENCES kategori_tagihan(id) ON DELETE CASCADE,
-    FOREIGN KEY (tahun_ajaran_id) REFERENCES tahun_ajaran(id) ON DELETE SET NULL
+    FOREIGN KEY (tahun_ajaran_id) REFERENCES tahun_ajaran(id) ON DELETE SET NULL,
+    FOREIGN KEY (transaksi_id) REFERENCES transaksi(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS transaksi (

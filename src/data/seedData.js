@@ -2,7 +2,7 @@
    SIAS SMK PPRQ — Seed & Initial Data
    ============================================= */
 
-export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+export const MONTHS = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']
 
 // Default parent template
 const defaultAyah = (nama, telp) => ({
