@@ -125,18 +125,21 @@ export default function UnitKelasPage() {
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             {unit.kelas.length} kelas
                         </span>
-                        <button className="btn-icon" onClick={e => { e.stopPropagation(); openEditUnit(unit) }} title="Edit"><Edit2 size={14} /></button>
-                        <button className="btn-icon danger" onClick={e => { e.stopPropagation(); handleDeleteUnit(unit) }} title="Hapus"><Trash2 size={14} /></button>
+                        <div className="action-group" style={{ marginLeft: 'auto' }}>
+                            <button className="btn-icon btn-edit" onClick={e => { e.stopPropagation(); openEditUnit(unit) }} title="Edit"><Edit2 size={18} /></button>
+                            <button className="btn-icon btn-delete danger" onClick={e => { e.stopPropagation(); handleDeleteUnit(unit) }} title="Hapus"><Trash2 size={18} /></button>
+                        </div>
                     </div>
                     {expanded.includes(unit.id) && (
                         <div className="tree-children">
                             {unit.kelas.map(kelas => (
                                 <div key={kelas.id} className="tree-child">
                                     <span className="child-name">{kelas.nama}</span>
-                                    <span className="child-count">{kelas.siswaCount} siswa</span>
-                                    <button className="btn-icon" onClick={() => openEditKelas(unit, kelas)} title="Edit"><Edit2 size={14} /></button>
-                                    <button className="btn-icon danger" onClick={() => handleDeleteKelas(unit, kelas)} title="Hapus"><Trash2 size={14} /></button>
-                                    <button className="btn-icon" onClick={() => openLihatSiswa(kelas)} title="Lihat Siswa"><Eye size={14} /></button>
+                                    <div className="action-group">
+                                        <button className="btn-icon btn-edit" onClick={() => openEditKelas(unit, kelas)} title="Edit"><Edit2 size={18} /></button>
+                                        <button className="btn-icon btn-delete danger" onClick={() => handleDeleteKelas(unit, kelas)} title="Hapus"><Trash2 size={18} /></button>
+                                        <button className="btn-icon btn-view" onClick={() => openLihatSiswa(kelas)} title="Lihat Siswa"><Eye size={18} /></button>
+                                    </div>
                                 </div>
                             ))}
                             <div style={{ padding: '8px 20px 8px 52px' }}>

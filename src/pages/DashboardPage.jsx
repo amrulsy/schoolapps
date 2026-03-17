@@ -7,7 +7,7 @@ import CashFlowSummary from '../features/dashboard/CashFlowSummary'
 import TopDebtors from '../features/dashboard/TopDebtors'
 
 export default function DashboardPage() {
-    const { students, bills, cashFlow, formatRupiah, activityLog, units } = useApp()
+    const { students, bills, cashFlow, formatRupiah, activityLog, units, tahunAjaran } = useApp()
 
     const activeStudentsCount = students.filter(s => s.status === 'aktif').length
     const graduatedStudentsCount = students.filter(s => s.status === 'lulus').length
@@ -50,8 +50,10 @@ export default function DashboardPage() {
     const topDebtorsList = useMemo(() => {
         const map = {}
         unpaidBills.forEach(b => {
-            if (!map[b.siswaId]) map[b.siswaId] = { nama: b.siswaName, total: 0 }
-            map[b.siswaId].total += b.nominal
+            const sid = b.siswa_id || b.siswaId
+            const snama = b.siswa_nama || b.siswaName
+            if (!map[sid]) map[sid] = { nama: snama, total: 0 }
+            map[sid].total += Number(b.nominal)
         })
         return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 5)
     }, [unpaidBills])
@@ -62,7 +64,7 @@ export default function DashboardPage() {
                 <div>
                     <h1>Selamat Datang, Pak Ahmad 👋</h1>
                     <p style={{ color: 'var(--text-secondary)', marginTop: 4, fontSize: '0.9rem' }}>
-                        Tahun Ajaran: <strong>2025/2026</strong> (Aktif)
+                        Tahun Ajaran: <strong>{tahunAjaran}</strong> (Aktif)
                     </p>
                 </div>
             </div>

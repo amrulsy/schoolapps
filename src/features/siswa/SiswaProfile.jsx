@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
-import { User, Phone, MapPin, Calendar, FileText, Download, Search, Upload, CheckCircle2, AlertCircle, Briefcase, GraduationCap, Users, Shield, ArrowLeft, HeartPulse, CreditCard, Save, X, Edit3, Trash2, IdCard, BookOpen } from 'lucide-react'
+import { User, Phone, MapPin, Calendar, FileText, Download, Search, Upload, CheckCircle2, AlertCircle, Briefcase, GraduationCap, Users, Shield, ArrowLeft, HeartPulse, CreditCard, Save, X, Edit3, Trash2, IdCard, BookOpen, FileCheck, Hash, EyeOff, Activity, Home, Heart, Eye } from 'lucide-react'
 
 /* ─────────────── helpers ─────────────── */
 const fmtDate = (d) => {
@@ -129,16 +129,16 @@ function DocumentCard({ doc }) {
                 <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFile} accept=".pdf,.jpg,.jpeg,.png" />
                 {!isNone && (
                     <>
-                        <button className="btn-icon" style={{ width: 30, height: 30, padding: 0 }} title="Pratinjau"><Search size={14} /></button>
-                        <button className="btn-icon" style={{ width: 30, height: 30, padding: 0 }} title="Unduh"><Download size={14} /></button>
+                        <button className="btn-icon btn-view" style={{ width: 30, height: 30, padding: 0 }} title="Pratinjau"><Search size={18} /></button>
+                        <button className="btn-icon btn-view" style={{ width: 30, height: 30, padding: 0 }} title="Unduh"><Download size={18} /></button>
                     </>
                 )}
                 <button
-                    className="btn-icon"
+                    className="btn-icon btn-edit"
                     style={{ width: 30, height: 30, padding: 0, color: isNone ? 'var(--primary-600)' : 'inherit', background: isNone ? 'var(--primary-50)' : undefined, borderRadius: 7 }}
                     title="Unggah" onClick={() => fileInputRef.current?.click()}
                 >
-                    <Upload size={14} />
+                    <Upload size={18} />
                 </button>
             </div>
         </div>
@@ -149,14 +149,48 @@ function DocumentCard({ doc }) {
    MAIN COMPONENT
 ═══════════════════════════════════════════════ */
 export default function SiswaProfile({ data, onClose }) {
-    const { formatRupiah, updateStudent, addToast, deleteStudent } = useApp()
+    const { formatRupiah, updateStudent, addToast, deleteStudent, students, setStudents } = useApp()
     const { confirmDelete } = useCustomAlert()
     const [activeTab, setActiveTab] = useState('diri')
     const [showNik, setShowNik] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
     const [form, setForm] = useState({})
 
-    const p = data // "profile" shorthand — always reads from live `data` prop
+    const [loadingDetail, setLoadingDetail] = useState(true)
+
+    // Use live data from context to avoid stale prop issues
+    const p = students.find(s => s.id === (data.id || data.siswa_id)) || data
+
+    useEffect(() => {
+        let isMounted = true
+        const fetchDetails = async () => {
+            try {
+                setLoadingDetail(true)
+                const res = await fetch(`http://localhost:3000/api/siswa/${data.id}`)
+                if (res.ok) {
+                    const d = await res.json()
+                    // Map snake_case to camelCase for consistent state
+                    const mapped = {
+                        ...d,
+                        tempatLahir: d.tempat_lahir,
+                        tglLahir: d.tgl_lahir,
+                        jenisTinggal: d.jenis_tinggal,
+                        kelasId: d.kelas_id
+                    }
+                    if (isMounted) {
+                        // Update context so the detail persists in the app state
+                        setStudents(prev => prev.map(s => s.id === (data.id || data.siswa_id) ? { ...s, ...mapped } : s))
+                    }
+                }
+            } catch (err) {
+                console.error("Fetch profile details error:", err)
+            } finally {
+                if (isMounted) setLoadingDetail(false)
+            }
+        }
+        fetchDetails()
+        return () => { isMounted = false }
+    }, [data.id, setStudents])
 
     const maskNik = (nik) => {
         if (!nik || nik === '-') return '-'
@@ -167,10 +201,17 @@ export default function SiswaProfile({ data, onClose }) {
     /* ── CRUD ── */
     const handleEdit = () => {
         // Flatten nested objects into form with prefix keys
-        const flat = { ...data }
-        if (data.ayah) Object.entries(data.ayah).forEach(([k, v]) => { flat[`ayah_${k}`] = v })
-        if (data.ibu) Object.entries(data.ibu).forEach(([k, v]) => { flat[`ibu_${k}`] = v })
-        if (data.wali_detail) Object.entries(data.wali_detail).forEach(([k, v]) => { flat[`wali_${k}`] = v })
+        const flat = { ...p }
+
+        // Define all fields to ensure they are at least empty strings instead of undefined
+        const ayahFields = ['nama', 'nik', 'pendidikan', 'pekerjaan', 'penghasilan', 'hp', 'status_hidup']
+        const ibuFields = [...ayahFields]
+        const waliFields = [...ayahFields, 'hubungan', 'alamat']
+
+        ayahFields.forEach(k => { flat[`ayah_${k}`] = p.ayah?.[k] || '' })
+        ibuFields.forEach(k => { flat[`ibu_${k}`] = p.ibu?.[k] || '' })
+        waliFields.forEach(k => { flat[`wali_${k}`] = p.wali_detail?.[k] || '' })
+
         setForm(flat)
         setIsEditing(true)
     }
@@ -178,21 +219,37 @@ export default function SiswaProfile({ data, onClose }) {
     const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
     const handleSave = () => {
-        // Re-nest nested objects
         const ayahFields = ['nama', 'nik', 'pendidikan', 'pekerjaan', 'penghasilan', 'hp', 'status_hidup']
         const ibuFields = [...ayahFields]
         const waliFields = [...ayahFields, 'hubungan', 'alamat']
 
         const payload = { ...form }
-        payload.ayah = {}
-        ayahFields.forEach(k => { payload.ayah[k] = form[`ayah_${k}`] ?? data.ayah?.[k]; delete payload[`ayah_${k}`] })
-        payload.ibu = {}
-        ibuFields.forEach(k => { payload.ibu[k] = form[`ibu_${k}`] ?? data.ibu?.[k]; delete payload[`ibu_${k}`] })
-        payload.wali_detail = {}
-        waliFields.forEach(k => { payload.wali_detail[k] = form[`wali_${k}`] ?? data.wali_detail?.[k]; delete payload[`wali_${k}`] })
 
-        updateStudent(data.id, payload)
-        addToast('success', 'Profil Diperbarui', `Data ${data.nama} berhasil disimpan`)
+        // Remove nested objects from payload core to avoid accidental spread issues
+        delete payload.ayah
+        delete payload.ibu
+        delete payload.wali_detail
+
+        payload.ayah = {}
+        ayahFields.forEach(k => {
+            payload.ayah[k] = form[`ayah_${k}`] ?? p.ayah?.[k]
+            delete payload[`ayah_${k}`]
+        })
+
+        payload.ibu = {}
+        ibuFields.forEach(k => {
+            payload.ibu[k] = form[`ibu_${k}`] ?? p.ibu?.[k]
+            delete payload[`ibu_${k}`]
+        })
+
+        payload.wali_detail = {}
+        waliFields.forEach(k => {
+            payload.wali_detail[k] = form[`wali_${k}`] ?? p.wali_detail?.[k]
+            delete payload[`wali_${k}`]
+        })
+
+        updateStudent(p.id, payload)
+        addToast('success', 'Profil Diperbarui', `Data ${p.nama} berhasil disimpan`)
         setIsEditing(false)
     }
 

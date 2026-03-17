@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import {
     LayoutDashboard, Users, Building2, Calendar, ClipboardList, Landmark,
     FileText, CreditCard, BookOpen, BarChart3, UserCog, Settings,
-    ChevronLeft, History
+    ChevronLeft, History, Zap
 } from 'lucide-react'
 
 const menuSections = [
@@ -21,6 +21,7 @@ const menuSections = [
         label: 'KEUANGAN',
         items: [
             { to: '/tagihan', icon: FileText, text: 'Tagihan' },
+            { to: '/riwayat-generate', icon: Zap, text: 'Riwayat Generate' },
             { to: '/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
             { to: '/pembayaran', icon: CreditCard, text: 'Pembayaran (POS)' },
             { to: '/riwayat', icon: History, text: 'Riwayat Transaksi' },

@@ -4,7 +4,7 @@ import Modal from '../components/Modal'
 import EmptyState from '../components/EmptyState'
 import { useReactToPrint } from 'react-to-print'
 import { downloadFile } from '../utils/downloadHelper'
-import { FileText, Printer, FileDown, RotateCcw, Search, Eye } from 'lucide-react'
+import { FileText, Printer, FileDown, RotateCcw, Search, Eye, Trash2 } from 'lucide-react'
 import ReceiptReprintModal from '../features/transaksi/ReceiptReprintModal'
 import { useCustomAlert } from '../hooks/useCustomAlert'
 
@@ -17,17 +17,32 @@ export default function RiwayatTransaksiPage() {
     const PER_PAGE = 15
 
     const filtered = transactions.filter(t => {
-        const matchSearch = t.siswaName.toLowerCase().includes(search.toLowerCase()) ||
-            t.invoiceNo.toLowerCase().includes(search.toLowerCase())
+        const snama = t.siswa_nama || t.siswaName || ''
+        const inv = t.invoice_no || t.invoiceNo || ''
+        const matchSearch = snama.toLowerCase().includes(search.toLowerCase()) ||
+            inv.toLowerCase().includes(search.toLowerCase())
         return matchSearch
     })
 
     const totalPages = Math.ceil(filtered.length / PER_PAGE)
     const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
-    const handleViewReceipt = (tx) => {
-        const student = students.find(s => s.id === tx.siswaId) || { nama: tx.siswaName, nisn: '-', kelas: '-' }
-        setReceipt({ ...tx, student })
+    const handleViewReceipt = async (tx) => {
+        try {
+            const res = await fetch(`http://localhost:3000/api/transactions/${tx.id}`)
+            if (res.ok) {
+                const detail = await res.json()
+                setReceipt(detail)
+            } else {
+                // Fallback if detail fetch fails
+                const student = students.find(s => s.id === (tx.siswa_id || tx.siswaId)) || { nama: tx.siswa_nama || tx.siswaName, nisn: '-', kelas: '-' }
+                setReceipt({ ...tx, student, items: tx.items || [] })
+            }
+        } catch (err) {
+            console.error("Fetch receipt detail error:", err)
+            const student = students.find(s => s.id === (tx.siswa_id || tx.siswaId)) || { nama: tx.siswa_nama || tx.siswaName, nisn: '-', kelas: '-' }
+            setReceipt({ ...tx, student, items: tx.items || [] })
+        }
     }
 
     const handleVoid = async (tx) => {
@@ -82,41 +97,43 @@ export default function RiwayatTransaksiPage() {
                             </thead>
                             <tbody>
                                 {paginated.map((tx) => (
-                                    <tr key={tx.id} style={{ opacity: tx.status === 'voided' ? 0.6 : 1 }}>
+                                    <tr key={tx.id} style={{ opacity: (tx.status === 'void' || tx.status === 'voided') ? 0.6 : 1 }}>
                                         <td>{new Date(tx.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                                        <td className="mono">{tx.invoiceNo}</td>
+                                        <td className="mono">{tx.invoice_no || tx.invoiceNo}</td>
                                         <td style={{ fontWeight: 500 }}>
-                                            {tx.siswaName}
+                                            {tx.siswa_nama || tx.siswaName}
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                                {tx.items.length} item tagihan
+                                                {tx.items?.length || 0} item tagihan
                                             </div>
                                         </td>
-                                        <td>{tx.kasir}</td>
+                                        <td>{tx.kasir || 'Admin'}</td>
                                         <td className="mono" style={{ fontWeight: 600 }}>{formatRupiah(tx.total)}</td>
                                         <td style={{ textAlign: 'center' }}>
-                                            {tx.status === 'voided' ? (
+                                            {(tx.status === 'void' || tx.status === 'voided') ? (
                                                 <span className="badge badge-danger">DIBATALKAN</span>
                                             ) : (
                                                 <span className="badge badge-success">SUKSES</span>
                                             )}
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            <button
-                                                className="btn-icon"
-                                                title="Lihat & Cetak Struk"
-                                                onClick={() => handleViewReceipt(tx)}
-                                            >
-                                                <Eye size={16} />
-                                            </button>
-                                            {tx.status !== 'voided' && (
+                                            <div className="action-group" style={{ justifyContent: 'flex-end' }}>
                                                 <button
-                                                    className="btn-icon danger"
-                                                    title="Batalkan (Void) Transaksi"
-                                                    onClick={() => handleVoid(tx)}
+                                                    className="btn-icon btn-view"
+                                                    title="Lihat & Cetak Struk"
+                                                    onClick={() => handleViewReceipt(tx)}
                                                 >
-                                                    <RotateCcw size={16} />
+                                                    <Eye size={20} />
                                                 </button>
-                                            )}
+                                                {tx.status !== 'voided' && (
+                                                    <button
+                                                        className="btn-icon btn-delete danger"
+                                                        title="Batalkan (Void) Transaksi"
+                                                        onClick={() => handleVoid(tx)}
+                                                    >
+                                                        <Trash2 size={20} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

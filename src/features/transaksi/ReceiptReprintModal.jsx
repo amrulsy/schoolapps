@@ -168,7 +168,7 @@ export default function ReceiptReprintModal({ receipt, formatRupiah, onClose }) 
                 <div className="receipt-items">
                     {receipt.items.map(item => (
                         <div key={item.id} className="item">
-                            <span>{item.kategori} {item.bulan}'{item.tahun.toString().slice(-2)} ({item.tahunAjaran})</span>
+                            <span>{item.kategori} ({item.kelas_nama || '-'}) {item.bulan}'{item.tahun.toString().slice(-2)} ({item.tahun_ajaran || item.tahunAjaran})</span>
                             <span>{formatRupiah(item.nominal)}</span>
                         </div>
                     ))}

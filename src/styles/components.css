@@ -260,25 +260,63 @@
 }
 
 .btn-icon {
-    padding: 8px;
-    border-radius: var(--radius-md);
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 12px;
     background: transparent;
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    transition: var(--transition-base);
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
 }
 
 .btn-icon:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
+    transform: translateY(-2px) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.btn-icon.danger:hover {
+.btn-icon:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* Specific Action Colors */
+.btn-icon.btn-view:hover {
+    background: var(--success-50);
+    color: var(--success-600);
+}
+
+.btn-icon.btn-edit:hover,
+.btn-icon:not(.danger):not(.btn-delete):not(.btn-view):hover {
+    background: var(--primary-50);
+    color: var(--primary-600);
+}
+
+.btn-icon.danger:hover,
+.btn-icon.btn-delete:hover {
     background: var(--danger-50);
-    color: var(--danger-500);
+    color: var(--danger-600);
+}
+
+.action-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+/* Ensure action columns in tables stay horizontal and compact */
+td:has(.btn-icon),
+td:has(.action-group),
+td.actions-cell {
+    white-space: nowrap;
+    width: 1%;
 }
 
 .btn-lg {
@@ -548,42 +586,193 @@ tbody tr:hover {
 /* --- Toast --- */
 .toast-container {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    bottom: 30px;
+    right: 30px;
     z-index: 2000;
     display: flex;
     flex-direction: column-reverse;
-    gap: 10px;
+    gap: 12px;
 }
 
 .toast {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--border-color);
-    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 16px;
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    min-width: 300px;
-    max-width: 420px;
-    animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    gap: 14px;
+    min-width: 320px;
+    max-width: 440px;
+    position: relative;
+    overflow: hidden;
+    animation: toast-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.3s ease;
+}
+
+[data-theme='dark'] .toast {
+    background: rgba(30, 41, 59, 0.7);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.toast:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
 }
 
 .toast.success {
-    border-left: 4px solid var(--success-500);
+    border-left: 5px solid var(--success-500);
 }
 
 .toast.error {
-    border-left: 4px solid var(--danger-500);
+    border-left: 5px solid var(--danger-500);
 }
 
 .toast.warning {
-    border-left: 4px solid var(--warning-500);
+    border-left: 5px solid var(--warning-500);
 }
 
 .toast.info {
-    border-left: 4px solid var(--primary-500);
+    border-left: 5px solid var(--primary-500);
+}
+
+.toast-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.toast.success .toast-icon {
+    background: var(--success-50);
+    color: var(--success-600);
+}
+
+.toast.error .toast-icon {
+    background: var(--danger-50);
+    color: var(--danger-600);
+}
+
+.toast.warning .toast-icon {
+    background: var(--warning-50);
+    color: var(--warning-600);
+}
+
+.toast.info .toast-icon {
+    background: var(--primary-50);
+    color: var(--primary-600);
+}
+
+.toast .toast-message {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 2px;
+}
+
+.toast .toast-message strong {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.toast .toast-message span {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    margin: -4px;
+    border-radius: 8px;
+    transition: var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .toast-progress {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.toast-progress::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background: var(--primary-500);
+    transform-origin: left;
+    animation: toast-progress-anim 4s linear forwards;
+}
+
+.toast.success .toast-progress::after {
+    background: var(--success-500);
+}
+
+.toast.error .toast-progress::after {
+    background: var(--danger-500);
+}
+
+.toast.warning .toast-progress::after {
+    background: var(--warning-500);
+}
+
+.toast.info .toast-progress::after {
+    background: var(--primary-500);
+}
+
+.toast:hover .toast-progress::after {
+    animation-play-state: paused;
+}
+
+@keyframes toast-in {
+    from {
+        transform: translateX(100px) scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes toast-progress-anim {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
 }
 
 /* --- SweetAlert2 Customizations --- */
@@ -594,29 +783,6 @@ tbody tr:hover {
 
 .swal2-actions {
     gap: 12px;
-}
-
-.toast .toast-message {
-    flex: 1;
-    font-size: 0.85rem;
-}
-
-.toast .toast-message strong {
-    display: block;
-    margin-bottom: 2px;
-    font-weight: 700;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(24px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
 }
 
 /* --- Pagination --- */
