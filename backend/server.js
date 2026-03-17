@@ -1,11 +1,29 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const pool = require('./db');
 require('dotenv').config();
+
+// Routes
+const publicPortalRoutes = require('./routes/public/portal');
+const adminCmsRoutes = require('./routes/admin/cms');
+
+// Middleware
+const { authMiddleware } = require('./middleware/auth');
+const { rateLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded media files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// --- PUBLIC PORTAL ROUTES (no auth, rate-limited) ---
+app.use('/api/public', rateLimiter(60, 60000), publicPortalRoutes);
+
+// --- ADMIN CMS ROUTES (auth required) ---
+app.use('/api/admin/cms', authMiddleware, adminCmsRoutes);
 
 // --- MASTER DATA ROUTES ---
 

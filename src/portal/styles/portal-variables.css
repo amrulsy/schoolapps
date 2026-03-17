@@ -1,0 +1,76 @@
+/* ============================================
+   PORTAL PUBLIK — CSS Variables & Design Tokens
+   Gen Z Aesthetic: Vibrant, Modern, Energetic
+   ============================================ */
+
+:root {
+    /* Primary → Indigo-Violet Gradient */
+    --portal-primary: #6366F1;
+    --portal-primary-light: #818CF8;
+    --portal-primary-dark: #4F46E5;
+    --portal-primary-rgb: 99, 102, 241;
+
+    /* Secondary → Violet */
+    --portal-secondary: #8B5CF6;
+    --portal-secondary-light: #A78BFA;
+
+    /* Accent → Cyan energik */
+    --portal-accent: #06B6D4;
+    --portal-accent-light: #22D3EE;
+    --portal-accent-rgb: 6, 182, 212;
+
+    /* Gradients */
+    --portal-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #06B6D4 100%);
+    --portal-gradient-soft: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%);
+    --portal-gradient-hero: linear-gradient(160deg, #0F172A 0%, #1E1B4B 40%, #312E81 70%, #4F46E5 100%);
+    --portal-gradient-card: linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(6,182,212,0.05) 100%);
+
+    /* Neutral */
+    --portal-bg: #FAFBFF;
+    --portal-bg-alt: #F1F3FB;
+    --portal-surface: #FFFFFF;
+    --portal-text: #1E293B;
+    --portal-text-secondary: #64748B;
+    --portal-text-muted: #94A3B8;
+    --portal-border: #E2E8F0;
+
+    /* Semantic */
+    --portal-success: #10B981;
+    --portal-warning: #F59E0B;
+    --portal-danger: #EF4444;
+    --portal-info: #3B82F6;
+
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-bg-dark: rgba(15, 23, 42, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-blur: blur(20px);
+
+    /* Shadows */
+    --portal-shadow-sm: 0 1px 3px rgba(99, 102, 241, 0.06);
+    --portal-shadow-md: 0 4px 14px rgba(99, 102, 241, 0.08);
+    --portal-shadow-lg: 0 12px 28px rgba(99, 102, 241, 0.12);
+    --portal-shadow-xl: 0 20px 40px rgba(99, 102, 241, 0.16);
+    --portal-shadow-glow: 0 0 40px rgba(99, 102, 241, 0.2);
+
+    /* Border Radius */
+    --portal-radius-sm: 8px;
+    --portal-radius-md: 12px;
+    --portal-radius-lg: 16px;
+    --portal-radius-xl: 24px;
+    --portal-radius-2xl: 32px;
+    --portal-radius-full: 9999px;
+
+    /* Typography */
+    --portal-font: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    /* Transitions */
+    --portal-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --portal-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --portal-transition: all 0.3s var(--portal-ease);
+    --portal-transition-fast: all 0.15s var(--portal-ease);
+
+    /* Layout */
+    --portal-max-width: 1200px;
+    --portal-navbar-height: 72px;
+}

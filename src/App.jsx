@@ -1,11 +1,17 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useApp } from './context/AppContext'
+
+// ---- LAZY LOADED CHUNKS ----
+// Portal (separate chunk — no auth needed)
+const PortalApp = lazy(() => import('./portal/PortalApp'))
+
+// Admin UI components (loaded only when authenticated)
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import Toast from './components/Toast'
 
-// Pages
+// Admin Pages (eagerly loaded within admin shell)
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import SiswaPage from './pages/SiswaPage'
@@ -23,7 +29,34 @@ import KartuSppPage from './pages/KartuSppPage'
 import UsersPage from './pages/UsersPage'
 import PengaturanPage from './pages/PengaturanPage'
 
-export default function App() {
+// CMS Pages
+import CmsBannersPage from './pages/CmsBannersPage'
+import CmsPostsPage from './pages/CmsPostsPage'
+import CmsPagesPage from './pages/CmsPagesPage'
+import CmsSettingsPage from './pages/CmsSettingsPage'
+import CmsContactsPage from './pages/CmsContactsPage'
+import CmsPpdbPage from './pages/CmsPpdbPage'
+
+// Page loader for suspense fallback
+function PageLoader() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', background: '#FAFBFF'
+    }}>
+      <div style={{
+        width: '48px', height: '48px',
+        border: '4px solid #E2E8F0', borderTopColor: '#6366F1',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite'
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
+
+// Admin shell component
+function AdminShell() {
   const { sidebarCollapsed } = useApp()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
@@ -55,10 +88,32 @@ export default function App() {
             <Route path="/kartu-spp" element={<KartuSppPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/pengaturan" element={<PengaturanPage />} />
+
+            {/* CMS Routes */}
+            <Route path="/cms/banners" element={<CmsBannersPage />} />
+            <Route path="/cms/posts" element={<CmsPostsPage />} />
+            <Route path="/cms/pages" element={<CmsPagesPage />} />
+            <Route path="/cms/settings" element={<CmsSettingsPage />} />
+            <Route path="/cms/contacts" element={<CmsContactsPage />} />
+            <Route path="/cms/ppdb" element={<CmsPpdbPage />} />
           </Routes>
         </main>
       </div>
       <Toast />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Portal Publik — NO AUTH, separate bundle */}
+        <Route path="/portal/*" element={<PortalApp />} />
+
+        {/* Admin Back-Office — AUTH REQUIRED */}
+        <Route path="/*" element={<AdminShell />} />
+      </Routes>
+    </Suspense>
   )
 }
