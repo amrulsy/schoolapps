@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import { Save, Plus, Edit2, Trash2, Eye, Layout, Monitor, Handshake, GraduationCap, Megaphone, RefreshCw } from 'lucide-react'
 import { useCustomAlert } from '../hooks/useCustomAlert'
 
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../services/api'
 
 const TABS = [
     { key: 'hero', label: 'Hero Section', icon: Monitor },
@@ -38,11 +38,6 @@ export default function CmsHomePage() {
 
     useEffect(() => { loadAll() }, [])
 
-    const authHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer dummy-token'
-    })
-
     const loadAll = async () => {
         setLoading(true)
         await Promise.all([loadSettings(), loadPrograms(), loadPartners()])
@@ -52,7 +47,7 @@ export default function CmsHomePage() {
     // ==================== SETTINGS ====================
     const loadSettings = async () => {
         try {
-            const res = await fetch(`${API_BASE}/settings`, { headers: authHeaders() })
+            const res = await fetch(`${API_BASE}/settings`, { headers: getAuthHeaders() })
             if (res.ok) {
                 const data = await res.json()
                 const map = {}
@@ -72,7 +67,7 @@ export default function CmsHomePage() {
             const updates = keys.map(k => ({ setting_key: k, setting_value: settings[k] || '' }))
             const res = await fetch(`${API_BASE}/settings`, {
                 method: 'PUT',
-                headers: authHeaders(),
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ updates })
             })
             if (res.ok) {
@@ -87,7 +82,7 @@ export default function CmsHomePage() {
     // ==================== PROGRAMS ====================
     const loadPrograms = async () => {
         try {
-            const res = await fetch(`${API_BASE}/programs`, { headers: authHeaders() })
+            const res = await fetch(`${API_BASE}/programs`, { headers: getAuthHeaders() })
             if (res.ok) setPrograms(await res.json())
         } catch { /* silent */ }
     }
@@ -107,7 +102,7 @@ export default function CmsHomePage() {
         try {
             const url = editProgram ? `${API_BASE}/programs/${editProgram.id}` : `${API_BASE}/programs`
             const method = editProgram ? 'PUT' : 'POST'
-            const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(programForm) })
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(programForm) })
             if (res.ok) {
                 addToast('success', 'Berhasil', `Program ${editProgram ? 'diperbarui' : 'ditambahkan'}`)
                 setShowProgramModal(false)
@@ -123,7 +118,7 @@ export default function CmsHomePage() {
     const deleteProgram = async (p) => {
         if (await confirmDelete(`Hapus program "${p.title}"?`, 'Data akan dihapus permanen.')) {
             try {
-                const res = await fetch(`${API_BASE}/programs/${p.id}`, { method: 'DELETE', headers: authHeaders() })
+                const res = await fetch(`${API_BASE}/programs/${p.id}`, { method: 'DELETE', headers: getAuthHeaders() })
                 if (res.ok) { addToast('success', 'Berhasil', 'Program dihapus'); loadPrograms() }
             } catch { addToast('danger', 'Error', 'Gagal menghapus') }
         }
@@ -132,7 +127,7 @@ export default function CmsHomePage() {
     // ==================== PARTNERS ====================
     const loadPartners = async () => {
         try {
-            const res = await fetch(`${API_BASE}/partners`, { headers: authHeaders() })
+            const res = await fetch(`${API_BASE}/partners`, { headers: getAuthHeaders() })
             if (res.ok) setPartners(await res.json())
         } catch { /* silent */ }
     }
@@ -152,7 +147,7 @@ export default function CmsHomePage() {
         try {
             const url = editPartner ? `${API_BASE}/partners/${editPartner.id}` : `${API_BASE}/partners`
             const method = editPartner ? 'PUT' : 'POST'
-            const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(partnerForm) })
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(partnerForm) })
             if (res.ok) {
                 addToast('success', 'Berhasil', `Partner ${editPartner ? 'diperbarui' : 'ditambahkan'}`)
                 setShowPartnerModal(false)
@@ -168,7 +163,7 @@ export default function CmsHomePage() {
     const deletePartner = async (p) => {
         if (await confirmDelete(`Hapus partner "${p.name}"?`, 'Data akan dihapus permanen.')) {
             try {
-                const res = await fetch(`${API_BASE}/partners/${p.id}`, { method: 'DELETE', headers: authHeaders() })
+                const res = await fetch(`${API_BASE}/partners/${p.id}`, { method: 'DELETE', headers: getAuthHeaders() })
                 if (res.ok) { addToast('success', 'Berhasil', 'Partner dihapus'); loadPartners() }
             } catch { addToast('danger', 'Error', 'Gagal menghapus') }
         }
@@ -185,7 +180,7 @@ export default function CmsHomePage() {
                     <button className="btn btn-secondary" onClick={loadAll}>
                         <RefreshCw size={16} /> Refresh
                     </button>
-                    <a href="/portal" target="_blank" rel="noreferrer" className="btn btn-primary">
+                    <a href="/" target="_blank" rel="noreferrer" className="btn btn-primary">
                         <Eye size={16} /> Lihat Portal
                     </a>
                 </div>

@@ -105,10 +105,10 @@ export default function PortalHome() {
                                 {settings.hero_subtitle || 'Sekolah Menengah Kejuruan yang mencetak lulusan siap kerja, berkompetensi tinggi, dan berakhlak mulia. Bergabunglah bersama kami!'}
                             </p>
                             <div className="portal-hero-actions actions-centered">
-                                <Link to="/portal/ppdb" className="portal-btn portal-btn-primary portal-btn-lg">
+                                <Link to="/ppdb" className="portal-btn portal-btn-primary portal-btn-lg">
                                     ✨ Daftar Sekarang
                                 </Link>
-                                <Link to="/portal/informasi" className="portal-btn portal-btn-outline portal-btn-lg">
+                                <Link to="/informasi" className="portal-btn portal-btn-outline portal-btn-lg">
                                     📖 Pelajari Lebih Lanjut
                                 </Link>
                                 <button
@@ -323,7 +323,7 @@ export default function PortalHome() {
                     ) : posts.length > 0 ? (
                         <div className="portal-grid portal-grid-3">
                             {posts.map(post => (
-                                <Link key={post.id} to={`/portal/pengumuman/${post.slug}`} style={{ textDecoration: 'none' }}>
+                                <Link key={post.id} to={`/pengumuman/${post.slug}`} style={{ textDecoration: 'none' }}>
                                     <div className="portal-card">
                                         {post.cover_image && (
                                             <img
@@ -364,7 +364,7 @@ export default function PortalHome() {
 
                     {posts.length > 0 && (
                         <div style={{ textAlign: 'center', marginTop: '32px' }}>
-                            <Link to="/portal/pengumuman" className="portal-btn portal-btn-outline-dark">
+                            <Link to="/pengumuman" className="portal-btn portal-btn-outline-dark">
                                 Lihat Semua Pengumuman →
                             </Link>
                         </div>
@@ -379,7 +379,7 @@ export default function PortalHome() {
                     <p>
                         {settings.cta_subtitle || 'Jangan lewatkan kesempatan emas untuk meraih masa depan yang cemerlang. Daftarkan dirimu sekarang juga!'}
                     </p>
-                    <Link to="/portal/ppdb" className="portal-btn portal-btn-primary portal-btn-lg">
+                    <Link to="/ppdb" className="portal-btn portal-btn-primary portal-btn-lg">
                         {settings.cta_button_text || '✨ Daftar PPDB Sekarang'}
                     </Link>
                 </div>

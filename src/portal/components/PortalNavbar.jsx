@@ -3,18 +3,18 @@ import { Link, useLocation } from 'react-router-dom'
 import { Home, Megaphone, Info, GraduationCap, Receipt, Phone } from 'lucide-react'
 
 const NAV_LINKS = [
-    { to: '/portal', label: 'Beranda', icon: <Home size={20} />, exact: true },
-    { to: '/portal/pengumuman', label: 'Pengumuman', icon: <Megaphone size={20} /> },
-    { to: '/portal/informasi', label: 'Informasi', icon: <Info size={20} /> },
-    { to: '/portal/ppdb', label: 'PPDB', icon: <GraduationCap size={20} /> },
-    { to: '/portal/cek-tagihan', label: 'Cek Tagihan', icon: <Receipt size={20} /> },
-    { to: '/portal/kontak', label: 'Kontak', icon: <Phone size={20} /> },
+    { to: '/', label: 'Beranda', icon: <Home size={20} />, exact: true },
+    { to: '/pengumuman', label: 'Pengumuman', icon: <Megaphone size={20} /> },
+    { to: '/informasi', label: 'Informasi', icon: <Info size={20} /> },
+    { to: '/ppdb', label: 'PPDB', icon: <GraduationCap size={20} /> },
+    { to: '/cek-tagihan', label: 'Cek Tagihan', icon: <Receipt size={20} /> },
+    { to: '/kontak', label: 'Kontak', icon: <Phone size={20} /> },
 ]
 
 export default function PortalNavbar({ mobileOpen, setMobileOpen }) {
     const [scrolled, setScrolled] = useState(false)
     const location = useLocation()
-    const isHome = location.pathname === '/portal'
+    const isHome = location.pathname === '/'
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 50)
@@ -37,7 +37,7 @@ export default function PortalNavbar({ mobileOpen, setMobileOpen }) {
         <>
             <nav className={navClass}>
                 <div className="portal-navbar-inner">
-                    <Link to="/portal" className="portal-navbar-logo">
+                    <Link to="/" className="portal-navbar-logo">
                         <div className="portal-navbar-logo-icon">S</div>
                         <span className="portal-navbar-logo-text">SMK PPRQ</span>
                     </Link>

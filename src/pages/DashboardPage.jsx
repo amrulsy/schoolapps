@@ -7,7 +7,7 @@ import CashFlowSummary from '../features/dashboard/CashFlowSummary'
 import TopDebtors from '../features/dashboard/TopDebtors'
 
 export default function DashboardPage() {
-    const { students, bills, cashFlow, formatRupiah, activityLog, units, tahunAjaran } = useApp()
+    const { students, bills, cashFlow, formatRupiah, activityLog, units, tahunAjaran, currentUser } = useApp()
 
     const activeStudentsCount = students.filter(s => s.status === 'aktif').length
     const graduatedStudentsCount = students.filter(s => s.status === 'lulus').length
@@ -62,7 +62,7 @@ export default function DashboardPage() {
         <div className="fade-in">
             <div className="page-header">
                 <div>
-                    <h1>Selamat Datang, Pak Ahmad 👋</h1>
+                    <h1>Selamat Datang, {currentUser.nama} 👋</h1>
                     <p style={{ color: 'var(--text-secondary)', marginTop: 4, fontSize: '0.9rem' }}>
                         Tahun Ajaran: <strong>{tahunAjaran}</strong> (Aktif)
                     </p>

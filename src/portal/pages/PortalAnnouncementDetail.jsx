@@ -60,7 +60,7 @@ export default function PortalAnnouncementDetail() {
                 <div className="portal-content" style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '4rem', marginBottom: '16px' }}>😔</div>
                     <p>{error || 'Artikel yang Anda cari tidak ada atau sudah dihapus.'}</p>
-                    <Link to="/portal/pengumuman" className="portal-btn portal-btn-primary" style={{ marginTop: '16px' }}>
+                    <Link to="/pengumuman" className="portal-btn portal-btn-primary" style={{ marginTop: '16px' }}>
                         ← Kembali ke Pengumuman
                     </Link>
                 </div>
@@ -72,7 +72,7 @@ export default function PortalAnnouncementDetail() {
         <div className="portal-page">
             <div className="portal-page-header">
                 <div className="portal-container">
-                    <Link to="/portal/pengumuman" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.9rem', display: 'inline-block', marginBottom: '12px' }}>
+                    <Link to="/pengumuman" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.9rem', display: 'inline-block', marginBottom: '12px' }}>
                         ← Kembali ke Pengumuman
                     </Link>
                     <h1>{post.title}</h1>

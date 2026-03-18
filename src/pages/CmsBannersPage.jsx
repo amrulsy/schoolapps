@@ -4,8 +4,7 @@ import { Plus, Edit2, Trash2, Image as ImageIcon } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import { useCustomAlert } from '../hooks/useCustomAlert'
 import MediaLibraryModal from '../components/MediaLibraryModal'
-
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../services/api'
 
 export default function CmsBannersPage() {
     const { addToast } = useApp()
@@ -28,7 +27,7 @@ export default function CmsBannersPage() {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/banners`, {
-                headers: { 'Authorization': 'Bearer dummy-token' }
+                headers: getBearerHeader()
             })
             if (res.ok) {
                 const data = await res.json()
@@ -71,10 +70,7 @@ export default function CmsBannersPage() {
 
             const res = await fetch(url, {
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer dummy-token'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(payload)
             })
 
@@ -102,7 +98,7 @@ export default function CmsBannersPage() {
             try {
                 const res = await fetch(`${API_BASE}/banners/${banner.id}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer dummy-token' }
+                    headers: getBearerHeader()
                 })
                 if (res.ok) {
                     addToast('success', 'Berhasil', 'Banner dihapus')

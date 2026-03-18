@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import { Save, RefreshCw, Globe, Mail, Phone, Share2, Shield, Layout, Radio, MessageSquare, BookOpen } from 'lucide-react'
 import RichTextEditor from '../components/RichTextEditor'
 
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../services/api'
 
 export default function CmsSettingsPage() {
     const { addToast } = useApp()
@@ -20,7 +20,7 @@ export default function CmsSettingsPage() {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/settings`, {
-                headers: { 'Authorization': 'Bearer dummy-token' }
+                headers: getBearerHeader()
             })
             if (res.ok) {
                 const data = await res.json()
@@ -53,10 +53,7 @@ export default function CmsSettingsPage() {
 
             const res = await fetch(`${API_BASE}/settings`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer dummy-token'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ updates })
             })
 
@@ -203,7 +200,7 @@ export default function CmsSettingsPage() {
                         </h2>
                         <div style={{ padding: '24px' }}>
                             <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 20 }}>
-                                Konten ini akan tampil di halaman <strong>/portal/informasi</strong> pada tab Profil dan Visi Misi.
+                                Konten ini akan tampil di halaman <strong>/informasi</strong> pada tab Profil dan Visi Misi.
                             </p>
                             {schoolInfoSettings.map(s => (
                                 <div key={s.setting_key} className="form-group mb-4">

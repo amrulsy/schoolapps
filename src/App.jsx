@@ -1,18 +1,19 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import { useApp } from './context/AppContext'
 
-// ---- LAZY LOADED CHUNKS ----
+// Layouts
+import PublicLayout from './layouts/PublicLayout'
+import AdminLayout from './layouts/AdminLayout'
+
 // Portal (separate chunk — no auth needed)
 const PortalApp = lazy(() => import('./portal/PortalApp'))
 
-// Admin UI components (loaded only when authenticated)
-import Sidebar from './components/Sidebar'
-import Header from './components/Header'
-import Toast from './components/Toast'
+// Public Pages
+import BerandaPage from './pages/public/BerandaPage'
+import BeritaPage from './pages/public/BeritaPage'
+import TentangPage from './pages/public/TentangPage'
 
-// Admin Pages (eagerly loaded within admin shell)
-import LoginPage from './pages/LoginPage'
+// Admin Pages
 import DashboardPage from './pages/DashboardPage'
 import SiswaPage from './pages/SiswaPage'
 import UnitKelasPage from './pages/UnitKelasPage'
@@ -40,7 +41,6 @@ import CmsPpdbPage from './pages/CmsPpdbPage'
 import CmsHomePage from './pages/CmsHomePage'
 import CmsPpdbContentPage from './pages/CmsPpdbContentPage'
 
-// Page loader for suspense fallback
 function PageLoader() {
   return (
     <div style={{
@@ -58,76 +58,42 @@ function PageLoader() {
   )
 }
 
-// Admin shell component
-function AdminShell() {
-  const { sidebarCollapsed } = useApp()
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'))
-
-  const handleLogin = (userData) => {
-    if (userData && userData.token) {
-      localStorage.setItem('token', userData.token)
-    } else {
-      localStorage.setItem('token', 'dummy-token')
-    }
-    setIsLoggedIn(true)
-  }
-
-  if (!isLoggedIn) {
-    return <LoginPage onLogin={handleLogin} />
-  }
-
-  const marginLeft = sidebarCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)'
-
-  return (
-    <div className="app-layout">
-      <Sidebar />
-      <div className="main-wrapper" style={{ marginLeft }}>
-        <Header />
-        <main className="page-content">
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/siswa" element={<SiswaPage />} />
-            <Route path="/unit-kelas" element={<UnitKelasPage />} />
-            <Route path="/tahun-ajaran" element={<TahunAjaranPage />} />
-            <Route path="/kategori-tagihan" element={<KategoriTagihanPage />} />
-            <Route path="/rekening" element={<RekeningPage />} />
-            <Route path="/tagihan" element={<TagihanPage />} />
-            <Route path="/riwayat-generate" element={<RiwayatGeneratePage />} />
-            <Route path="/pembayaran" element={<PembayaranPage />} />
-            <Route path="/riwayat" element={<RiwayatTransaksiPage />} />
-            <Route path="/arus-kas" element={<ArusKasPage />} />
-            <Route path="/laporan" element={<LaporanPage />} />
-            <Route path="/kartu-spp" element={<KartuSppPage />} />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/pengaturan" element={<PengaturanPage />} />
-            <Route path="/backup" element={<BackupPage />} />
-
-            {/* CMS Routes */}
-            <Route path="/cms/home" element={<CmsHomePage />} />
-            <Route path="/cms/banners" element={<CmsBannersPage />} />
-            <Route path="/cms/posts" element={<CmsPostsPage />} />
-            <Route path="/cms/pages" element={<CmsPagesPage />} />
-            <Route path="/cms/settings" element={<CmsSettingsPage />} />
-            <Route path="/cms/contacts" element={<CmsContactsPage />} />
-            <Route path="/cms/ppdb" element={<CmsPpdbPage />} />
-            <Route path="/cms/ppdb-content" element={<CmsPpdbContentPage />} />
-          </Routes>
-        </main>
-      </div>
-      <Toast />
-    </div>
-  )
-}
-
 export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Portal Publik — NO AUTH, separate bundle */}
-        <Route path="/portal/*" element={<PortalApp />} />
+        {/* ======= PUBLIC PORTAL (/) ======= */}
+        <Route path="/*" element={<PortalApp />} />
 
-        {/* Admin Back-Office — AUTH REQUIRED */}
-        <Route path="/*" element={<AdminShell />} />
+        {/* ======= ADMIN BACK-OFFICE (/admin/...) ======= */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="siswa" element={<SiswaPage />} />
+          <Route path="unit-kelas" element={<UnitKelasPage />} />
+          <Route path="tahun-ajaran" element={<TahunAjaranPage />} />
+          <Route path="kategori-tagihan" element={<KategoriTagihanPage />} />
+          <Route path="rekening" element={<RekeningPage />} />
+          <Route path="tagihan" element={<TagihanPage />} />
+          <Route path="riwayat-generate" element={<RiwayatGeneratePage />} />
+          <Route path="pembayaran" element={<PembayaranPage />} />
+          <Route path="riwayat" element={<RiwayatTransaksiPage />} />
+          <Route path="arus-kas" element={<ArusKasPage />} />
+          <Route path="laporan" element={<LaporanPage />} />
+          <Route path="kartu-spp" element={<KartuSppPage />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="pengaturan" element={<PengaturanPage />} />
+          <Route path="backup" element={<BackupPage />} />
+
+          {/* CMS Routes */}
+          <Route path="cms/home" element={<CmsHomePage />} />
+          <Route path="cms/banners" element={<CmsBannersPage />} />
+          <Route path="cms/posts" element={<CmsPostsPage />} />
+          <Route path="cms/pages" element={<CmsPagesPage />} />
+          <Route path="cms/settings" element={<CmsSettingsPage />} />
+          <Route path="cms/contacts" element={<CmsContactsPage />} />
+          <Route path="cms/ppdb" element={<CmsPpdbPage />} />
+          <Route path="cms/ppdb-content" element={<CmsPpdbContentPage />} />
+        </Route>
       </Routes>
     </Suspense>
   )

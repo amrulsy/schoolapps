@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import { Search, Filter, Trash2, CheckCircle, XCircle, Clock, Eye, Download, UserPlus, Users, GraduationCap, X, MapPin, Phone, Calendar, Send, RefreshCw } from 'lucide-react'
 import Swal from 'sweetalert2'
 
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../services/api'
 
 export default function CmsPpdbPage() {
     const { addToast } = useApp()
@@ -21,7 +21,7 @@ export default function CmsPpdbPage() {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/ppdb`, {
-                headers: { 'Authorization': 'Bearer dummy-token' }
+                headers: getBearerHeader()
             })
             if (res.ok) {
                 const data = await res.json()
@@ -50,10 +50,7 @@ export default function CmsPpdbPage() {
         try {
             const res = await fetch(`${API_BASE}/ppdb/${id}/status`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer dummy-token'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ status: newStatus })
             })
 
@@ -85,7 +82,7 @@ export default function CmsPpdbPage() {
         try {
             const res = await fetch(`${API_BASE}/ppdb/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': 'Bearer dummy-token' }
+                headers: getBearerHeader()
             })
 
             if (res.ok) {

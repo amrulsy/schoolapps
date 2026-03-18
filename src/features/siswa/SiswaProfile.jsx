@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
+import { API_BASE } from '../../services/api'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 import { User, Phone, MapPin, Calendar, FileText, Download, Search, Upload, CheckCircle2, AlertCircle, Briefcase, GraduationCap, Users, Shield, ArrowLeft, HeartPulse, CreditCard, Save, X, Edit3, Trash2, IdCard, BookOpen, FileCheck, Hash, EyeOff, Activity, Home, Heart, Eye } from 'lucide-react'
 
@@ -166,7 +167,7 @@ export default function SiswaProfile({ data, onClose }) {
         const fetchDetails = async () => {
             try {
                 setLoadingDetail(true)
-                const res = await fetch(`http://localhost:3000/api/siswa/${data.id}`)
+                const res = await fetch(`${API_BASE}/siswa/${data.id}`)
                 if (res.ok) {
                     const d = await res.json()
                     // Map snake_case to camelCase for consistent state

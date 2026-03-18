@@ -1,18 +1,16 @@
 import { useState } from 'react'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
+import { API_BASE } from '../services/api'
 
 export default function LoginPage({ onLogin }) {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [showPw, setShowPw] = useState(false)
-    const [remember, setRemember] = useState(false)
-
     const handleSubmit = async (e) => {
         e.preventDefault()
         if (username && password) {
             try {
-                const API_URL = `http://${window.location.hostname}:3000/api`;
-                const res = await fetch(`${API_URL}/login`, {
+                const res = await fetch(`${API_BASE}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
@@ -27,8 +25,7 @@ export default function LoginPage({ onLogin }) {
                 }
             } catch (err) {
                 console.error('Login error:', err);
-                // Fallback for safety in dev environment if server unreachable or old pattern
-                onLogin({ token: 'dummy-token' });
+                alert('Tidak dapat terhubung ke server. Pastikan server backend aktif dan coba lagi.');
             }
         }
     }
@@ -69,19 +66,6 @@ export default function LoginPage({ onLogin }) {
                                 {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
-                    </div>
-
-                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <input
-                            type="checkbox"
-                            id="remember"
-                            checked={remember}
-                            onChange={e => setRemember(e.target.checked)}
-                            style={{ accentColor: 'var(--primary-500)' }}
-                        />
-                        <label htmlFor="remember" style={{ margin: 0, cursor: 'pointer', color: 'rgba(255,255,255,0.6)' }}>
-                            Ingat saya
-                        </label>
                     </div>
 
                     <button type="submit" className="btn btn-primary" style={{ marginTop: 8 }}>

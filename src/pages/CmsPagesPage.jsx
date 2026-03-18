@@ -4,7 +4,7 @@ import { Edit2, Eye, Layout } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import RichTextEditor from '../components/RichTextEditor'
 
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../services/api'
 
 export default function CmsPagesPage() {
     const { addToast } = useApp()
@@ -26,7 +26,7 @@ export default function CmsPagesPage() {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/pages`, {
-                headers: { 'Authorization': 'Bearer dummy-token' }
+                headers: getBearerHeader()
             })
             if (res.ok) {
                 const data = await res.json()
@@ -57,10 +57,7 @@ export default function CmsPagesPage() {
         try {
             const res = await fetch(`${API_BASE}/pages/${editData.slug}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer dummy-token'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(form)
             })
 
@@ -123,12 +120,12 @@ export default function CmsPagesPage() {
                                         <div style={{ fontWeight: 600 }}>{p.title}</div>
                                     </td>
                                     <td>
-                                        <span className="mono" style={{ fontSize: '0.85rem', color: 'var(--primary-600)' }}>/portal/info</span>
+                                        <span className="mono" style={{ fontSize: '0.85rem', color: 'var(--primary-600)' }}>/informasi</span>
                                     </td>
                                     <td>{formatDate(p.updated_at || p.created_at)}</td>
                                     <td>
                                         <div className="action-group">
-                                            <a href={`http://localhost:5174/portal/info?tab=${p.slug}`} target="_blank" rel="noreferrer" className="btn-icon btn-view" title="Lihat"><Eye size={20} /></a>
+                                            <a href={`http://localhost:5174/informasi?tab=${p.slug}`} target="_blank" rel="noreferrer" className="btn-icon btn-view" title="Lihat"><Eye size={20} /></a>
                                             <button className="btn-icon btn-edit" title="Edit Konten" onClick={() => handleOpenModal(p)}><Edit2 size={20} /></button>
                                         </div>
                                     </td>

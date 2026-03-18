@@ -6,7 +6,7 @@ import { useCustomAlert } from '../hooks/useCustomAlert'
 import RichTextEditor from '../components/RichTextEditor'
 import MediaLibraryModal from '../components/MediaLibraryModal'
 
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../services/api'
 
 export default function CmsPostsPage() {
     const { addToast } = useApp()
@@ -33,7 +33,7 @@ export default function CmsPostsPage() {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/posts`, {
-                headers: { 'Authorization': 'Bearer dummy-token' }
+                headers: getBearerHeader()
             })
             if (res.ok) {
                 const data = await res.json()
@@ -79,10 +79,7 @@ export default function CmsPostsPage() {
 
             const res = await fetch(url, {
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer dummy-token'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(payload)
             })
 
@@ -110,7 +107,7 @@ export default function CmsPostsPage() {
             try {
                 const res = await fetch(`${API_BASE}/posts/${post.id}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer dummy-token' }
+                    headers: getBearerHeader()
                 })
                 if (res.ok) {
                     addToast('success', 'Berhasil', 'Artikel dihapus')
@@ -216,7 +213,7 @@ export default function CmsPostsPage() {
                                     <td>
                                         <div className="action-group">
                                             {p.status === 'published' && (
-                                                <a href={`http://localhost:5174/portal/pengumuman/${p.slug}`} target="_blank" rel="noreferrer" className="btn-icon" style={{ color: 'var(--primary-500)' }} title="Lihat di Portal">
+                                                <a href={`http://localhost:5174/pengumuman/${p.slug}`} target="_blank" rel="noreferrer" className="btn-icon" style={{ color: 'var(--primary-500)' }} title="Lihat di Portal">
                                                     <ExternalLink size={20} />
                                                 </a>
                                             )}

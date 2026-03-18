@@ -3,8 +3,7 @@ import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import { useApp } from '../context/AppContext'
 import MediaLibraryModal from './MediaLibraryModal'
-
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE } from '../services/api'
 
 export default function RichTextEditor({ value, onChange, placeholder }) {
     const { addToast } = useApp()

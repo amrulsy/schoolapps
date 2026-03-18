@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePagination } from '../hooks/usePagination'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import Modal from '../components/Modal'
@@ -22,9 +23,6 @@ export default function TagihanPage() {
     const [showSingleGenerate, setShowSingleGenerate] = useState(false)
     const [showDiscountModal, setShowDiscountModal] = useState(false)
     const [selectedBills, setSelectedBills] = useState([])
-    const [page, setPage] = useState(1)
-    const PER_PAGE = 15
-
     const allKelas = units.flatMap(u => u.kelas)
 
     const filtered = bills.filter(b => {
@@ -42,8 +40,7 @@ export default function TagihanPage() {
         setSelectedBills([])
     }
 
-    const totalPages = Math.ceil(filtered.length / PER_PAGE)
-    const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+    const { page, setPage, totalPages, paginated, resetPage, perPage: PER_PAGE } = usePagination(filtered, 15)
 
     return (
         <div className="fade-in">
@@ -55,7 +52,7 @@ export default function TagihanPage() {
                             🏷️ Beri Diskon ({selectedBills.length})
                         </button>
                     )}
-                    <button className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }} onClick={() => navigate('/riwayat-generate')}>
+                    <button className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }} onClick={() => navigate('/admin/riwayat-generate')}>
                         <History size={16} /> Riwayat
                     </button>
                     <button className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }} onClick={() => setShowSingleGenerate(true)}>

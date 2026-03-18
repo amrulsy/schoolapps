@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../context/AppContext'
+import { API_BASE } from '../services/api'
+import { usePagination } from '../hooks/usePagination'
 import Modal from '../components/Modal'
 import EmptyState from '../components/EmptyState'
 import { useReactToPrint } from 'react-to-print'
@@ -12,24 +14,20 @@ export default function RiwayatTransaksiPage() {
     const { transactions, revertTransaction, formatRupiah, students } = useApp()
     const { confirmDelete } = useCustomAlert()
     const [search, setSearch] = useState('')
-    const [page, setPage] = useState(1)
     const [receipt, setReceipt] = useState(null)
-    const PER_PAGE = 15
 
     const filtered = transactions.filter(t => {
         const snama = t.siswa_nama || t.siswaName || ''
         const inv = t.invoice_no || t.invoiceNo || ''
-        const matchSearch = snama.toLowerCase().includes(search.toLowerCase()) ||
+        return snama.toLowerCase().includes(search.toLowerCase()) ||
             inv.toLowerCase().includes(search.toLowerCase())
-        return matchSearch
     })
 
-    const totalPages = Math.ceil(filtered.length / PER_PAGE)
-    const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+    const { page, setPage, totalPages, paginated } = usePagination(filtered, 15)
 
     const handleViewReceipt = async (tx) => {
         try {
-            const res = await fetch(`http://localhost:3000/api/transactions/${tx.id}`)
+            const res = await fetch(`${API_BASE}/transactions/${tx.id}`)
             if (res.ok) {
                 const detail = await res.json()
                 setReceipt(detail)

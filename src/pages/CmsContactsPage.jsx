@@ -4,7 +4,7 @@ import { Mail, Trash2, Eye } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import { useCustomAlert } from '../hooks/useCustomAlert'
 
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../services/api'
 
 export default function CmsContactsPage() {
     const { addToast } = useApp()
@@ -21,7 +21,7 @@ export default function CmsContactsPage() {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/contacts`, {
-                headers: { 'Authorization': 'Bearer dummy-token' }
+                headers: getBearerHeader()
             })
             if (res.ok) {
                 const data = await res.json()
@@ -40,7 +40,7 @@ export default function CmsContactsPage() {
             try {
                 const res = await fetch(`${API_BASE}/contacts/${msg.id}/read`, {
                     method: 'PUT',
-                    headers: { 'Authorization': 'Bearer dummy-token' }
+                    headers: getBearerHeader()
                 })
                 if (res.ok) {
                     setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: 1 } : m))
@@ -60,7 +60,7 @@ export default function CmsContactsPage() {
             try {
                 const res = await fetch(`${API_BASE}/contacts/${msg.id}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer dummy-token' }
+                    headers: getBearerHeader()
                 })
                 if (res.ok) {
                     addToast('success', 'Berhasil', 'Pesan dihapus')

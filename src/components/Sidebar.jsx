@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import {
     LayoutDashboard, Users, Building2, Calendar, ClipboardList, Landmark,
@@ -10,56 +10,55 @@ const menuSections = [
     {
         label: 'DATA MASTER',
         items: [
-            { to: '/siswa', icon: Users, text: 'Siswa' },
-            { to: '/unit-kelas', icon: Building2, text: 'Unit & Kelas' },
-            { to: '/tahun-ajaran', icon: Calendar, text: 'Tahun Ajaran' },
-            { to: '/kategori-tagihan', icon: ClipboardList, text: 'Kategori Tagihan' },
-            { to: '/rekening', icon: Landmark, text: 'Rekening Bank' },
+            { to: '/admin/siswa', icon: Users, text: 'Siswa' },
+            { to: '/admin/unit-kelas', icon: Building2, text: 'Unit & Kelas' },
+            { to: '/admin/tahun-ajaran', icon: Calendar, text: 'Tahun Ajaran' },
+            { to: '/admin/kategori-tagihan', icon: ClipboardList, text: 'Kategori Tagihan' },
+            { to: '/admin/rekening', icon: Landmark, text: 'Rekening Bank' },
         ]
     },
     {
         label: 'KEUANGAN',
         items: [
-            { to: '/tagihan', icon: FileText, text: 'Tagihan' },
-            { to: '/riwayat-generate', icon: Zap, text: 'Riwayat Generate' },
-            { to: '/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
-            { to: '/pembayaran', icon: CreditCard, text: 'Pembayaran (POS)' },
-            { to: '/riwayat', icon: History, text: 'Riwayat Transaksi' },
-            { to: '/arus-kas', icon: BookOpen, text: 'Arus Kas' },
+            { to: '/admin/tagihan', icon: FileText, text: 'Tagihan' },
+            { to: '/admin/riwayat-generate', icon: Zap, text: 'Riwayat Generate' },
+            { to: '/admin/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
+            { to: '/admin/pembayaran', icon: CreditCard, text: 'Pembayaran (POS)' },
+            { to: '/admin/riwayat', icon: History, text: 'Riwayat Transaksi' },
+            { to: '/admin/arus-kas', icon: BookOpen, text: 'Arus Kas' },
         ]
     },
     {
         label: 'LAPORAN',
         items: [
-            { to: '/laporan', icon: BarChart3, text: 'Laporan Keuangan' },
+            { to: '/admin/laporan', icon: BarChart3, text: 'Laporan Keuangan' },
         ]
     },
     {
         label: 'SISTEM',
         items: [
-            { to: '/users', icon: UserCog, text: 'Manajemen User' },
-            { to: '/pengaturan', icon: Settings, text: 'Pengaturan' },
-            { to: '/backup', icon: Database, text: 'Backup & Restore' },
+            { to: '/admin/users', icon: UserCog, text: 'Manajemen User' },
+            { to: '/admin/pengaturan', icon: Settings, text: 'Pengaturan' },
+            { to: '/admin/backup', icon: Database, text: 'Backup & Restore' },
         ]
     },
     {
         label: 'KONTEN PORTAL (CMS)',
         items: [
-            { to: '/cms/home', icon: Layout, text: 'Konten Halaman Utama' },
-            { to: '/cms/banners', icon: FileText, text: 'Banners' },
-            { to: '/cms/posts', icon: FileText, text: 'Pengumuman & Berita' },
-            { to: '/cms/pages', icon: FileText, text: 'Halaman Statis' },
-            { to: '/cms/ppdb', icon: ClipboardList, text: 'Pendaftaran PPDB' },
-            { to: '/cms/ppdb-content', icon: ClipboardList, text: 'Konten PPDB' },
-            { to: '/cms/settings', icon: Settings, text: 'Pengaturan Portal' },
-            { to: '/cms/contacts', icon: Users, text: 'Pesan Kontak' },
+            { to: '/admin/cms/home', icon: Layout, text: 'Konten Halaman Utama' },
+            { to: '/admin/cms/banners', icon: FileText, text: 'Banners' },
+            { to: '/admin/cms/posts', icon: FileText, text: 'Pengumuman & Berita' },
+            { to: '/admin/cms/pages', icon: FileText, text: 'Halaman Statis' },
+            { to: '/admin/cms/ppdb', icon: ClipboardList, text: 'Pendaftaran PPDB' },
+            { to: '/admin/cms/ppdb-content', icon: ClipboardList, text: 'Konten PPDB' },
+            { to: '/admin/cms/settings', icon: Settings, text: 'Pengaturan Portal' },
+            { to: '/admin/cms/contacts', icon: Users, text: 'Pesan Kontak' },
         ]
     }
 ]
 
 export default function Sidebar() {
     const { sidebarCollapsed, setSidebarCollapsed, currentUser } = useApp()
-    const location = useLocation()
 
     return (
         <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
@@ -72,7 +71,7 @@ export default function Sidebar() {
             </div>
 
             <nav className="sidebar-nav">
-                <NavLink to="/" className={({ isActive }) => `menu-item ${isActive && location.pathname === '/' ? 'active' : ''}`}>
+                <NavLink to="/admin" end className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
                     <span className="icon"><LayoutDashboard size={20} /></span>
                     <span>Dashboard</span>
                 </NavLink>

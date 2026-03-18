@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { downloadFile } from '../utils/downloadHelper';
+import { API_BASE, getBearerHeader } from '../services/api';
 import {
     Download,
     Upload,
     AlertTriangle,
-    CheckCircle2,
     Loader2,
     Database,
     ShieldCheck,
@@ -13,7 +14,10 @@ import {
     FolderArchive
 } from 'lucide-react';
 
-const API_BASE = `${window.location.protocol}//${window.location.hostname}:3000/api`;
+const networkErrMsg = (err, detail = '') =>
+    (err.message === 'Failed to fetch' || err.name === 'TypeError')
+        ? `Gagal terhubung ke API. Pastikan server backend di port 3000 sedang aktif.${detail ? ' ' + detail : ''}`
+        : err.message;
 
 const BackupPage = () => {
     const { addToast } = useApp();
@@ -38,12 +42,8 @@ const BackupPage = () => {
     const handleExport = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            const targetUrl = `${API_BASE}/admin/backup/export`;
-            console.log('Fetching backup from:', targetUrl);
-
-            const response = await fetch(targetUrl, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await fetch(`${API_BASE}/admin/backup/export`, {
+                headers: getBearerHeader()
             });
 
             if (!response.ok) {
@@ -62,27 +62,13 @@ const BackupPage = () => {
             }
 
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
             const timestamp = new Date().toISOString().slice(0, 10);
-            a.download = `sias-backup-${timestamp}.zip`;
-            document.body.appendChild(a);
-            a.click();
-
-            // Clean up after a small delay
-            setTimeout(() => {
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            }, 100);
+            await downloadFile(blob, `sias-backup-${timestamp}.zip`);
 
             addToast('success', 'Berhasil', 'Backup berhasil diunduh!');
         } catch (err) {
             console.error('Export Error:', err);
-            const msg = (err.message === 'Failed to fetch' || err.name === 'TypeError')
-                ? 'Gagal terhubung ke API (Failed to fetch). Pastikan server backend di port 3000 sedang aktif dan dapat dijangkau.'
-                : err.message;
-            addToast('danger', 'Gagal', msg);
+            addToast('danger', 'Gagal', networkErrMsg(err, 'Silakan cek koneksi backend.'));
         } finally {
             setLoading(false);
         }
@@ -98,16 +84,12 @@ const BackupPage = () => {
 
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
             const formData = new FormData();
             formData.append('backup', file);
 
-            const targetUrl = `${API_BASE}/admin/backup/import`;
-            console.log('Restoring backup to:', targetUrl);
-
-            const response = await fetch(targetUrl, {
+            const response = await fetch(`${API_BASE}/admin/backup/import`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
+                headers: getBearerHeader(),
                 body: formData
             });
 
@@ -118,10 +100,7 @@ const BackupPage = () => {
             setFile(null);
             setTimeout(() => window.location.reload(), 2500);
         } catch (err) {
-            const msg = (err.message === 'Failed to fetch' || err.name === 'TypeError')
-                ? 'Gagal terhubung ke API (Failed to fetch). Pastikan server backend di port 3000 sedang aktif.'
-                : err.message;
-            addToast('danger', 'Gagal', msg);
+            addToast('danger', 'Gagal', networkErrMsg(err));
         } finally {
             setLoading(false);
         }
