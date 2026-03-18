@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import { Save, Plus, Edit2, Trash2, Eye, LayoutList, ListOrdered, CheckCircle2, RefreshCw } from 'lucide-react'
 import { useCustomAlert } from '../hooks/useCustomAlert'
 
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE, getAuthHeaders } from '../services/api'
 
 const TABS = [
     { key: 'steps', label: 'Langkah Pendaftaran', icon: ListOrdered },
@@ -32,11 +32,6 @@ export default function CmsPpdbContentPage() {
 
     useEffect(() => { loadAll() }, [])
 
-    const authHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token') || 'dummy-token'}`
-    })
-
     const loadAll = async () => {
         setLoading(true)
         await Promise.all([loadSteps(), loadRequirements()])
@@ -46,7 +41,7 @@ export default function CmsPpdbContentPage() {
     // ==================== STEPS ====================
     const loadSteps = async () => {
         try {
-            const res = await fetch(`${API_BASE}/ppdb-steps`, { headers: authHeaders() })
+            const res = await fetch(`${API_BASE}/ppdb-steps`, { headers: getAuthHeaders() })
             if (res.ok) setSteps(await res.json())
         } catch { /* silent */ }
     }
@@ -66,7 +61,7 @@ export default function CmsPpdbContentPage() {
         try {
             const url = editStep ? `${API_BASE}/ppdb-steps/${editStep.id}` : `${API_BASE}/ppdb-steps`
             const method = editStep ? 'PUT' : 'POST'
-            const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(stepForm) })
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(stepForm) })
             if (res.ok) {
                 addToast('success', 'Berhasil', `Langkah ${editStep ? 'diperbarui' : 'ditambahkan'}`)
                 setShowStepModal(false)
@@ -82,7 +77,7 @@ export default function CmsPpdbContentPage() {
     const deleteStep = async (s) => {
         if (await confirmDelete(`Hapus langkah "${s.title}"?`, 'Data akan dihapus permanen.')) {
             try {
-                const res = await fetch(`${API_BASE}/ppdb-steps/${s.id}`, { method: 'DELETE', headers: authHeaders() })
+                const res = await fetch(`${API_BASE}/ppdb-steps/${s.id}`, { method: 'DELETE', headers: getAuthHeaders() })
                 if (res.ok) { addToast('success', 'Berhasil', 'Langkah dihapus'); loadSteps() }
             } catch { addToast('danger', 'Error', 'Gagal menghapus') }
         }
@@ -91,7 +86,7 @@ export default function CmsPpdbContentPage() {
     // ==================== REQUIREMENTS ====================
     const loadRequirements = async () => {
         try {
-            const res = await fetch(`${API_BASE}/ppdb-requirements`, { headers: authHeaders() })
+            const res = await fetch(`${API_BASE}/ppdb-requirements`, { headers: getAuthHeaders() })
             if (res.ok) setRequirements(await res.json())
         } catch { /* silent */ }
     }
@@ -111,7 +106,7 @@ export default function CmsPpdbContentPage() {
         try {
             const url = editReq ? `${API_BASE}/ppdb-requirements/${editReq.id}` : `${API_BASE}/ppdb-requirements`
             const method = editReq ? 'PUT' : 'POST'
-            const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(reqForm) })
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(reqForm) })
             if (res.ok) {
                 addToast('success', 'Berhasil', `Syarat ${editReq ? 'diperbarui' : 'ditambahkan'}`)
                 setShowReqModal(false)
@@ -127,7 +122,7 @@ export default function CmsPpdbContentPage() {
     const deleteReq = async (r) => {
         if (await confirmDelete(`Hapus syarat ini?`, 'Data akan dihapus permanen.')) {
             try {
-                const res = await fetch(`${API_BASE}/ppdb-requirements/${r.id}`, { method: 'DELETE', headers: authHeaders() })
+                const res = await fetch(`${API_BASE}/ppdb-requirements/${r.id}`, { method: 'DELETE', headers: getAuthHeaders() })
                 if (res.ok) { addToast('success', 'Berhasil', 'Syarat dihapus'); loadRequirements() }
             } catch { addToast('danger', 'Error', 'Gagal menghapus') }
         }
@@ -156,7 +151,7 @@ export default function CmsPpdbContentPage() {
                     <button className="btn btn-outline" style={{ borderRadius: 14, height: 44, fontWeight: 600 }} onClick={loadAll}>
                         <RefreshCw size={16} /> Refresh
                     </button>
-                    <a href="/portal/ppdb" target="_blank" rel="noreferrer" className="btn btn-primary" style={{ borderRadius: 14, height: 44, fontWeight: 600 }}>
+                    <a href="/ppdb" target="_blank" rel="noreferrer" className="btn btn-primary" style={{ borderRadius: 14, height: 44, fontWeight: 600 }}>
                         <Eye size={16} /> Lihat Portal
                     </a>
                 </div>

@@ -1,8 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react'
+import { API_BASE_PUBLIC as API_BASE } from '../../services/api'
 
 const PortalContext = createContext()
-
-const API_BASE = `http://${window.location.hostname}:3000/api/public`
 
 export function PortalProvider({ children }) {
     const [settings, setSettings] = useState({})

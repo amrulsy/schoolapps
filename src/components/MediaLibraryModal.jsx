@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Upload, Check, Image as ImageIcon, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-
-const API_BASE = 'http://localhost:3000/api/admin/cms'
+import { API_BASE_CMS as API_BASE, getBearerHeader, getMediaUrl } from '../services/api'
 
 export default function MediaLibraryModal({ isOpen, onClose, onSelect }) {
     const { addToast } = useApp()
@@ -23,7 +22,7 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect }) {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/media`, {
-                headers: { 'Authorization': 'Bearer dummy-token' }
+                headers: getBearerHeader()
             })
             if (res.ok) {
                 const data = await res.json()
@@ -56,7 +55,7 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect }) {
             setUploading(true)
             const res = await fetch(`${API_BASE}/media/upload`, {
                 method: 'POST',
-                headers: { 'Authorization': 'Bearer dummy-token' },
+                headers: getBearerHeader(),
                 body: formData
             })
 
@@ -82,7 +81,7 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect }) {
         try {
             const res = await fetch(`${API_BASE}/media/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': 'Bearer dummy-token' }
+                headers: getBearerHeader()
             })
             if (res.ok) {
                 setMedia(prev => prev.filter(m => m.id !== id))
@@ -96,14 +95,14 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect }) {
 
     const handleConfirmSelection = () => {
         if (selectedItem) {
-            onSelect(`http://localhost:3000${selectedItem.path}`)
+            onSelect(getMediaUrl(selectedItem.path))
             onClose()
         }
     }
 
     const copyToClipboard = (e, path) => {
         e.stopPropagation()
-        navigator.clipboard.writeText(`http://localhost:3000${path}`)
+        navigator.clipboard.writeText(getMediaUrl(path))
         addToast('success', 'Tersalin', 'URL gambar disalin ke clipboard')
     }
 
@@ -178,7 +177,7 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect }) {
                                         }}
                                     >
                                         <img
-                                            src={`http://localhost:3000${m.path}`}
+                                            src={getMediaUrl(m.path)}
                                             alt={m.original_name}
                                             style={{
                                                 width: '100%',

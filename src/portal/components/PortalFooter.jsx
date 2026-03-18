@@ -29,11 +29,11 @@ export default function PortalFooter() {
                     <div>
                         <h4>Navigasi</h4>
                         <ul className="portal-footer-links">
-                            <li><Link to="/portal">Beranda</Link></li>
-                            <li><Link to="/portal/pengumuman">Pengumuman</Link></li>
-                            <li><Link to="/portal/informasi">Profil Sekolah</Link></li>
-                            <li><Link to="/portal/ppdb">PPDB</Link></li>
-                            <li><Link to="/portal/cek-tagihan">Cek Tagihan</Link></li>
+                            <li><Link to="/">Beranda</Link></li>
+                            <li><Link to="/pengumuman">Pengumuman</Link></li>
+                            <li><Link to="/informasi">Profil Sekolah</Link></li>
+                            <li><Link to="/ppdb">PPDB</Link></li>
+                            <li><Link to="/cek-tagihan">Cek Tagihan</Link></li>
                         </ul>
                     </div>
 

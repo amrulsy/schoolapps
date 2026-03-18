@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useCallback } from 'react'
+import { usePagination } from '../hooks/usePagination'
 import * as XLSX from 'xlsx'
 import { useApp } from '../context/AppContext'
 import EmptyState from '../components/EmptyState'
@@ -21,21 +22,18 @@ export default function SiswaPage() {
     const [showModal, setShowModal] = useState(false)
     const [editData, setEditData] = useState(null)
     const [viewData, setViewData] = useState(null)
-    const [page, setPage] = useState(1)
-    const PER_PAGE = 10
 
     const allKelas = units.flatMap(u => u.kelas)
 
     const filtered = (students || []).filter(s => {
-        if (!s) return false;
+        if (!s) return false
         const matchSearch = String(s.nama || '').toLowerCase().includes((search || '').toLowerCase()) || String(s.nisn || '').includes(search || '')
         const matchKelas = !filterKelas || s.kelas === filterKelas
         const matchStatus = filterStatus === 'semua' || s.status === filterStatus
         return matchSearch && matchKelas && matchStatus
     })
 
-    const totalPages = Math.ceil(filtered.length / PER_PAGE)
-    const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+    const { page, setPage, totalPages, paginated, resetPage, perPage: PER_PAGE } = usePagination(filtered, 10)
 
     const handleSave = (data) => {
         if (editData) {
@@ -168,14 +166,14 @@ export default function SiswaPage() {
                         className="form-control"
                         placeholder="Cari nama / NISN..."
                         value={search}
-                        onChange={e => { setSearch(e.target.value); setPage(1) }}
+                        onChange={e => { setSearch(e.target.value); resetPage() }}
                     />
                 </div>
-                <select className="form-control" value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1) }}>
+                <select className="form-control" value={filterKelas} onChange={e => { setFilterKelas(e.target.value); resetPage() }}>
                     <option value="">Semua Kelas</option>
                     {allKelas.map(k => <option key={k.id} value={k.nama}>{k.nama}</option>)}
                 </select>
-                <select className="form-control" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}>
+                <select className="form-control" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); resetPage() }}>
                     <option value="semua">Semua Status</option>
                     <option value="aktif">Aktif</option>
                     <option value="lulus">Lulus</option>

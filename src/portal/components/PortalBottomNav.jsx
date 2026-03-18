@@ -2,10 +2,10 @@ import { Link, useLocation } from 'react-router-dom'
 import { Home, ClipboardList, Receipt, Phone, Menu } from 'lucide-react'
 
 const BOTTOM_NAV_LINKS = [
-    { to: '/portal', label: 'Beranda', icon: Home, exact: true },
-    { to: '/portal/ppdb', label: 'PPDB', icon: ClipboardList },
-    { to: '/portal/cek-tagihan', label: 'Tagihan', icon: Receipt },
-    { to: '/portal/kontak', label: 'Kontak', icon: Phone },
+    { to: '/', label: 'Beranda', icon: Home, exact: true },
+    { to: '/ppdb', label: 'PPDB', icon: ClipboardList },
+    { to: '/cek-tagihan', label: 'Tagihan', icon: Receipt },
+    { to: '/kontak', label: 'Kontak', icon: Phone },
 ]
 
 export default function PortalBottomNav({ onShowMore }) {
