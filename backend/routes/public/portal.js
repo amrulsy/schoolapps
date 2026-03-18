@@ -161,6 +161,46 @@ router.post('/ppdb/check', async (req, res) => {
     }
 });
 
+// GET /api/public/programs — Active program keahlian
+router.get('/programs', cacheMiddleware(600), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_programs WHERE is_active = 1 ORDER BY sort_order ASC'
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/partners — Active partner logos
+router.get('/partners', cacheMiddleware(600), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_partners WHERE is_active = 1 ORDER BY sort_order ASC'
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/ppdb-steps — Active PPDB steps
+router.get('/ppdb-steps', cacheMiddleware(600), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_ppdb_steps WHERE is_active = 1 ORDER BY sort_order ASC'
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/ppdb-requirements — Active PPDB requirements
+router.get('/ppdb-requirements', cacheMiddleware(600), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_ppdb_requirements WHERE is_active = 1 ORDER BY sort_order ASC'
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // GET /api/public/stats — Public statistics
 router.get('/stats', cacheMiddleware(1800), async (req, res) => {
     try {

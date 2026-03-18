@@ -36,6 +36,8 @@ import CmsPagesPage from './pages/CmsPagesPage'
 import CmsSettingsPage from './pages/CmsSettingsPage'
 import CmsContactsPage from './pages/CmsContactsPage'
 import CmsPpdbPage from './pages/CmsPpdbPage'
+import CmsHomePage from './pages/CmsHomePage'
+import CmsPpdbContentPage from './pages/CmsPpdbContentPage'
 
 // Page loader for suspense fallback
 function PageLoader() {
@@ -90,12 +92,14 @@ function AdminShell() {
             <Route path="/pengaturan" element={<PengaturanPage />} />
 
             {/* CMS Routes */}
+            <Route path="/cms/home" element={<CmsHomePage />} />
             <Route path="/cms/banners" element={<CmsBannersPage />} />
             <Route path="/cms/posts" element={<CmsPostsPage />} />
             <Route path="/cms/pages" element={<CmsPagesPage />} />
             <Route path="/cms/settings" element={<CmsSettingsPage />} />
             <Route path="/cms/contacts" element={<CmsContactsPage />} />
             <Route path="/cms/ppdb" element={<CmsPpdbPage />} />
+            <Route path="/cms/ppdb-content" element={<CmsPpdbContentPage />} />
           </Routes>
         </main>
       </div>

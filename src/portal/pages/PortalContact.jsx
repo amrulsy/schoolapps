@@ -2,11 +2,20 @@ import { useState } from 'react'
 import { usePortal } from '../context/PortalContext'
 
 export default function PortalContact() {
-    const { postPublic } = usePortal()
+    const { postPublic, fetchPublic } = usePortal()
     const [form, setForm] = useState({ nama: '', email: '', telepon: '', subjek: '', pesan: '' })
+    const [settings, setSettings] = useState({})
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
     const [error, setError] = useState(null)
+
+    useEffect(() => {
+        async function loadSettings() {
+            const data = await fetchPublic('/settings')
+            if (data) setSettings(data)
+        }
+        loadSettings()
+    }, [fetchPublic])
 
     function handleChange(e) {
         setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
@@ -35,10 +44,10 @@ export default function PortalContact() {
     }
 
     const contactInfo = [
-        { icon: '📍', label: 'Alamat', value: 'Jl. Pendidikan No. 1, Jakarta' },
-        { icon: '📞', label: 'Telepon', value: '021-XXXXXXX' },
-        { icon: '✉️', label: 'Email', value: 'info@smkpprq.sch.id' },
-        { icon: '🕐', label: 'Jam Operasional', value: 'Senin - Jumat: 07:00 - 15:00 WIB' },
+        { icon: '📍', label: 'Alamat', value: settings.contact_address || 'Jl. Pendidikan No. 1, Jakarta' },
+        { icon: '📞', label: 'Telepon', value: settings.contact_phone || '021-XXXXXXX' },
+        { icon: '✉️', label: 'Email', value: settings.contact_email || 'info@smkpprq.sch.id' },
+        { icon: '🕐', label: 'Jam Operasional', value: settings.contact_hours || 'Senin - Jumat: 07:00 - 15:00 WIB' },
     ]
 
     return (
@@ -124,12 +133,17 @@ export default function PortalContact() {
                             <div className="portal-card" style={{
                                 marginTop: '24px', height: '220px',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: 'var(--portal-bg-alt)', border: '2px dashed var(--portal-border)'
+                                background: 'var(--portal-bg-alt)', border: '2px dashed var(--portal-border)',
+                                overflow: 'hidden', padding: 0
                             }}>
-                                <div style={{ textAlign: 'center', color: 'var(--portal-text-muted)' }}>
-                                    <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🗺️</div>
-                                    <p style={{ margin: 0, fontSize: '0.85rem' }}>Google Maps dapat ditambahkan di sini</p>
-                                </div>
+                                {settings.contact_maps_embed ? (
+                                    <div style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: settings.contact_maps_embed }} />
+                                ) : (
+                                    <div style={{ textAlign: 'center', color: 'var(--portal-text-muted)' }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🗺️</div>
+                                        <p style={{ margin: 0, fontSize: '0.85rem' }}>Google Maps dapat ditambahkan melalui CMS admin.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -11,6 +11,8 @@ export default function PortalPPDB() {
     const [submitting, setSubmitting] = useState(false)
     const [activeTab, setActiveTab] = useState('register') // 'register' or 'check'
     const [searchQuery, setSearchQuery] = useState('')
+    const [steps, setSteps] = useState([])
+    const [requirements, setRequirements] = useState([])
 
     // Form State
     const [formData, setFormData] = useState({
@@ -30,12 +32,16 @@ export default function PortalPPDB() {
         async function loadData() {
             setLoading(true)
             try {
-                const [page, settingsData] = await Promise.all([
+                const [page, settingsData, stepsData, reqsData] = await Promise.all([
                     fetchPublic('/pages/syarat-pendaftaran'),
-                    fetchPublic('/settings')
+                    fetchPublic('/settings'),
+                    fetchPublic('/ppdb-steps'),
+                    fetchPublic('/ppdb-requirements')
                 ])
-                if (page) setPageContent(page)
+                if (page && !page.error) setPageContent(page)
                 if (settingsData) setSettings(settingsData)
+                if (stepsData && !stepsData.error) setSteps(stepsData)
+                if (reqsData && !reqsData.error) setRequirements(reqsData)
             } catch (err) {
                 console.error("Failed to load PPDB data", err)
             } finally {
@@ -46,13 +52,6 @@ export default function PortalPPDB() {
     }, [fetchPublic])
 
     const isOpen = settings.registration_open === 'true' || settings.registration_open === '1'
-
-    const steps = [
-        { no: '01', title: 'Daftar Online', desc: 'Isi formulir pendaftaran secara lengkap.', icon: <ClipboardCheck size={26} /> },
-        { no: '02', title: 'Verifikasi Data', desc: 'Validasi dokumen oleh panitia.', icon: <CheckCircle2 size={26} /> },
-        { no: '03', title: 'Tes & Wawancara', desc: 'Seleksi akademik dan minat bakat.', icon: <GraduationCap size={26} /> },
-        { no: '04', title: 'Pendaftaran Ulang', desc: 'Penyelesaian administrasi akhir.', icon: <ArrowRight size={26} /> },
-    ]
 
     const handleInputChange = (e) => {
         const { name, value } = e.target
@@ -497,12 +496,14 @@ export default function PortalPPDB() {
 
                     <div style={{ maxWidth: '1140px', margin: '0 auto 80px' }}>
                         <div className="steps-flow-container">
-                            {steps.map((step, idx) => (
-                                <div key={step.no} className="step-item-wrapper">
+                            {steps.length > 0 ? steps.map((step, idx) => (
+                                <div key={step.id} className="step-item-wrapper">
                                     <div className="step-card" style={{ animationDelay: `${idx * 0.1}s`, width: '100%' }}>
-                                        <div className="step-icon">{step.icon}</div>
+                                        <div className="step-icon">
+                                            <span style={{ fontSize: '1.5rem' }}>{step.icon || '📌'}</span>
+                                        </div>
                                         <h3 style={{ fontSize: '0.92rem', fontWeight: 800, marginBottom: '8px', color: '#1e293b' }}>{step.title}</h3>
-                                        <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>{step.desc}</p>
+                                        <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>{step.description}</p>
                                     </div>
                                     {idx < steps.length - 1 && (
                                         <div className="step-arrow-connector">
@@ -510,7 +511,9 @@ export default function PortalPPDB() {
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                            )) : (
+                                <div style={{ textAlign: 'center', width: '100%', padding: '20px', color: '#64748b' }}>Belum ada langkah pendaftaran.</div>
+                            )}
                         </div>
                     </div>
 
@@ -524,19 +527,16 @@ export default function PortalPPDB() {
 
                             <div className="info-panel">
                                 <div className="requirement-list">
-                                    {[
-                                        'Fotokopi Ijazah / SKL',
-                                        'Fotokopi Kartu Keluarga (KK)',
-                                        'Pas Foto 3x4 (4 lembar)',
-                                        'Fotokopi Akta Kelahiran'
-                                    ].map((item, i) => (
-                                        <div key={i} className="requirement-item" style={{ animationDelay: `${i * 0.1}s` }}>
+                                    {requirements.length > 0 ? requirements.map((req, i) => (
+                                        <div key={req.id} className="requirement-item" style={{ animationDelay: `${i * 0.1}s` }}>
                                             <div className="requirement-check">
                                                 <CheckCircle2 size={18} strokeWidth={2.5} />
                                             </div>
-                                            <span className="requirement-text">{item}</span>
+                                            <span className="requirement-text">{req.text}</span>
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <div style={{ textAlign: 'center', padding: '10px', color: '#64748b' }}>Belum ada syarat dokumen.</div>
+                                    )}
                                 </div>
 
                                 <div className="note-box-premium">

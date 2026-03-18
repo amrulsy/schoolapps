@@ -311,4 +311,168 @@ router.delete('/media/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ==================== PROGRAMS (Program Keahlian) ====================
+
+router.get('/programs', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM cms_programs ORDER BY sort_order ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/programs', async (req, res) => {
+    try {
+        const { icon, title, description, sort_order } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO cms_programs (icon, title, description, sort_order) VALUES (?, ?, ?, ?)',
+            [icon || '📚', title, description || null, sort_order || 0]
+        );
+        invalidateCache('/api/public/programs');
+        res.status(201).json({ id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/programs/:id', async (req, res) => {
+    try {
+        const { icon, title, description, sort_order, is_active } = req.body;
+        await pool.query(
+            'UPDATE cms_programs SET icon = ?, title = ?, description = ?, sort_order = ?, is_active = ? WHERE id = ?',
+            [icon, title, description, sort_order || 0, is_active ?? true, req.params.id]
+        );
+        invalidateCache('/api/public/programs');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/programs/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cms_programs WHERE id = ?', [req.params.id]);
+        invalidateCache('/api/public/programs');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== PARTNERS (Mitra/Partner Logos) ====================
+
+router.get('/partners', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM cms_partners ORDER BY sort_order ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/partners', async (req, res) => {
+    try {
+        const { name, logo_url, website_url, sort_order } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO cms_partners (name, logo_url, website_url, sort_order) VALUES (?, ?, ?, ?)',
+            [name, logo_url, website_url || null, sort_order || 0]
+        );
+        invalidateCache('/api/public/partners');
+        res.status(201).json({ id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/partners/:id', async (req, res) => {
+    try {
+        const { name, logo_url, website_url, sort_order, is_active } = req.body;
+        await pool.query(
+            'UPDATE cms_partners SET name = ?, logo_url = ?, website_url = ?, sort_order = ?, is_active = ? WHERE id = ?',
+            [name, logo_url, website_url, sort_order || 0, is_active ?? true, req.params.id]
+        );
+        invalidateCache('/api/public/partners');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/partners/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cms_partners WHERE id = ?', [req.params.id]);
+        invalidateCache('/api/public/partners');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== PPDB STEPS ====================
+
+router.get('/ppdb-steps', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM cms_ppdb_steps ORDER BY sort_order ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/ppdb-steps', async (req, res) => {
+    try {
+        const { step_number, icon, title, description, sort_order } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO cms_ppdb_steps (step_number, icon, title, description, sort_order) VALUES (?, ?, ?, ?, ?)',
+            [step_number || '01', icon || '📋', title, description || null, sort_order || 0]
+        );
+        invalidateCache('/api/public/ppdb-steps');
+        res.status(201).json({ id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/ppdb-steps/:id', async (req, res) => {
+    try {
+        const { step_number, icon, title, description, sort_order, is_active } = req.body;
+        await pool.query(
+            'UPDATE cms_ppdb_steps SET step_number = ?, icon = ?, title = ?, description = ?, sort_order = ?, is_active = ? WHERE id = ?',
+            [step_number, icon, title, description, sort_order || 0, is_active ?? true, req.params.id]
+        );
+        invalidateCache('/api/public/ppdb-steps');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/ppdb-steps/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cms_ppdb_steps WHERE id = ?', [req.params.id]);
+        invalidateCache('/api/public/ppdb-steps');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== PPDB REQUIREMENTS ====================
+
+router.get('/ppdb-requirements', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM cms_ppdb_requirements ORDER BY sort_order ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/ppdb-requirements', async (req, res) => {
+    try {
+        const { text, sort_order } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO cms_ppdb_requirements (text, sort_order) VALUES (?, ?)',
+            [text, sort_order || 0]
+        );
+        invalidateCache('/api/public/ppdb-requirements');
+        res.status(201).json({ id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/ppdb-requirements/:id', async (req, res) => {
+    try {
+        const { text, sort_order, is_active } = req.body;
+        await pool.query(
+            'UPDATE cms_ppdb_requirements SET text = ?, sort_order = ?, is_active = ? WHERE id = ?',
+            [text, sort_order || 0, is_active ?? true, req.params.id]
+        );
+        invalidateCache('/api/public/ppdb-requirements');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/ppdb-requirements/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cms_ppdb_requirements WHERE id = ?', [req.params.id]);
+        invalidateCache('/api/public/ppdb-requirements');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

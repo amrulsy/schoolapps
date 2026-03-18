@@ -1,27 +1,47 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Play, X } from 'lucide-react'
+import { Play, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { usePortal } from '../context/PortalContext'
+import '../styles/portal-banners.css'
 
 export default function PortalHome() {
     const { fetchPublic } = usePortal()
     const [stats, setStats] = useState(null)
     const [posts, setPosts] = useState([])
     const [banners, setBanners] = useState([])
+    const [programs, setPrograms] = useState([])
+    const [partners, setPartners] = useState([])
+    const [settings, setSettings] = useState({})
     const [loading, setLoading] = useState(true)
     const [isVideoOpen, setIsVideoOpen] = useState(false)
+    const [currentBanner, setCurrentBanner] = useState(0)
+
+    useEffect(() => {
+        if (banners.length > 0) {
+            const timer = setInterval(() => {
+                setCurrentBanner((prev) => (prev + 1) % banners.length)
+            }, 6000)
+            return () => clearInterval(timer)
+        }
+    }, [banners])
 
     useEffect(() => {
         async function loadData() {
             setLoading(true)
-            const [statsData, postsData, bannersData] = await Promise.all([
+            const [statsData, postsData, bannersData, programsData, partnersData, settingsData] = await Promise.all([
                 fetchPublic('/stats'),
                 fetchPublic('/posts?limit=3'),
-                fetchPublic('/banners')
+                fetchPublic('/banners'),
+                fetchPublic('/programs'),
+                fetchPublic('/partners'),
+                fetchPublic('/settings')
             ])
             if (statsData) setStats(statsData)
             if (postsData) setPosts(postsData.data || [])
             if (bannersData) setBanners(bannersData)
+            if (programsData) setPrograms(programsData)
+            if (partnersData) setPartners(partnersData)
+            if (settingsData) setSettings(settingsData)
             setLoading(false)
         }
         loadData()
@@ -33,6 +53,30 @@ export default function PortalHome() {
             day: 'numeric', month: 'long', year: 'numeric'
         })
     }
+
+    // Parse hero title with highlight
+    const renderHeroTitle = () => {
+        const title = settings.hero_title || 'Raih Masa Depan\nCemerlang Bersama\nSMK PPRQ'
+        const highlight = settings.hero_highlight || 'Cemerlang Bersama'
+        const lines = title.split('\n')
+
+        return lines.map((line, i) => {
+            if (line.includes(highlight)) {
+                const parts = line.split(highlight)
+                return (
+                    <span key={i}>
+                        {parts[0]}
+                        <span className="portal-text-gradient">{highlight}</span>
+                        {parts[1]}
+                        {i < lines.length - 1 && <br />}
+                    </span>
+                )
+            }
+            return <span key={i}>{line}{i < lines.length - 1 && <br />}</span>
+        })
+    }
+
+    const videoUrl = settings.hero_video_url || 'https://www.youtube.com/embed/8y1PekgEC6E'
 
     return (
         <div className="portal-page portal-home-root">
@@ -52,16 +96,13 @@ export default function PortalHome() {
                     <div className="portal-hero-grid">
                         <div className="portal-hero-text-column">
                             <div className="portal-hero-badge">
-                                🎓 Penerimaan Peserta Didik Baru {loading ? '...' : (stats?.ppdb_year || '2026/2027')}
+                                🎓 {settings.hero_badge_text || 'Penerimaan Peserta Didik Baru'} {loading ? '...' : (stats?.ppdb_year || '2026/2027')}
                             </div>
                             <h1 className="hero-majestic">
-                                Raih Masa Depan <br />
-                                <span className="portal-text-gradient">Cemerlang Bersama</span> <br />
-                                SMK PPRQ
+                                {renderHeroTitle()}
                             </h1>
                             <p className="portal-hero-subtitle subtitle-majestic">
-                                Sekolah Menengah Kejuruan yang mencetak lulusan siap kerja,
-                                berkompetensi tinggi, dan berakhlak mulia. Bergabunglah bersama kami!
+                                {settings.hero_subtitle || 'Sekolah Menengah Kejuruan yang mencetak lulusan siap kerja, berkompetensi tinggi, dan berakhlak mulia. Bergabunglah bersama kami!'}
                             </p>
                             <div className="portal-hero-actions actions-centered">
                                 <Link to="/portal/ppdb" className="portal-btn portal-btn-primary portal-btn-lg">
@@ -86,7 +127,7 @@ export default function PortalHome() {
                                     <iframe
                                         width="100%"
                                         height="100%"
-                                        src="https://www.youtube.com/embed/8y1PekgEC6E?autoplay=0&mute=0"
+                                        src={`${videoUrl}?autoplay=0&mute=0`}
                                         title="School Profile Video"
                                         frameBorder="0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -111,7 +152,7 @@ export default function PortalHome() {
                             <iframe
                                 width="100%"
                                 height="100%"
-                                src="https://www.youtube.com/embed/8y1PekgEC6E?autoplay=1"
+                                src={`${videoUrl}?autoplay=1`}
                                 title="School Profile Video"
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -123,58 +164,137 @@ export default function PortalHome() {
             )}
 
             {/* ====== PARTNER LOGOS SECTION ====== */}
-            <section className="portal-section" style={{ paddingTop: 0, paddingBottom: 0, overflow: 'visible', zIndex: 30 }}>
-                <div className="portal-container">
-                    <div className="portal-partner-logos-row">
-                        <div className="portal-partner-logo-container">
-                            <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/cisco.svg" alt="Cisco" />
-                        </div>
-                        <div className="portal-partner-logo-container">
-                            <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/microsoft.svg" alt="Microsoft" />
-                        </div>
-                        <div className="portal-partner-logo-container">
-                            <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/oracle.svg" alt="Oracle" />
-                        </div>
-                        <div className="portal-partner-logo-container">
-                            <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/google.svg" alt="Google" />
-                        </div>
-                        <div className="portal-partner-logo-container">
-                            <img src="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/intel.svg" alt="Intel" />
+            {partners.length > 0 && (
+                <section className="portal-section" style={{ paddingTop: 0, paddingBottom: 0, overflow: 'visible', zIndex: 30 }}>
+                    <div className="portal-container">
+                        <div className="portal-partner-logos-row">
+                            {partners.map(partner => (
+                                <div key={partner.id} className="portal-partner-logo-container">
+                                    {partner.website_url ? (
+                                        <a href={partner.website_url} target="_blank" rel="noreferrer" title={partner.name}>
+                                            <img src={partner.logo_url} alt={partner.name} />
+                                        </a>
+                                    ) : (
+                                        <img src={partner.logo_url} alt={partner.name} />
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             {/* ====== PROGRAM KEAHLIAN ====== */}
-            <section className="portal-section">
+            <section className="portal-section portal-section-tight-top">
                 <div className="portal-container">
                     <div className="portal-section-header">
-                        <span className="portal-section-label">Program Keahlian</span>
-                        <h2 className="portal-section-title">Jurusan Unggulan Kami</h2>
+                        <span className="portal-section-label">
+                            {settings.programs_section_label || 'Program Keahlian'}
+                        </span>
+                        <h2 className="portal-section-title">
+                            {settings.programs_section_title || 'Jurusan Unggulan Kami'}
+                        </h2>
                         <p className="portal-section-subtitle">
-                            Pilih jalur kariermu dan kuasai keahlian yang dibutuhkan industri masa kini.
+                            {settings.programs_section_subtitle || 'Pilih jalur kariermu dan kuasai keahlian yang dibutuhkan industri masa kini.'}
                         </p>
                     </div>
 
                     <div className="portal-grid portal-grid-3">
-                        <div className="portal-program-card">
-                            <div className="portal-program-icon">💻</div>
-                            <h3>Teknik Komputer & Jaringan</h3>
-                            <p>Kuasai jaringan, server, dan infrastruktur IT modern untuk dunia industri digital.</p>
-                        </div>
-                        <div className="portal-program-card">
-                            <div className="portal-program-icon">🏢</div>
-                            <h3>Otomatisasi & Tata Kelola Perkantoran</h3>
-                            <p>Pelajari manajemen perkantoran digital, administrasi, dan komunikasi profesional.</p>
-                        </div>
-                        <div className="portal-program-card">
-                            <div className="portal-program-icon">📊</div>
-                            <h3>Akuntansi & Keuangan</h3>
-                            <p>Dalami akuntansi, perpajakan, dan pengelolaan keuangan perusahaan secara digital.</p>
-                        </div>
+                        {programs.length > 0 ? programs.map(program => (
+                            <div key={program.id} className="portal-program-card">
+                                <div className="portal-program-icon">{program.icon}</div>
+                                <h3>{program.title}</h3>
+                                <p>{program.description}</p>
+                            </div>
+                        )) : (
+                            <>
+                                <div className="portal-program-card">
+                                    <div className="portal-program-icon">💻</div>
+                                    <h3>Teknik Komputer & Jaringan</h3>
+                                    <p>Kuasai jaringan, server, dan infrastruktur IT modern untuk dunia industri digital.</p>
+                                </div>
+                                <div className="portal-program-card">
+                                    <div className="portal-program-icon">🏢</div>
+                                    <h3>Otomatisasi & Tata Kelola Perkantoran</h3>
+                                    <p>Pelajari manajemen perkantoran digital, administrasi, dan komunikasi profesional.</p>
+                                </div>
+                                <div className="portal-program-card">
+                                    <div className="portal-program-icon">📊</div>
+                                    <h3>Akuntansi & Keuangan</h3>
+                                    <p>Dalami akuntansi, perpajakan, dan pengelolaan keuangan perusahaan secara digital.</p>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </section>
+
+            {/* ====== BANNER SLIDER SECTION ====== */}
+            {banners.length > 0 && (
+                <section className="portal-banners-section">
+                    <div className="portal-container">
+                        <div className="portal-banner-frame">
+                            <div className="portal-banner-slider">
+                                {banners.map((banner, index) => (
+                                    <div
+                                        key={banner.id}
+                                        className="portal-banner-slide"
+                                        style={{ display: index === currentBanner ? 'block' : 'none' }}
+                                    >
+                                        <img
+                                            src={banner.image_url}
+                                            alt={banner.title}
+                                            className="portal-banner-image"
+                                        />
+                                        <div className="portal-banner-overlay">
+                                            <div className="portal-banner-content">
+                                                <h2 className="portal-banner-title">{banner.title}</h2>
+                                                <p className="portal-banner-subtitle">{banner.subtitle}</p>
+                                                {banner.link_url && (
+                                                    <Link
+                                                        to={banner.link_url}
+                                                        className="portal-btn portal-btn-primary portal-btn-lg"
+                                                    >
+                                                        🚀 Selengkapnya
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {banners.length > 1 && (
+                                    <>
+                                        <div className="portal-banner-dots">
+                                            {banners.map((_, i) => (
+                                                <div
+                                                    key={i}
+                                                    className={`banner-dot ${i === currentBanner ? 'active' : ''}`}
+                                                    onClick={() => setCurrentBanner(i)}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="portal-banner-nav">
+                                            <button
+                                                className="btn-nav-banner"
+                                                onClick={() => setCurrentBanner((prev) => (prev - 1 + banners.length) % banners.length)}
+                                            >
+                                                <ChevronLeft size={24} />
+                                            </button>
+                                            <button
+                                                className="btn-nav-banner"
+                                                onClick={() => setCurrentBanner((prev) => (prev + 1) % banners.length)}
+                                            >
+                                                <ChevronRight size={24} />
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* ====== PENGUMUMAN TERBARU ====== */}
             <section className="portal-section" style={{ background: 'var(--portal-bg-alt)' }}>
@@ -255,13 +375,12 @@ export default function PortalHome() {
             {/* ====== CTA SECTION ====== */}
             <section className="portal-cta">
                 <div className="portal-container">
-                    <h2>Siap Bergabung Bersama Kami?</h2>
+                    <h2>{settings.cta_title || 'Siap Bergabung Bersama Kami?'}</h2>
                     <p>
-                        Jangan lewatkan kesempatan emas untuk meraih masa depan yang cemerlang.
-                        Daftarkan dirimu sekarang juga!
+                        {settings.cta_subtitle || 'Jangan lewatkan kesempatan emas untuk meraih masa depan yang cemerlang. Daftarkan dirimu sekarang juga!'}
                     </p>
                     <Link to="/portal/ppdb" className="portal-btn portal-btn-primary portal-btn-lg">
-                        ✨ Daftar PPDB Sekarang
+                        {settings.cta_button_text || '✨ Daftar PPDB Sekarang'}
                     </Link>
                 </div>
             </section>
