@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import {
     LayoutDashboard, Users, Building2, Calendar, ClipboardList, Landmark,
     FileText, CreditCard, BookOpen, BarChart3, UserCog, Settings,
-    ChevronLeft, History, Zap, Layout
+    ChevronLeft, History, Zap, Layout, Database
 } from 'lucide-react'
 
 const menuSections = [
@@ -39,6 +39,7 @@ const menuSections = [
         items: [
             { to: '/users', icon: UserCog, text: 'Manajemen User' },
             { to: '/pengaturan', icon: Settings, text: 'Pengaturan' },
+            { to: '/backup', icon: Database, text: 'Backup & Restore' },
         ]
     },
     {

@@ -28,6 +28,7 @@ import LaporanPage from './pages/LaporanPage'
 import KartuSppPage from './pages/KartuSppPage'
 import UsersPage from './pages/UsersPage'
 import PengaturanPage from './pages/PengaturanPage'
+import BackupPage from './pages/BackupPage'
 
 // CMS Pages
 import CmsBannersPage from './pages/CmsBannersPage'
@@ -60,10 +61,19 @@ function PageLoader() {
 // Admin shell component
 function AdminShell() {
   const { sidebarCollapsed } = useApp()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'))
+
+  const handleLogin = (userData) => {
+    if (userData && userData.token) {
+      localStorage.setItem('token', userData.token)
+    } else {
+      localStorage.setItem('token', 'dummy-token')
+    }
+    setIsLoggedIn(true)
+  }
 
   if (!isLoggedIn) {
-    return <LoginPage onLogin={() => setIsLoggedIn(true)} />
+    return <LoginPage onLogin={handleLogin} />
   }
 
   const marginLeft = sidebarCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)'
@@ -90,6 +100,7 @@ function AdminShell() {
             <Route path="/kartu-spp" element={<KartuSppPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/pengaturan" element={<PengaturanPage />} />
+            <Route path="/backup" element={<BackupPage />} />
 
             {/* CMS Routes */}
             <Route path="/cms/home" element={<CmsHomePage />} />
