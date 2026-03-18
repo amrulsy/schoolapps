@@ -7,6 +7,7 @@ require('dotenv').config();
 // Routes
 const publicPortalRoutes = require('./routes/public/portal');
 const adminCmsRoutes = require('./routes/admin/cms');
+const adminBackupRoutes = require('./routes/admin/backup');
 
 // Middleware
 const { authMiddleware } = require('./middleware/auth');
@@ -24,6 +25,7 @@ app.use('/api/public', rateLimiter(60, 60000), publicPortalRoutes);
 
 // --- ADMIN CMS ROUTES (auth required) ---
 app.use('/api/admin/cms', authMiddleware, adminCmsRoutes);
+app.use('/api/admin/backup', authMiddleware, adminBackupRoutes);
 
 // --- MASTER DATA ROUTES ---
 

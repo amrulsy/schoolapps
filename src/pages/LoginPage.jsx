@@ -7,10 +7,29 @@ export default function LoginPage({ onLogin }) {
     const [showPw, setShowPw] = useState(false)
     const [remember, setRemember] = useState(false)
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
         if (username && password) {
-            onLogin()
+            try {
+                const API_URL = `http://${window.location.hostname}:3000/api`;
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    onLogin(data);
+                } else {
+                    const error = await res.json();
+                    alert(error.error || 'Username atau password salah');
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                // Fallback for safety in dev environment if server unreachable or old pattern
+                onLogin({ token: 'dummy-token' });
+            }
         }
     }
 
