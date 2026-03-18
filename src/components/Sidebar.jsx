@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 import {
     LayoutDashboard, Users, Building2, Calendar, ClipboardList, Landmark,
     FileText, CreditCard, BookOpen, BarChart3, UserCog, Settings,
-    ChevronLeft, History, Zap
+    ChevronLeft, History, Zap, Layout
 } from 'lucide-react'
 
 const menuSections = [
@@ -44,10 +44,12 @@ const menuSections = [
     {
         label: 'KONTEN PORTAL (CMS)',
         items: [
+            { to: '/cms/home', icon: Layout, text: 'Konten Halaman Utama' },
             { to: '/cms/banners', icon: FileText, text: 'Banners' },
             { to: '/cms/posts', icon: FileText, text: 'Pengumuman & Berita' },
             { to: '/cms/pages', icon: FileText, text: 'Halaman Statis' },
             { to: '/cms/ppdb', icon: ClipboardList, text: 'Pendaftaran PPDB' },
+            { to: '/cms/ppdb-content', icon: ClipboardList, text: 'Konten PPDB' },
             { to: '/cms/settings', icon: Settings, text: 'Pengaturan Portal' },
             { to: '/cms/contacts', icon: Users, text: 'Pesan Kontak' },
         ]

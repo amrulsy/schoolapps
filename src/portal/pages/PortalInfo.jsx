@@ -5,17 +5,32 @@ export default function PortalInfo() {
     const { fetchPublic } = usePortal()
     const [activePage, setActivePage] = useState('profil')
     const [pageContent, setPageContent] = useState(null)
+    const [programs, setPrograms] = useState([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         loadPage(activePage)
+        loadPrograms()
     }, [activePage])
+
+    async function loadPrograms() {
+        const data = await fetchPublic('/programs')
+        if (data && !data.error) setPrograms(data)
+    }
 
     async function loadPage(slug) {
         setLoading(true)
-        const data = await fetchPublic(`/pages/${slug}`)
-        if (data && !data.error) {
-            setPageContent(data)
+        const settingsData = await fetchPublic('/settings')
+        if (settingsData) {
+            const keyMap = {
+                'profil': 'school_profile_content',
+                'visi-misi': 'school_vision_mission_content'
+            }
+            const settingKey = keyMap[slug]
+            setPageContent({
+                title: slug === 'profil' ? 'Profil Sekolah' : 'Visi & Misi',
+                content: settingsData[settingKey] || '<p className="text-muted">Konten belum diatur di Pengaturan Portal.</p>'
+            })
         }
         setLoading(false)
     }
@@ -82,21 +97,17 @@ export default function PortalInfo() {
                         </div>
 
                         <div className="portal-grid portal-grid-3">
-                            <div className="portal-program-card">
-                                <div className="portal-program-icon">💻</div>
-                                <h3>Teknik Komputer & Jaringan</h3>
-                                <p>Menguasai instalasi, konfigurasi, dan troubleshooting jaringan komputer serta administrasi server.</p>
-                            </div>
-                            <div className="portal-program-card">
-                                <div className="portal-program-icon">🏢</div>
-                                <h3>Otomatisasi & Tata Kelola Perkantoran</h3>
-                                <p>Mempelajari manajemen perkantoran modern, administrasi digital, dan komunikasi bisnis profesional.</p>
-                            </div>
-                            <div className="portal-program-card">
-                                <div className="portal-program-icon">📊</div>
-                                <h3>Akuntansi & Keuangan Lembaga</h3>
-                                <p>Mendalami siklus akuntansi, perpajakan, dan pengelolaan keuangan menggunakan software MYOB & Zahir.</p>
-                            </div>
+                            {programs.length > 0 ? (
+                                programs.map(p => (
+                                    <div key={p.id} className="portal-program-card">
+                                        <div className="portal-program-icon">{p.icon}</div>
+                                        <h3>{p.title}</h3>
+                                        <p>{p.description}</p>
+                                    </div>
+                                ))
+                            ) : (
+                                <p style={{ color: 'var(--portal-text-muted)' }}>Belum ada data program keahlian.</p>
+                            )}
                         </div>
                     </div>
                 </div>
