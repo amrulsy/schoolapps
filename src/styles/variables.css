@@ -55,6 +55,7 @@
     --sidebar-width: 260px;
     --sidebar-collapsed: 72px;
     --header-height: 64px;
+    --bottom-nav-height: 64px;
 
     /* Border Radius */
     --radius-sm: 6px;

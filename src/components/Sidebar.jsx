@@ -71,7 +71,7 @@ export default function Sidebar() {
             </div>
 
             <nav className="sidebar-nav">
-                <NavLink to="/admin" end className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
+                <NavLink to="/admin" end className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`} title={sidebarCollapsed ? 'Dashboard' : ''}>
                     <span className="icon"><LayoutDashboard size={20} /></span>
                     <span>Dashboard</span>
                 </NavLink>
@@ -84,6 +84,7 @@ export default function Sidebar() {
                                 key={item.to}
                                 to={item.to}
                                 className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}
+                                title={sidebarCollapsed ? item.text : ''}
                             >
                                 <span className="icon"><item.icon size={20} /></span>
                                 <span>{item.text}</span>

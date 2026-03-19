@@ -162,7 +162,7 @@ router.post('/ppdb/check', async (req, res) => {
 });
 
 // GET /api/public/programs — Active program keahlian
-router.get('/programs', cacheMiddleware(600), async (req, res) => {
+router.get('/programs', cacheMiddleware(1), async (req, res) => {
     try {
         const [rows] = await pool.query(
             'SELECT * FROM cms_programs WHERE is_active = 1 ORDER BY sort_order ASC'

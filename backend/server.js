@@ -8,6 +8,7 @@ require('dotenv').config();
 const publicPortalRoutes = require('./routes/public/portal');
 const adminCmsRoutes = require('./routes/admin/cms');
 const adminBackupRoutes = require('./routes/admin/backup');
+const authRoutes = require('./routes/admin/auth');
 
 // Middleware
 const { authMiddleware } = require('./middleware/auth');
@@ -22,6 +23,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- PUBLIC PORTAL ROUTES (no auth, rate-limited) ---
 app.use('/api/public', rateLimiter(60, 60000), publicPortalRoutes);
+
+// --- AUTH ROUTES ---
+// Mendaftarkan authMiddleware khusus untuk rute /me SEBELUM authRoutes di-mount
+app.use('/api/auth/me', authMiddleware);
+app.use('/api/auth', authRoutes);
 
 // --- ADMIN CMS ROUTES (auth required) ---
 app.use('/api/admin/cms', authMiddleware, adminCmsRoutes);
@@ -525,15 +531,140 @@ app.get('/api/users', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// --- AUTH ROUTES ---
+// --- (AUTH ROUTES DIPINDAHKAN KE routes/admin/auth.js) ---
 
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    // Dummy authentication for demo
-    if (username === 'admin' && password === 'admin') {
-        res.json({ id: 1, nama: 'Pak Ahmad', role: 'admin', token: 'dummy-token' });
-    } else {
-        res.status(401).json({ error: 'Kredensial salah' });
+// --- STUDENT PORTAL API ROUTES ---
+
+// Student Login: NISN + Tanggal Lahir
+app.post('/api/student/login', async (req, res) => {
+    try {
+        const { nisn, tglLahir } = req.body;
+        if (!nisn || !tglLahir) return res.status(400).json({ error: 'NISN dan Tanggal Lahir wajib diisi' });
+
+        const [rows] = await pool.query(`
+            SELECT s.*, k.nama as kelas_nama 
+            FROM siswa s 
+            LEFT JOIN kelas k ON s.kelas_id = k.id 
+            WHERE s.nisn = ?
+        `, [nisn]);
+
+        if (rows.length === 0) return res.status(401).json({ error: 'NISN tidak ditemukan' });
+
+        const siswa = rows[0];
+        // Compare date of birth
+        const dbDate = siswa.tgl_lahir ? new Date(siswa.tgl_lahir).toISOString().split('T')[0] : null;
+        const inputDate = new Date(tglLahir).toISOString().split('T')[0];
+
+        if (dbDate !== inputDate) {
+            return res.status(401).json({ error: 'Tanggal lahir tidak cocok' });
+        }
+
+        // Simple token: base64 encode siswa id + nisn
+        const token = Buffer.from(`student:${siswa.id}:${siswa.nisn}`).toString('base64');
+
+        res.json({
+            token,
+            student: {
+                id: siswa.id,
+                nisn: siswa.nisn,
+                nis: siswa.nis,
+                nama: siswa.nama,
+                jk: siswa.jk,
+                kelas: siswa.kelas_nama,
+                kelasId: siswa.kelas_id,
+                status: siswa.status,
+                email: siswa.email,
+                telp: siswa.telp,
+                foto: siswa.foto || null
+            }
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Student Profile (full detail)
+app.get('/api/student/profile', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
+        const token = authHeader.replace('Bearer ', '');
+        const decoded = Buffer.from(token, 'base64').toString('utf-8');
+        const [, studentId] = decoded.split(':');
+
+        const [rows] = await pool.query(`
+            SELECT s.*, k.nama as kelas_nama, u.nama as unit_nama
+            FROM siswa s 
+            LEFT JOIN kelas k ON s.kelas_id = k.id
+            LEFT JOIN units u ON k.unit_id = u.id
+            WHERE s.id = ?
+        `, [studentId]);
+        if (rows.length === 0) return res.status(404).json({ error: 'Siswa tidak ditemukan' });
+
+        const siswa = rows[0];
+        const [ortu] = await pool.query('SELECT * FROM siswa_orangtua WHERE siswa_id = ?', [siswa.id]);
+        siswa.ayah = ortu.find(o => o.jenis === 'ayah') || {};
+        siswa.ibu = ortu.find(o => o.jenis === 'ibu') || {};
+
+        const [dok] = await pool.query('SELECT * FROM siswa_dokumen WHERE siswa_id = ?', [siswa.id]);
+        siswa.dokumen = dok;
+
+        res.json(siswa);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Student Bills
+app.get('/api/student/bills', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
+        const token = authHeader.replace('Bearer ', '');
+        const decoded = Buffer.from(token, 'base64').toString('utf-8');
+        const [, studentId] = decoded.split(':');
+
+        const [rows] = await pool.query(`
+            SELECT t.*, kt.nama as kategori_nama, ta.tahun as tahun_ajaran
+            FROM tagihan t
+            JOIN kategori_tagihan kt ON t.kategori_id = kt.id
+            LEFT JOIN tahun_ajaran ta ON t.tahun_ajaran_id = ta.id
+            WHERE t.siswa_id = ?
+            ORDER BY t.tahun DESC, t.bulan DESC
+        `, [studentId]);
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Student Transactions
+app.get('/api/student/transactions', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
+        const token = authHeader.replace('Bearer ', '');
+        const decoded = Buffer.from(token, 'base64').toString('utf-8');
+        const [, studentId] = decoded.split(':');
+
+        const [rows] = await pool.query(`
+            SELECT tr.*, s.nama as siswa_nama
+            FROM transaksi tr
+            JOIN siswa s ON tr.siswa_id = s.id
+            WHERE tr.siswa_id = ?
+            ORDER BY tr.tanggal DESC
+        `, [studentId]);
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Student Announcements (from CMS posts)
+app.get('/api/student/announcements', async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT * FROM posts 
+            WHERE status = 'published' 
+            ORDER BY created_at DESC 
+            LIMIT 20
+        `);
+        res.json(rows);
+    } catch (err) {
+        // If posts table doesn't exist, return empty
+        res.json([]);
     }
 });
 

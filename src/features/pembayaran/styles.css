@@ -190,3 +190,57 @@
     background: var(--gray-300);
     cursor: not-allowed;
 }
+
+/* --- Responsive POS Layout --- */
+@media (max-width: 992px) {
+    .pos-layout {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        gap: 16px;
+    }
+
+    .pos-student {
+        overflow-y: visible;
+        order: 1;
+        /* Ensure student info is above the cart on mobile */
+    }
+
+    .pos-cart {
+        order: 2;
+        /* Cart goes below */
+        max-height: none;
+        /* Let cart expand naturally */
+        margin-bottom: 24px;
+    }
+}
+
+@media (max-width: 576px) {
+
+    /* Make cart items wrap gracefully on very small screens */
+    .pos-cart-item {
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        gap: 8px;
+    }
+
+    .pos-cart-item .item-info {
+        flex: 1 1 calc(100% - 30px);
+        /* Leave room for checkbox */
+        margin-bottom: 4px;
+        min-width: 150px;
+    }
+
+    .pos-cart-item .item-amount {
+        flex: 1 1 100%;
+        text-align: right;
+        display: flex;
+        justify-content: flex-end;
+        padding-left: 28px;
+        /* align under the text, not checkbox */
+    }
+
+    .pos-cart-item input[type="number"] {
+        max-width: 100%;
+    }
+}

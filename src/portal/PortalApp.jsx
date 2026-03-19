@@ -41,10 +41,10 @@ export default function PortalApp() {
                 <Routes>
                     <Route index element={<PortalHome />} />
                     <Route path="pengumuman" element={<PortalAnnouncements />} />
-                    <Route path="/pengumuman/:slug" element={<PortalAnnouncementDetail />} />
-                    <Route path="/jurusan/:slug" element={<PortalProgramDetail />} />
-                    <Route path="/informasi" element={<PortalInfo />} />
-                    <Route path="/ppdb" element={<PortalPPDB />} />
+                    <Route path="pengumuman/:slug" element={<PortalAnnouncementDetail />} />
+                    <Route path="jurusan/:slug" element={<PortalProgramDetail />} />
+                    <Route path="informasi" element={<PortalInfo />} />
+                    <Route path="ppdb" element={<PortalPPDB />} />
                     <Route path="cek-tagihan" element={<PortalBilling />} />
                     <Route path="kontak" element={<PortalContact />} />
                 </Routes>
