@@ -23,7 +23,7 @@ export default function RiwayatTransaksiPage() {
             inv.toLowerCase().includes(search.toLowerCase())
     })
 
-    const { page, setPage, totalPages, paginated } = usePagination(filtered, 15)
+    const { page, setPage, totalPages, paginated, perPage: PER_PAGE } = usePagination(filtered, 15)
 
     const handleViewReceipt = async (tx) => {
         try {
@@ -96,7 +96,7 @@ export default function RiwayatTransaksiPage() {
                             <tbody>
                                 {paginated.map((tx) => (
                                     <tr key={tx.id} style={{ opacity: (tx.status === 'void' || tx.status === 'voided') ? 0.6 : 1 }}>
-                                        <td>{new Date(tx.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                        <td>{new Date(tx.tanggal).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                         <td className="mono">{tx.invoice_no || tx.invoiceNo}</td>
                                         <td style={{ fontWeight: 500 }}>
                                             {tx.siswa_nama || tx.siswaName}

@@ -62,9 +62,6 @@ export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* ======= PUBLIC PORTAL (/) ======= */}
-        <Route path="/*" element={<PortalApp />} />
-
         {/* ======= ADMIN BACK-OFFICE (/admin/...) ======= */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
@@ -94,6 +91,9 @@ export default function App() {
           <Route path="cms/ppdb" element={<CmsPpdbPage />} />
           <Route path="cms/ppdb-content" element={<CmsPpdbContentPage />} />
         </Route>
+
+        {/* ======= PUBLIC PORTAL (/) ======= */}
+        <Route path="/*" element={<PortalApp />} />
       </Routes>
     </Suspense>
   )

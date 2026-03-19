@@ -1609,3 +1609,50 @@
         line-height: 1.2;
     }
 }
+
+/* ==================== ALERTS & NOTIFICATIONS ==================== */
+.portal-alert {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-radius: var(--portal-radius-lg);
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    animation: portal-alert-in 0.4s var(--portal-ease-bounce);
+    border: 1px solid transparent;
+}
+
+@keyframes portal-alert-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.portal-alert-success {
+    background: rgba(16, 185, 129, 0.08);
+    color: var(--portal-success);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.portal-alert-error {
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--portal-danger);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.portal-alert-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}

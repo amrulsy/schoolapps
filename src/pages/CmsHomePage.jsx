@@ -26,7 +26,17 @@ export default function CmsHomePage() {
     const [programs, setPrograms] = useState([])
     const [showProgramModal, setShowProgramModal] = useState(false)
     const [editProgram, setEditProgram] = useState(null)
-    const [programForm, setProgramForm] = useState({ icon: '📚', title: '', description: '', sort_order: 0 })
+    const [programForm, setProgramForm] = useState({
+        icon: '📚', title: '', slug: '', tagline: '', description: '',
+        banner_image: '', color_theme: '#4f46e5',
+        features_json: [
+            { id: 1, title: '', description: '', icon: '' },
+            { id: 2, title: '', description: '', icon: '' },
+            { id: 3, title: '', description: '', icon: '' },
+            { id: 4, title: '', description: '', icon: '' }
+        ],
+        full_content: '', sort_order: 0
+    })
     const [savingProgram, setSavingProgram] = useState(false)
 
     // Partners state
@@ -89,10 +99,41 @@ export default function CmsHomePage() {
 
     const openProgramModal = (p = null) => {
         setEditProgram(p)
-        setProgramForm(p
-            ? { icon: p.icon, title: p.title, description: p.description || '', sort_order: p.sort_order, is_active: p.is_active }
-            : { icon: '📚', title: '', description: '', sort_order: programs.length, is_active: 1 }
-        )
+        if (p) {
+            let features = p.features_json;
+            if (typeof features === 'string') {
+                try { features = JSON.parse(features) } catch { features = [] }
+            }
+            if (!Array.isArray(features) || features.length === 0) {
+                features = [
+                    { id: 1, title: '', description: '', icon: '' },
+                    { id: 2, title: '', description: '', icon: '' },
+                    { id: 3, title: '', description: '', icon: '' },
+                    { id: 4, title: '', description: '', icon: '' }
+                ]
+            }
+            // Ensure 4 items
+            while (features.length < 4) features.push({ id: features.length + 1, title: '', description: '', icon: '' });
+
+            setProgramForm({
+                icon: p.icon, title: p.title, slug: p.slug || '', tagline: p.tagline || '',
+                description: p.description || '', banner_image: p.banner_image || '',
+                color_theme: p.color_theme || '#4f46e5', features_json: features,
+                full_content: p.full_content || '', sort_order: p.sort_order, is_active: p.is_active
+            })
+        } else {
+            setProgramForm({
+                icon: '📚', title: '', slug: '', tagline: '', description: '',
+                banner_image: '', color_theme: '#4f46e5',
+                features_json: [
+                    { id: 1, title: '', description: '', icon: '' },
+                    { id: 2, title: '', description: '', icon: '' },
+                    { id: 3, title: '', description: '', icon: '' },
+                    { id: 4, title: '', description: '', icon: '' }
+                ],
+                full_content: '', sort_order: programs.length, is_active: 1
+            })
+        }
         setShowProgramModal(true)
     }
 
@@ -503,50 +544,124 @@ export default function CmsHomePage() {
     // ==================== MODALS ====================
 
     function renderProgramModal() {
+        const updateFeature = (index, field, value) => {
+            const newFeatures = [...programForm.features_json]
+            newFeatures[index] = { ...newFeatures[index], [field]: value }
+            setProgramForm({ ...programForm, features_json: newFeatures })
+        }
+
         return (
             <div className="modal-backdrop">
-                <div className="modal" style={{ maxWidth: 500 }}>
+                <div className="modal" style={{ maxWidth: 800, width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
                     <div className="modal-header">
-                        <h3>{editProgram ? 'Edit Program' : 'Tambah Program'}</h3>
+                        <h3>{editProgram ? 'Edit Detail Jurusan' : 'Tambah Detail Jurusan'}</h3>
                         <button className="btn-icon" onClick={() => setShowProgramModal(false)}>×</button>
                     </div>
                     <div className="modal-body">
                         <form id="programForm" onSubmit={saveProgram}>
-                            <div className="form-group mb-4">
-                                <label>Icon Emoji <span className="text-danger">*</span></label>
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                    <div style={{ fontSize: 32, width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', borderRadius: 8 }}>
-                                        {programForm.icon}
-                                    </div>
-                                    <input type="text" className="form-control" value={programForm.icon}
-                                        onChange={e => setProgramForm({ ...programForm, icon: e.target.value })}
-                                        style={{ maxWidth: 80 }} maxLength={2} required
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label>Nama Jurusan <span className="text-danger">*</span></label>
+                                    <input type="text" className="form-control" value={programForm.title}
+                                        onChange={e => setProgramForm({ ...programForm, title: e.target.value })} required
+                                        placeholder="Teknik Komputer & Jaringan"
                                     />
-                                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                                        {['💻', '🏢', '📊', '🎨', '🔧', '🧪', '🌐', '📱', '🎓', '✈️'].map(emoji => (
-                                            <button key={emoji} type="button"
-                                                style={{ fontSize: 20, background: 'none', border: programForm.icon === emoji ? '2px solid var(--primary-600)' : '1px solid #e2e8f0', borderRadius: 6, width: 36, height: 36, cursor: 'pointer' }}
-                                                onClick={() => setProgramForm({ ...programForm, icon: emoji })}
-                                            >{emoji}</button>
-                                        ))}
+                                </div>
+                                <div className="form-group">
+                                    <label>Slug URL <span style={hintStyle}>(misal: tkj)</span></label>
+                                    <input type="text" className="form-control" value={programForm.slug}
+                                        onChange={e => setProgramForm({ ...programForm, slug: e.target.value })}
+                                        placeholder="tkj"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label>Icon Emoji <span className="text-danger">*</span></label>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <div style={{ fontSize: 24, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', borderRadius: 8 }}>
+                                            {programForm.icon}
+                                        </div>
+                                        <input type="text" className="form-control" value={programForm.icon}
+                                            onChange={e => setProgramForm({ ...programForm, icon: e.target.value })}
+                                            style={{ maxWidth: 60 }} maxLength={2} required
+                                        />
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label>Warna Tema <span style={hintStyle}>(untuk gradient)</span></label>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <input type="color" className="form-control" value={programForm.color_theme}
+                                            onChange={e => setProgramForm({ ...programForm, color_theme: e.target.value })}
+                                            style={{ width: 50, padding: 2, height: 38 }}
+                                        />
+                                        <input type="text" className="form-control" value={programForm.color_theme}
+                                            onChange={e => setProgramForm({ ...programForm, color_theme: e.target.value })}
+                                        />
                                     </div>
                                 </div>
                             </div>
+
                             <div className="form-group mb-4">
-                                <label>Nama Program <span className="text-danger">*</span></label>
-                                <input type="text" className="form-control" value={programForm.title}
-                                    onChange={e => setProgramForm({ ...programForm, title: e.target.value })} required
-                                    placeholder="Teknik Komputer & Jaringan"
+                                <label>Tagline <span style={hintStyle}>(tampil di hero detail)</span></label>
+                                <input type="text" className="form-control" value={programForm.tagline}
+                                    onChange={e => setProgramForm({ ...programForm, tagline: e.target.value })}
+                                    placeholder="Sekolah Pemrograman Terbaik untuk Masa Depan"
                                 />
                             </div>
+
                             <div className="form-group mb-4">
-                                <label>Deskripsi</label>
-                                <textarea className="form-control" rows={3} value={programForm.description}
+                                <label>Ringkasan Pendek <span style={hintStyle}>(tampil di kartu beranda)</span></label>
+                                <textarea className="form-control" rows={2} value={programForm.description}
                                     onChange={e => setProgramForm({ ...programForm, description: e.target.value })}
                                     placeholder="Kuasai jaringan, server, dan infrastruktur IT modern..."
                                 />
                             </div>
-                            <div className="grid-2 mb-4">
+
+                            <div className="form-group mb-4">
+                                <label>URL Banner Image <span style={hintStyle}>(karakter 3D / ilustrasi)</span></label>
+                                <input type="text" className="form-control" value={programForm.banner_image}
+                                    onChange={e => setProgramForm({ ...programForm, banner_image: e.target.value })}
+                                    placeholder="https://..."
+                                />
+                            </div>
+
+                            <hr style={{ margin: '24px 0', borderColor: '#e2e8f0' }} />
+                            <h4 style={{ marginBottom: 16 }}>✨ Fitur Keunggulan (4 Card)</h4>
+                            <div className="grid-2 gap-4">
+                                {programForm.features_json.map((feat, idx) => (
+                                    <div key={idx} style={{ padding: 16, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                                        <div style={{ fontWeight: 700, marginBottom: 10, fontSize: '0.8rem', color: '#64748b' }}>CARD {idx + 1}</div>
+                                        <div className="form-group mb-2">
+                                            <label style={{ fontSize: '0.75rem' }}>Judul</label>
+                                            <input type="text" className="form-control form-control-sm" value={feat.title}
+                                                onChange={e => updateFeature(idx, 'title', e.target.value)} />
+                                        </div>
+                                        <div className="form-group mb-2">
+                                            <label style={{ fontSize: '0.75rem' }}>Deskripsi</label>
+                                            <textarea className="form-control form-control-sm" rows={2} value={feat.description}
+                                                onChange={e => updateFeature(idx, 'description', e.target.value)} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label style={{ fontSize: '0.75rem' }}>Icon/Emoji</label>
+                                            <input type="text" className="form-control form-control-sm" value={feat.icon}
+                                                onChange={e => updateFeature(idx, 'icon', e.target.value)} placeholder="🚀" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <hr style={{ margin: '24px 0', borderColor: '#e2e8f0' }} />
+                            <div className="form-group mb-4">
+                                <label>Konten Lengkap <span style={hintStyle}>(HTML didukung)</span></label>
+                                <textarea className="form-control" rows={10} value={programForm.full_content}
+                                    onChange={e => setProgramForm({ ...programForm, full_content: e.target.value })}
+                                    placeholder="Tulis detail lengkap jurusan di sini..."
+                                />
+                            </div>
+
+                            <div className="grid-2 gap-4 mb-4">
                                 <div className="form-group">
                                     <label>Urutan Tampil</label>
                                     <input type="number" className="form-control" value={programForm.sort_order}
@@ -570,7 +685,7 @@ export default function CmsHomePage() {
                     <div className="modal-footer">
                         <button className="btn btn-secondary" onClick={() => setShowProgramModal(false)} disabled={savingProgram}>Batal</button>
                         <button type="submit" form="programForm" className="btn btn-primary" disabled={savingProgram}>
-                            {savingProgram ? 'Menyimpan...' : 'Simpan Program'}
+                            {savingProgram ? 'Menyimpan...' : 'Simpan Detail Jurusan'}
                         </button>
                     </div>
                 </div>

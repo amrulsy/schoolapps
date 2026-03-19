@@ -59,8 +59,8 @@ export default function GenerateModal({ allKelas, categories, MONTHS, formatRupi
         setSelectedKelas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
     }
 
-    const handleGenerate = () => {
-        onGenerate(selectedKelas, Number(kategoriId), selectedMonths, Number(tahunAjaranId))
+    const handleGenerate = async () => {
+        await onGenerate(selectedKelas, Number(kategoriId), selectedMonths, Number(tahunAjaranId))
         onClose()
     }
 

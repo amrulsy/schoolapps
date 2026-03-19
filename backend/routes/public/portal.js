@@ -167,7 +167,29 @@ router.get('/programs', cacheMiddleware(600), async (req, res) => {
         const [rows] = await pool.query(
             'SELECT * FROM cms_programs WHERE is_active = 1 ORDER BY sort_order ASC'
         );
-        res.json(rows);
+        // Parse JSON for lists
+        const parsed = rows.map(r => ({
+            ...r,
+            features_json: r.features_json ? (typeof r.features_json === 'string' ? JSON.parse(r.features_json) : r.features_json) : []
+        }));
+        res.json(parsed);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/programs/:slug — Single program detail
+router.get('/programs/:slug', cacheMiddleware(300), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_programs WHERE slug = ? AND is_active = 1',
+            [req.params.slug]
+        );
+        if (rows.length === 0) return res.status(404).json({ error: 'Program tidak ditemukan' });
+
+        const p = rows[0];
+        // Parse JSON
+        p.features_json = p.features_json ? (typeof p.features_json === 'string' ? JSON.parse(p.features_json) : p.features_json) : [];
+
+        res.json(p);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
