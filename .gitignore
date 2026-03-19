@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test artifacts — jangan di-commit!
+*.zip
+test-*.js
+test_*.js
+check-*.js
+
+# Backend uploads & temp files
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/temp_uploads/*
+!backend/temp_uploads/.gitkeep
+
+# Database file (tidak perlu di-commit, bisa di-regenerate)
+backend/database.sqlite

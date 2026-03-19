@@ -2,65 +2,49 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 
 // Layouts
-import PublicLayout from './layouts/PublicLayout'
 import AdminLayout from './layouts/AdminLayout'
 
 // Portal (separate chunk — no auth needed)
 const PortalApp = lazy(() => import('./portal/PortalApp'))
 
-// Public Pages
-import BerandaPage from './pages/public/BerandaPage'
-import BeritaPage from './pages/public/BeritaPage'
-import TentangPage from './pages/public/TentangPage'
+// Student Portal (separate chunk — student auth)
+const StudentApp = lazy(() => import('./student/StudentApp'))
+
+
 
 // Admin Pages
-import DashboardPage from './pages/DashboardPage'
-import SiswaPage from './pages/SiswaPage'
-import UnitKelasPage from './pages/UnitKelasPage'
-import TahunAjaranPage from './pages/TahunAjaranPage'
-import KategoriTagihanPage from './pages/KategoriTagihanPage'
-import RekeningPage from './pages/RekeningPage'
-import TagihanPage from './pages/TagihanPage'
-import RiwayatGeneratePage from './pages/RiwayatGeneratePage'
-import PembayaranPage from './pages/PembayaranPage'
-import RiwayatTransaksiPage from './pages/RiwayatTransaksiPage'
-import ArusKasPage from './pages/ArusKasPage'
-import LaporanPage from './pages/LaporanPage'
-import KartuSppPage from './pages/KartuSppPage'
-import UsersPage from './pages/UsersPage'
-import PengaturanPage from './pages/PengaturanPage'
-import BackupPage from './pages/BackupPage'
+import DashboardPage from './pages/admin/DashboardPage'
+import SiswaPage from './pages/admin/SiswaPage'
+import UnitKelasPage from './pages/admin/UnitKelasPage'
+import TahunAjaranPage from './pages/admin/TahunAjaranPage'
+import KategoriTagihanPage from './pages/admin/KategoriTagihanPage'
+import RekeningPage from './pages/admin/RekeningPage'
+import TagihanPage from './pages/admin/TagihanPage'
+import RiwayatGeneratePage from './pages/admin/RiwayatGeneratePage'
+import PembayaranPage from './pages/admin/PembayaranPage'
+import RiwayatTransaksiPage from './pages/admin/RiwayatTransaksiPage'
+import ArusKasPage from './pages/admin/ArusKasPage'
+import LaporanPage from './pages/admin/LaporanPage'
+import KartuSppPage from './pages/admin/KartuSppPage'
+import UsersPage from './pages/admin/UsersPage'
+import PengaturanPage from './pages/admin/PengaturanPage'
+import BackupPage from './pages/admin/BackupPage'
 
 // CMS Pages
-import CmsBannersPage from './pages/CmsBannersPage'
-import CmsPostsPage from './pages/CmsPostsPage'
-import CmsPagesPage from './pages/CmsPagesPage'
-import CmsSettingsPage from './pages/CmsSettingsPage'
-import CmsContactsPage from './pages/CmsContactsPage'
-import CmsPpdbPage from './pages/CmsPpdbPage'
-import CmsHomePage from './pages/CmsHomePage'
-import CmsPpdbContentPage from './pages/CmsPpdbContentPage'
+import CmsBannersPage from './features/cms/pages/CmsBannersPage'
+import CmsPostsPage from './features/cms/pages/CmsPostsPage'
+import CmsPagesPage from './features/cms/pages/CmsPagesPage'
+import CmsSettingsPage from './features/cms/pages/CmsSettingsPage'
+import CmsContactsPage from './features/cms/pages/CmsContactsPage'
+import CmsPpdbPage from './features/cms/pages/CmsPpdbPage'
+import CmsHomePage from './features/cms/pages/CmsHomePage'
+import CmsPpdbContentPage from './features/cms/pages/CmsPpdbContentPage'
 
-function PageLoader() {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      minHeight: '100vh', background: '#FAFBFF'
-    }}>
-      <div style={{
-        width: '48px', height: '48px',
-        border: '4px solid #E2E8F0', borderTopColor: '#6366F1',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite'
-      }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  )
-}
+import LoadingSpinner from './components/LoadingSpinner';
 
 export default function App() {
   return (
-    <Suspense fallback={<PageLoader />}>
+    <Suspense fallback={<LoadingSpinner fullScreen message="Membuka Aplikasi..." />}>
       <Routes>
         {/* ======= ADMIN BACK-OFFICE (/admin/...) ======= */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -91,6 +75,9 @@ export default function App() {
           <Route path="cms/ppdb" element={<CmsPpdbPage />} />
           <Route path="cms/ppdb-content" element={<CmsPpdbContentPage />} />
         </Route>
+
+        {/* ======= STUDENT PORTAL (/siswa-portal/...) ======= */}
+        <Route path="/siswa-portal/*" element={<StudentApp />} />
 
         {/* ======= PUBLIC PORTAL (/) ======= */}
         <Route path="/*" element={<PortalApp />} />

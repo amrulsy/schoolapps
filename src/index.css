@@ -9,6 +9,7 @@
 @import url('./styles/components.css');
 
 /* Feature-specific Styles */
+@import url('./styles/cms.css');
 @import url('./features/auth/styles.css');
 @import url('./features/pembayaran/styles.css');
 @import url('./features/siswa/styles.css');

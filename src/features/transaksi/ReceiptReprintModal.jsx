@@ -2,10 +2,12 @@ import { useState, useRef } from 'react'
 import Modal from '../../components/Modal'
 import { useReactToPrint } from 'react-to-print'
 import { downloadFile } from '../../utils/downloadHelper'
-import { Printer, FileDown } from 'lucide-react'
+import { Printer, FileDown, Bluetooth } from 'lucide-react'
+import { EscPosEncoder } from '../../utils/escPosHelper'
 
 export default function ReceiptReprintModal({ receipt, formatRupiah, onClose }) {
     const [loadingPdf, setLoadingPdf] = useState(false)
+    const [loadingBT, setLoadingBT] = useState(false)
     const [paperSize, setPaperSize] = useState('80mm') // 58mm, 80mm, A4
     const receiptRef = useRef(null)
 
@@ -95,6 +97,78 @@ export default function ReceiptReprintModal({ receipt, formatRupiah, onClose }) 
         }
     }
 
+    const handleBluetoothPrint = async () => {
+        setLoadingBT(true)
+        try {
+            const encoder = new EscPosEncoder()
+            const bytes = encoder
+                .initialize()
+                .align(1) // Center
+                .line("--------------------------------")
+                .bold(true).line("SMK PPRQ")
+                .bold(false).line("Jl. Pesantren No.1, Kota")
+                .line("Telp: (021) 123-4567")
+                .line("--------------------------------")
+                .align(0) // Left
+                .line(`Nota: ${receipt.invoiceNo}`)
+                .line(`Tgl : ${new Date(receipt.tanggal).toLocaleDateString('id-ID')}`)
+                .line(`Siswa: ${receipt.student?.nama || '-'}`)
+                .line(`NISN: ${receipt.student?.nisn || '-'}`)
+                .line("--------------------------------")
+                .line("Item             | Total")
+                .line("--------------------------------")
+
+                ; (receipt.items || []).forEach(item => {
+                    const name = (item.kategori || 'Tagihan').slice(0, 16).padEnd(16)
+                    const nominal = formatRupiah(item.nominal).replace(/\s/g, '')
+                    encoder.line(`${name} ${nominal.padStart(15)}`)
+                })
+
+            encoder
+                .line("--------------------------------")
+                .align(2) // Right
+                .bold(true).line(`TOTAL: ${formatRupiah(receipt.total)}`)
+                .bold(false).line(`Bayar: ${formatRupiah(receipt.amountPaid)}`)
+                .line(`Kembali: ${formatRupiah(receipt.change)}`)
+                .feed(2)
+                .align(1)
+                .line("Terima kasih atas")
+                .line("pembayarannya!")
+                .feed(4)
+
+            const data = encoder.encode()
+
+            const device = await navigator.bluetooth.requestDevice({
+                filters: [
+                    { services: ['000018f0-0000-1000-8000-00805f9b34fb'] },
+                    { namePrefix: 'Printer' }, { namePrefix: 'RPP' }, { namePrefix: 'MP' }, { namePrefix: 'MTP' }
+                ],
+                optionalServices: ['0000ff00-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455']
+            })
+
+            const server = await device.gatt.connect()
+            const service = (await server.getPrimaryServices())[0]
+            const characteristics = await service.getCharacteristics()
+            const writer = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse)
+
+            if (!writer) throw new Error("Could not find write characteristic")
+
+            const chunkSize = 20
+            for (let i = 0; i < data.length; i += chunkSize) {
+                await writer.writeValue(data.slice(i, i + chunkSize))
+            }
+
+            await server.disconnect()
+        } catch (err) {
+            console.error('Bluetooth Print error:', err)
+            if (err.name !== 'NotFoundError' && err.name !== 'AbortError') {
+                import('sweetalert2').then(Swal => Swal.default.fire('Error', 'Gagal menghubungkan ke printer Bluetooth.', 'error'))
+            }
+        } finally {
+            setLoadingBT(false)
+        }
+    }
+
     return (
         <Modal title="🧾 Nota Pembayaran" onClose={onClose} footer={
             <>
@@ -116,6 +190,9 @@ export default function ReceiptReprintModal({ receipt, formatRupiah, onClose }) 
                 </button>
                 <button className="btn btn-primary" onClick={handleDownloadPdf} disabled={loadingPdf} type="button">
                     <FileDown size={16} /> {loadingPdf ? '...' : 'PDF'}
+                </button>
+                <button className="btn btn-outline" onClick={handleBluetoothPrint} disabled={loadingBT} type="button" style={{ border: '1.5px solid var(--primary-500)', color: 'var(--primary-600)' }}>
+                    <Bluetooth size={16} /> {loadingBT ? '...' : 'Bluetooth'}
                 </button>
             </>
         }>
