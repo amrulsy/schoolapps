@@ -298,8 +298,8 @@ app.post('/api/tagihan', async (req, res) => {
         let logId = null;
         if (logData) {
             const [logResult] = await connection.query(`
-                INSERT INTO log_generate (tipe, keterangan, jumlah_tagihan, operator)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO log_generate (tipe, keterangan, jumlah_tagihan, operator, created_at)
+                VALUES (?, ?, ?, ?, UTC_TIMESTAMP())
             `, [logData.tipe, logData.keterangan, tagihanList.length, logData.operator]);
             logId = logResult.insertId;
         }
@@ -456,7 +456,7 @@ app.post('/api/pembayaran', async (req, res) => {
         // 1. Simpan Transaksi Utama
         const [txResult] = await connection.query(`
             INSERT INTO transaksi (invoice_no, tanggal, siswa_id, user_id, total, amount_paid, change_amount, status)
-            VALUES (?, NOW(), ?, NULL, ?, ?, ?, 'success')
+            VALUES (?, UTC_TIMESTAMP(), ?, NULL, ?, ?, ?, 'success')
         `, [invoiceNo, siswaId, total, amountPaid, change]);
 
         const txnId = txResult.insertId;
@@ -485,7 +485,7 @@ app.post('/api/pembayaran', async (req, res) => {
         // 3. Catat di Cashflow
         await connection.query(`
             INSERT INTO cashflow (tanggal, keterangan, nominal, tipe, ref)
-            VALUES (NOW(), ?, ?, 'masuk', ?)
+            VALUES (UTC_TIMESTAMP(), ?, ?, 'masuk', ?)
         `, [`Pembayaran SPP - ${invoiceNo}`, total, invoiceNo]);
 
         await connection.commit();

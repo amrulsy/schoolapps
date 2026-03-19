@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Play, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Play, X, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { usePortal } from '../context/PortalContext'
 import '../styles/portal-banners.css'
 
@@ -201,11 +201,24 @@ export default function PortalHome() {
 
                     <div className="portal-grid portal-grid-3">
                         {programs.length > 0 ? programs.map(program => (
-                            <div key={program.id} className="portal-program-card">
-                                <div className="portal-program-icon">{program.icon}</div>
-                                <h3>{program.title}</h3>
-                                <p>{program.description}</p>
-                            </div>
+                            <Link key={program.id} to={`/jurusan/${program.slug || '#'}`} className="portal-program-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
+                                <div className="portal-program-card">
+                                    <div className="portal-program-icon">{program.icon}</div>
+                                    <h3>{program.title}</h3>
+                                    <p>{program.description}</p>
+                                    <div className="portal-program-more" style={{
+                                        marginTop: 'auto',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 700,
+                                        color: 'var(--portal-primary)'
+                                    }}>
+                                        Detail Jurusan <ArrowRight size={14} />
+                                    </div>
+                                </div>
+                            </Link>
                         )) : (
                             <>
                                 <div className="portal-program-card">

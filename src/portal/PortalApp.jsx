@@ -15,6 +15,7 @@ import './styles/portal-components.css'
 import PortalHome from './pages/PortalHome'
 import PortalAnnouncements from './pages/PortalAnnouncements'
 import PortalAnnouncementDetail from './pages/PortalAnnouncementDetail'
+import PortalProgramDetail from './pages/PortalProgramDetail'
 import PortalInfo from './pages/PortalInfo'
 import PortalPPDB from './pages/PortalPPDB'
 import PortalBilling from './pages/PortalBilling'
@@ -40,9 +41,10 @@ export default function PortalApp() {
                 <Routes>
                     <Route index element={<PortalHome />} />
                     <Route path="pengumuman" element={<PortalAnnouncements />} />
-                    <Route path="pengumuman/:slug" element={<PortalAnnouncementDetail />} />
-                    <Route path="informasi" element={<PortalInfo />} />
-                    <Route path="ppdb" element={<PortalPPDB />} />
+                    <Route path="/pengumuman/:slug" element={<PortalAnnouncementDetail />} />
+                    <Route path="/jurusan/:slug" element={<PortalProgramDetail />} />
+                    <Route path="/informasi" element={<PortalInfo />} />
+                    <Route path="/ppdb" element={<PortalPPDB />} />
                     <Route path="cek-tagihan" element={<PortalBilling />} />
                     <Route path="kontak" element={<PortalContact />} />
                 </Routes>

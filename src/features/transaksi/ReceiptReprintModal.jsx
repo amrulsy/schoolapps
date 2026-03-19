@@ -155,7 +155,7 @@ export default function ReceiptReprintModal({ receipt, formatRupiah, onClose }) 
 
                 <div className="receipt-info">
                     <div><span>No. Nota</span>: {receipt.invoiceNo}</div>
-                    <div><span>Tanggal</span>: {new Date(receipt.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                    <div><span>Tanggal</span>: {new Date(receipt.tanggal).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                     <div><span>Kasir</span>: {receipt.kasir}</div>
                 </div>
 

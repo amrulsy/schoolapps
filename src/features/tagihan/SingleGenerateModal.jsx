@@ -60,7 +60,7 @@ export default function SingleGenerateModal({ students, categories, MONTHS, form
         setSelectedMonths(prev => prev.includes(idx) ? prev.filter(m => m !== idx) : [...prev, idx])
     }
 
-    const handleGenerate = () => {
+    const handleGenerate = async () => {
         if (!siswaId) return
         if (isCustom && (!customName || Number(customNominal) <= 0)) {
             showError('Validasi Gagal', 'Nama kategori kustom dan nominal harus diisi dengan benar.')
@@ -72,7 +72,7 @@ export default function SingleGenerateModal({ students, categories, MONTHS, form
         }
 
         const inputKategori = isCustom ? customName : Number(kategoriId)
-        const count = onGenerate(Number(siswaId), inputKategori, finalNominal, selectedMonths, Number(tahunAjaranId))
+        const count = await onGenerate(Number(siswaId), inputKategori, finalNominal, selectedMonths, Number(tahunAjaranId))
         if (count > 0) {
             addToast('success', 'Berhasil', `Berhasil membuat ${count} tagihan untuk siswa tersebut.`)
         } else {

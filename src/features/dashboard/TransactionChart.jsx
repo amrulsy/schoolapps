@@ -11,7 +11,7 @@ export default function TransactionChart({ chartData, formatRupiah }) {
                     padding: '12px 16px',
                     boxShadow: 'var(--shadow-md)',
                 }}>
-                    <p style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-primary)' }}>{label} 2026</p>
+                    <p style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-primary)' }}>{label}</p>
                     {payload.map((p, i) => (
                         <p key={i} style={{ color: p.color, fontSize: '0.85rem' }}>
                             {p.name}: {formatRupiah(p.value)}

@@ -322,10 +322,20 @@ router.get('/programs', async (req, res) => {
 
 router.post('/programs', async (req, res) => {
     try {
-        const { icon, title, description, sort_order } = req.body;
+        const { icon, title, slug, tagline, description, banner_image, color_theme, features_json, full_content, sort_order } = req.body;
+
+        // Auto-generate slug if not provided
+        const finalSlug = slug || title.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+
         const [result] = await pool.query(
-            'INSERT INTO cms_programs (icon, title, description, sort_order) VALUES (?, ?, ?, ?)',
-            [icon || '📚', title, description || null, sort_order || 0]
+            `INSERT INTO cms_programs 
+            (icon, title, slug, tagline, description, banner_image, color_theme, features_json, full_content, sort_order) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [icon || '📚', title, finalSlug, tagline || null, description || null,
+            banner_image || null, color_theme || '#4f46e5',
+            JSON.stringify(features_json || []), full_content || null, sort_order || 0]
         );
         invalidateCache('/api/public/programs');
         res.status(201).json({ id: result.insertId });
@@ -334,10 +344,16 @@ router.post('/programs', async (req, res) => {
 
 router.put('/programs/:id', async (req, res) => {
     try {
-        const { icon, title, description, sort_order, is_active } = req.body;
+        const { icon, title, slug, tagline, description, banner_image, color_theme, features_json, full_content, sort_order, is_active } = req.body;
+
         await pool.query(
-            'UPDATE cms_programs SET icon = ?, title = ?, description = ?, sort_order = ?, is_active = ? WHERE id = ?',
-            [icon, title, description, sort_order || 0, is_active ?? true, req.params.id]
+            `UPDATE cms_programs SET 
+                icon = ?, title = ?, slug = ?, tagline = ?, description = ?, 
+                banner_image = ?, color_theme = ?, features_json = ?, 
+                full_content = ?, sort_order = ?, is_active = ? 
+            WHERE id = ?`,
+            [icon, title, slug, tagline, description, banner_image, color_theme,
+                JSON.stringify(features_json || []), full_content, sort_order || 0, is_active ?? true, req.params.id]
         );
         invalidateCache('/api/public/programs');
         res.json({ success: true });

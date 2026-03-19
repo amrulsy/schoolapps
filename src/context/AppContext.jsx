@@ -225,7 +225,12 @@ export function AppProvider({ children }) {
 
         targetStudents.forEach(student => {
             mIndices.forEach(m => {
-                const exists = bills.some(b => b.siswa_id === student.id && b.kategori_id === kategoriId && b.bulan === MONTHS[m] && (b.tahun_ajaran_id === taObj?.id))
+                const exists = bills.some(b =>
+                    Number(b.siswa_id) === Number(student.id) &&
+                    b.kategori_id && Number(b.kategori_id) === Number(kategoriId) &&
+                    b.bulan === MONTHS[m] &&
+                    Number(b.tahun_ajaran_id) === Number(taObj?.id)
+                )
                 if (!exists) {
                     const billYear = m <= 5 ? y1 : y2
                     newBills.push({
@@ -269,8 +274,16 @@ export function AppProvider({ children }) {
     }, [bills, categories, students, addToast, MONTHS, tahunAjaranList, fetchBills])
 
     const generateSingleBill = useCallback(async (siswaId, inputKategori, customNominal, mIndices, inputTAId = null) => {
-        const student = students.find(s => s.id === siswaId)
-        if (!student || student.status !== 'aktif') return 0
+        console.log("generateSingleBill called with:", { siswaId, inputKategori, customNominal, mIndices, inputTAId });
+        const student = students.find(s => Number(s.id) === Number(siswaId))
+        if (!student) {
+            console.error("Student not found for ID:", siswaId, "Available students:", students.length);
+            return 0;
+        }
+        if (student.status !== 'aktif') {
+            console.warn("Student is not active:", student.nama, student.status);
+            return 0;
+        }
         const taObj = inputTAId ? tahunAjaranList.find(t => t.id === Number(inputTAId)) : tahunAjaranList.find(t => t.status === 'aktif')
         const isCustom = typeof inputKategori === 'string'
         const categoryMaster = !isCustom ? categories.find(c => c.id === inputKategori) : null
@@ -281,8 +294,18 @@ export function AppProvider({ children }) {
 
         mIndices.forEach(m => {
             let exists = isCustom
-                ? bills.some(b => b.siswa_id === student.id && (b.kategori_nama === kategoriName || b.kategori === kategoriName) && b.bulan === MONTHS[m] && (b.tahun_ajaran_id === taObj?.id))
-                : bills.some(b => b.siswa_id === student.id && b.kategori_id === inputKategori && b.bulan === MONTHS[m] && (b.tahun_ajaran_id === taObj?.id))
+                ? bills.some(b =>
+                    Number(b.siswa_id) === Number(student.id) &&
+                    (b.kategori_nama === kategoriName || b.kategori === kategoriName) &&
+                    b.bulan === MONTHS[m] &&
+                    Number(b.tahun_ajaran_id) === Number(taObj?.id)
+                )
+                : bills.some(b =>
+                    Number(b.siswa_id) === Number(student.id) &&
+                    b.kategori_id && Number(b.kategori_id) === Number(inputKategori) &&
+                    b.bulan === MONTHS[m] &&
+                    Number(b.tahun_ajaran_id) === Number(taObj?.id)
+                )
 
             if (!exists && nominalTagihan > 0) {
                 const billYear = m <= 5 ? y1 : y2

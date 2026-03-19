@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePortal } from '../context/PortalContext'
+import { CheckCircle, AlertCircle, Send } from 'lucide-react'
 
 export default function PortalContact() {
     const { postPublic, fetchPublic } = usePortal()
@@ -70,13 +71,15 @@ export default function PortalContact() {
 
                             {success && (
                                 <div className="portal-alert portal-alert-success">
-                                    ✅ Pesan berhasil dikirim! Kami akan segera merespons.
+                                    <div className="portal-alert-icon"><CheckCircle size={20} /></div>
+                                    <span>Pesan berhasil dikirim! Kami akan segera merespons.</span>
                                 </div>
                             )}
 
                             {error && (
                                 <div className="portal-alert portal-alert-error">
-                                    ❌ {error}
+                                    <div className="portal-alert-icon"><AlertCircle size={20} /></div>
+                                    <span>{error}</span>
                                 </div>
                             )}
 
@@ -108,7 +111,7 @@ export default function PortalContact() {
                                 </div>
 
                                 <button type="submit" className="portal-btn portal-btn-primary portal-btn-lg" disabled={loading} style={{ width: '100%', justifyContent: 'center' }}>
-                                    {loading ? '⏳ Mengirim...' : '✉️ Kirim Pesan'}
+                                    {loading ? '⏳ Mengirim...' : <><Send size={18} /> Kirim Pesan</>}
                                 </button>
                             </form>
                         </div>
