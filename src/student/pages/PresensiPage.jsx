@@ -1,25 +1,7 @@
 import { useState } from 'react'
 import { Calendar, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react'
 
-// Mock attendance data
-const mockAttendance = {
-    summary: { hadir: 19, sakit: 1, izin: 1, alpha: 0, total: 21 },
-    records: [
-        { date: '2026-03-19', status: 'hadir' },
-        { date: '2026-03-18', status: 'hadir' },
-        { date: '2026-03-17', status: 'hadir' },
-        { date: '2026-03-14', status: 'sakit' },
-        { date: '2026-03-13', status: 'hadir' },
-        { date: '2026-03-12', status: 'hadir' },
-        { date: '2026-03-11', status: 'hadir' },
-        { date: '2026-03-10', status: 'izin' },
-        { date: '2026-03-07', status: 'hadir' },
-        { date: '2026-03-06', status: 'hadir' },
-        { date: '2026-03-05', status: 'hadir' },
-        { date: '2026-03-04', status: 'hadir' },
-        { date: '2026-03-03', status: 'hadir' },
-    ]
-}
+import { useStudent } from '../StudentApp'
 
 const statusConfig = {
     hadir: { color: '#10B981', bg: '#ECFDF5', icon: CheckCircle, label: 'Hadir' },
@@ -29,9 +11,21 @@ const statusConfig = {
 }
 
 export default function PresensiPage() {
-    const [month] = useState('Maret 2026')
-    const { summary, records } = mockAttendance
-    const percentage = Math.round((summary.hadir / summary.total) * 100)
+    const { attendanceDocs } = useStudent()
+    const [month] = useState(new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }))
+
+    // Process attendanceDocs to create summary and records
+    const records = attendanceDocs || []
+
+    // Default summary
+    const summary = records.reduce((acc, curr) => {
+        const s = curr.status.toLowerCase()
+        if (acc[s] !== undefined) acc[s]++
+        return acc
+    }, { hadir: 0, sakit: 0, izin: 0, alpha: 0 })
+
+    summary.total = records.length
+    const percentage = summary.total > 0 ? Math.round((summary.hadir / summary.total) * 100) : 0
 
     return (
         <div className="stu-page">

@@ -1,9 +1,11 @@
-import { NavLink } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import {
     Users, Building2, Calendar, ClipboardList, Landmark,
     FileText, CreditCard, BookOpen, History, Zap,
-    UserCog, Settings, Database, Layout, X, LogOut
+    UserCog, Settings, Database, Layout, X, LogOut,
+    ChevronDown, ChevronRight
 } from 'lucide-react'
 
 const drawerSections = [
@@ -51,6 +53,23 @@ const drawerSections = [
 
 export default function MobileDrawer({ isOpen, onClose }) {
     const { currentUser } = useApp()
+    const location = useLocation()
+    const [openSection, setOpenSection] = useState('')
+
+    useEffect(() => {
+        if (isOpen) {
+            const currentSection = drawerSections.find(sec =>
+                sec.items.some(item => location.pathname === item.to || location.pathname.startsWith(item.to + '/'))
+            )
+            if (currentSection) {
+                setOpenSection(currentSection.label)
+            }
+        }
+    }, [location.pathname, isOpen])
+
+    const toggleSection = (label) => {
+        setOpenSection(prev => prev === label ? '' : label)
+    }
 
     const handleLogout = () => {
         localStorage.removeItem('token')
@@ -87,22 +106,34 @@ export default function MobileDrawer({ isOpen, onClose }) {
 
                 {/* Menu sections */}
                 <nav className="drawer-nav">
-                    {drawerSections.map(section => (
-                        <div key={section.label} className="drawer-section">
-                            <div className="drawer-section-label">{section.label}</div>
-                            {section.items.map(item => (
-                                <NavLink
-                                    key={item.to}
-                                    to={item.to}
-                                    className={({ isActive }) => `drawer-menu-item ${isActive ? 'active' : ''}`}
-                                    onClick={onClose}
+                    {drawerSections.map(section => {
+                        const isExpanded = openSection === section.label;
+                        return (
+                            <div key={section.label} className="drawer-section">
+                                <div
+                                    className="drawer-section-label d-flex justify-content-between align-items-center"
+                                    onClick={() => toggleSection(section.label)}
+                                    style={{ cursor: 'pointer', padding: '10px 15px', background: isExpanded ? 'rgba(0,0,0,0.03)' : 'transparent' }}
                                 >
-                                    <item.icon size={18} />
-                                    <span>{item.text}</span>
-                                </NavLink>
-                            ))}
-                        </div>
-                    ))}
+                                    <span>{section.label}</span>
+                                    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                </div>
+                                <div style={{ display: isExpanded ? 'block' : 'none' }}>
+                                    {section.items.map(item => (
+                                        <NavLink
+                                            key={item.to}
+                                            to={item.to}
+                                            className={({ isActive }) => `drawer-menu-item ${isActive ? 'active' : ''}`}
+                                            onClick={onClose}
+                                        >
+                                            <item.icon size={18} />
+                                            <span>{item.text}</span>
+                                        </NavLink>
+                                    ))}
+                                </div>
+                            </div>
+                        )
+                    })}
                 </nav>
 
                 {/* Footer with logout */}

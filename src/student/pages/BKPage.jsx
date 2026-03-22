@@ -1,29 +1,9 @@
 import { Shield, Award, AlertTriangle, Calendar, Star, TrendingUp, TrendingDown } from 'lucide-react'
-
-const mockBK = {
-    poin: { pelanggaran: 15, prestasi: 45, netPoin: 30 },
-    pelanggaran: [
-        { id: 1, date: '2026-02-10', keterangan: 'Terlambat masuk kelas', poin: 5, kategori: 'Kedisiplinan' },
-        { id: 2, date: '2026-01-15', keterangan: 'Tidak membawa buku pelajaran', poin: 5, kategori: 'Akademik' },
-        { id: 3, date: '2025-12-05', keterangan: 'Seragam tidak lengkap', poin: 5, kategori: 'Kedisiplinan' },
-    ],
-    prestasi: [
-        { id: 1, date: '2026-03-01', keterangan: 'Juara 2 Lomba Web Design Tingkat Kota', poin: 20, kategori: 'Akademik' },
-        { id: 2, date: '2026-02-15', keterangan: 'Ketua Panitia Maulid Nabi', poin: 15, kategori: 'Organisasi' },
-        { id: 3, date: '2025-11-20', keterangan: 'Penghargaan Siswa Teladan Bulanan', poin: 10, kategori: 'Kepribadian' },
-    ],
-    tatatertib: [
-        'Hadir di sekolah paling lambat 15 menit sebelum jam pelajaran dimulai',
-        'Mengenakan seragam lengkap dan rapi sesuai jadwal',
-        'Menjaga kebersihan kelas dan lingkungan sekolah',
-        'Dilarang membawa gadget selama jam pelajaran',
-        'Menghormati guru dan sesama siswa',
-        'Mengikuti kegiatan upacara bendera setiap Senin',
-    ]
-}
+import { useStudent } from '../StudentApp'
 
 export default function BKPage() {
-    const { poin, pelanggaran, prestasi, tatatertib } = mockBK
+    const { bkData } = useStudent()
+    const { poin, pelanggaran, prestasi, tatatertib } = bkData || { poin: { pelanggaran: 0, prestasi: 0, netPoin: 0 }, pelanggaran: [], prestasi: [], tatatertib: [] }
 
     return (
         <div className="stu-page">

@@ -20,6 +20,7 @@ import PortalInfo from './pages/PortalInfo'
 import PortalPPDB from './pages/PortalPPDB'
 import PortalBilling from './pages/PortalBilling'
 import PortalContact from './pages/PortalContact'
+import PortalNotFound from './pages/PortalNotFound'
 
 function ScrollToTop() {
     const { pathname } = useLocation()
@@ -47,6 +48,7 @@ export default function PortalApp() {
                     <Route path="ppdb" element={<PortalPPDB />} />
                     <Route path="cek-tagihan" element={<PortalBilling />} />
                     <Route path="kontak" element={<PortalContact />} />
+                    <Route path="*" element={<PortalNotFound />} />
                 </Routes>
                 <PortalFooter />
                 <PortalBottomNav onShowMore={toggleMobileMenu} />

@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 
 // Layouts
 import AdminLayout from './layouts/AdminLayout'
+import GuruLayout from './layouts/GuruLayout'
 
 // Portal (separate chunk — no auth needed)
 const PortalApp = lazy(() => import('./portal/PortalApp'))
@@ -10,13 +11,18 @@ const PortalApp = lazy(() => import('./portal/PortalApp'))
 // Student Portal (separate chunk — student auth)
 const StudentApp = lazy(() => import('./student/StudentApp'))
 
-
+// Guru Pages
+import GuruDashboard from './pages/guru/GuruDashboard'
+import ClassSession from './pages/guru/ClassSession'
 
 // Admin Pages
 import DashboardPage from './pages/admin/DashboardPage'
 import SiswaPage from './pages/admin/SiswaPage'
 import UnitKelasPage from './pages/admin/UnitKelasPage'
 import TahunAjaranPage from './pages/admin/TahunAjaranPage'
+import DataGuruPage from './pages/admin/DataGuruPage'
+import JadwalPelajaranPage from './pages/admin/JadwalPelajaranPage'
+import WaktuPelajaranPage from './pages/admin/WaktuPelajaranPage'
 import KategoriTagihanPage from './pages/admin/KategoriTagihanPage'
 import RekeningPage from './pages/admin/RekeningPage'
 import TagihanPage from './pages/admin/TagihanPage'
@@ -29,7 +35,12 @@ import KartuSppPage from './pages/admin/KartuSppPage'
 import UsersPage from './pages/admin/UsersPage'
 import PengaturanPage from './pages/admin/PengaturanPage'
 import BackupPage from './pages/admin/BackupPage'
-
+import StudentMenuPage from './pages/admin/StudentMenuPage'
+import AttendancePage from './pages/admin/AttendancePage'
+import TabunganPage from './pages/admin/TabunganPage'
+import BimbinganKonselingPage from './pages/admin/BimbinganKonselingPage'
+import NilaiAkademikPage from './pages/admin/NilaiAkademikPage'
+import ManajemenPesanPage from './pages/admin/ManajemenPesanPage'
 // CMS Pages
 import CmsBannersPage from './features/cms/pages/CmsBannersPage'
 import CmsPostsPage from './features/cms/pages/CmsPostsPage'
@@ -41,15 +52,20 @@ import CmsHomePage from './features/cms/pages/CmsHomePage'
 import CmsPpdbContentPage from './features/cms/pages/CmsPpdbContentPage'
 
 import LoadingSpinner from './components/LoadingSpinner';
+import OfflineBanner from './components/OfflineBanner';
 
 export default function App() {
   return (
     <Suspense fallback={<LoadingSpinner fullScreen message="Membuka Aplikasi..." />}>
+      <OfflineBanner />
       <Routes>
         {/* ======= ADMIN BACK-OFFICE (/admin/...) ======= */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="siswa" element={<SiswaPage />} />
+          <Route path="guru" element={<DataGuruPage />} />
+          <Route path="jadwal" element={<JadwalPelajaranPage />} />
+          <Route path="waktu-pelajaran" element={<WaktuPelajaranPage />} />
           <Route path="unit-kelas" element={<UnitKelasPage />} />
           <Route path="tahun-ajaran" element={<TahunAjaranPage />} />
           <Route path="kategori-tagihan" element={<KategoriTagihanPage />} />
@@ -63,6 +79,12 @@ export default function App() {
           <Route path="kartu-spp" element={<KartuSppPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="pengaturan" element={<PengaturanPage />} />
+          <Route path="student-menus" element={<StudentMenuPage />} />
+          <Route path="presensi" element={<AttendancePage />} />
+          <Route path="tabungan" element={<TabunganPage />} />
+          <Route path="bk" element={<BimbinganKonselingPage />} />
+          <Route path="akademik" element={<NilaiAkademikPage />} />
+          <Route path="pesan" element={<ManajemenPesanPage />} />
           <Route path="backup" element={<BackupPage />} />
 
           {/* CMS Routes */}
@@ -74,6 +96,12 @@ export default function App() {
           <Route path="cms/contacts" element={<CmsContactsPage />} />
           <Route path="cms/ppdb" element={<CmsPpdbPage />} />
           <Route path="cms/ppdb-content" element={<CmsPpdbContentPage />} />
+        </Route>
+
+        {/* ======= GURU PORTAL (/guru/...) ======= */}
+        <Route path="/guru" element={<GuruLayout />}>
+          <Route index element={<GuruDashboard />} />
+          <Route path="session/:id" element={<ClassSession />} />
         </Route>
 
         {/* ======= STUDENT PORTAL (/siswa-portal/...) ======= */}

@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { Home, GraduationCap, Wallet, MessageCircle, User } from 'lucide-react'
+import { Home, GraduationCap, Wallet, MessageCircle, User, Bell } from 'lucide-react'
 import { useStudent } from './StudentApp'
 
 const tabs = [
@@ -14,7 +14,7 @@ export default function StudentLayout() {
     const { student } = useStudent()
 
     return (
-        <div className="stu-app">
+        <div className="stu-app mobile-app-container">
             {/* Status Bar */}
             <header className="stu-status-bar">
                 <div className="stu-status-left">
@@ -26,6 +26,10 @@ export default function StudentLayout() {
                         <div className="stu-class-badge">{student?.kelas || 'Siswa'}</div>
                     </div>
                 </div>
+                <button className="stu-bell-btn">
+                    <Bell size={20} strokeWidth={2} />
+                    <span className="stu-bell-badge"></span>
+                </button>
             </header>
 
             {/* Main Content */}

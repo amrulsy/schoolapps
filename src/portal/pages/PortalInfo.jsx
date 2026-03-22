@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
 
 export default function PortalInfo() {
@@ -42,6 +43,10 @@ export default function PortalInfo() {
 
     return (
         <div className="portal-page">
+            <Helmet>
+                <title>Informasi Sekolah | Portal SMK PPRQ</title>
+                <meta name="description" content="Profil, Visi, Misi, dan Informasi Lengkap tentang SMK PPRQ" />
+            </Helmet>
             <div className="portal-page-header">
                 <div className="portal-container">
                     <h1>📖 Informasi Sekolah</h1>

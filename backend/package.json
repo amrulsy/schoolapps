@@ -11,7 +11,8 @@
     "seed:extra": "node scripts/seeds/seed_extra.js",
     "seed:ppdb": "node scripts/seeds/seed_ppdb.js",
     "seed:programs": "node scripts/seeds/seed_program_details.js",
-    "migrate": "node migrations/run.js"
+    "migrate": "node migrations/run.js",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -27,5 +28,9 @@
     "multer": "^2.1.1",
     "mysql2": "^3.20.0",
     "svix": "^1.89.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
   }
 }

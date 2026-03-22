@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { Play, X, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
 import { usePortal } from '../context/PortalContext'
 import '../styles/portal-banners.css'
@@ -80,6 +81,12 @@ export default function PortalHome() {
 
     return (
         <div className="portal-page portal-home-root">
+            <Helmet>
+                <title>Beranda | Portal SMK PPRQ</title>
+                <meta name="description" content="Selamat datang di Portal Resmi SMK PPRQ. Sekolah Menengah Kejuruan pencetak lulusan siap kerja bersertifikasi dan berkompetensi tinggi." />
+                <meta property="og:title" content="Beranda | Portal SMK PPRQ" />
+                <meta property="og:description" content="Selamat datang di Portal Resmi SMK PPRQ. Temukan informasi PPDB, Berita, dan Pengumuman terbaru di sini." />
+            </Helmet>
             <div className="portal-bg-shapes">
                 <div className="portal-shape-blur portal-shape-1" />
                 <div className="portal-shape-blur portal-shape-2" />
