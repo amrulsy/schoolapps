@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /admin
+Disallow: /guru
+Disallow: /siswa-portal
+Allow: /
+
+Sitemap: https://smkpprq.sch.id/sitemap.xml

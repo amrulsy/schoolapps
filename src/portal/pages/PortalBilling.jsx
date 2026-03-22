@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
 
 export default function PortalBilling() {
@@ -32,6 +33,10 @@ export default function PortalBilling() {
 
     return (
         <div className="portal-page">
+            <Helmet>
+                <title>Cek Tagihan | Portal SMK PPRQ</title>
+                <meta name="description" content="Cek tagihan sekolah, riwayat pembayaran, dan tunggakan administrasi." />
+            </Helmet>
             <div className="portal-page-header">
                 <div className="portal-container">
                     <h1>💳 Cek Tagihan</h1>

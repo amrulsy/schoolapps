@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     nama VARCHAR(150),
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'kasir') DEFAULT 'kasir'
+    role ENUM('admin', 'kasir', 'guru') DEFAULT 'kasir'
 );
 
 CREATE TABLE IF NOT EXISTS kategori_tagihan (
@@ -146,4 +146,152 @@ CREATE TABLE IF NOT EXISTS cashflow (
     tipe ENUM('masuk', 'keluar') NOT NULL,
     ref VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS student_menus (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    label VARCHAR(100) NOT NULL,
+    icon VARCHAR(50) NOT NULL,
+    path VARCHAR(255) NOT NULL,
+    color VARCHAR(20) DEFAULT '#3B82F6',
+    bg VARCHAR(30) DEFAULT 'rgba(59, 130, 246, 0.15)',
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS siswa_presensi (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    siswa_id INT NOT NULL,
+    tanggal DATE NOT NULL,
+    status ENUM('hadir', 'sakit', 'izin', 'alpha') NOT NULL,
+    keterangan TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE,
+    UNIQUE KEY (siswa_id, tanggal)
+);
+
+CREATE TABLE IF NOT EXISTS tabungan (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    siswa_id INT NOT NULL,
+    tanggal DATETIME NOT NULL,
+    tipe ENUM('setor', 'tarik') NOT NULL,
+    nominal DECIMAL(12,2) NOT NULL,
+    note TEXT,
+    user_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS bk_kategori (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nama VARCHAR(150) NOT NULL,
+    tipe ENUM('pelanggaran', 'prestasi') NOT NULL,
+    poin INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bk_catatan (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    siswa_id INT NOT NULL,
+    bk_kategori_id INT NOT NULL,
+    tanggal DATE NOT NULL,
+    keterangan TEXT,
+    poin INT NOT NULL,
+    user_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE,
+    FOREIGN KEY (bk_kategori_id) REFERENCES bk_kategori(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS mata_pelajaran (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nama VARCHAR(150) NOT NULL,
+    tingkat VARCHAR(20)
+);
+
+CREATE TABLE IF NOT EXISTS nilai_siswa (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    siswa_id INT NOT NULL,
+    mapel_id INT NOT NULL,
+    tahun_ajaran_id INT NOT NULL,
+    semester ENUM('Ganjil', 'Genap') NOT NULL,
+    tugas DECIMAL(5,2) DEFAULT 0,
+    uts DECIMAL(5,2) DEFAULT 0,
+    uas DECIMAL(5,2) DEFAULT 0,
+    akhir DECIMAL(5,2) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE,
+    FOREIGN KEY (mapel_id) REFERENCES mata_pelajaran(id) ON DELETE CASCADE,
+    FOREIGN KEY (tahun_ajaran_id) REFERENCES tahun_ajaran(id) ON DELETE CASCADE,
+    UNIQUE KEY (siswa_id, mapel_id, tahun_ajaran_id, semester)
+);
+
+CREATE TABLE IF NOT EXISTS pesan (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    pengirim_id INT NOT NULL,
+    pengirim_type ENUM('admin', 'student') NOT NULL,
+    penerima_id INT NOT NULL,
+    penerima_type ENUM('admin', 'student') NOT NULL,
+    pesan TEXT NOT NULL,
+    waktu DATETIME NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS guru (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nip VARCHAR(50) UNIQUE,
+    nama VARCHAR(150) NOT NULL,
+    user_id INT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS jam_pelajaran (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    jam_ke INT UNIQUE NOT NULL,
+    jam_mulai TIME NOT NULL,
+    jam_selesai TIME NOT NULL,
+    tipe ENUM('Pelajaran', 'Istirahat') DEFAULT 'Pelajaran'
+);
+
+CREATE TABLE IF NOT EXISTS jadwal_pelajaran (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    guru_id INT NOT NULL,
+    kelas_id INT NOT NULL,
+    mapel_id INT NOT NULL,
+    hari ENUM('Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu') NOT NULL,
+    jam_pelajaran_id INT NOT NULL,
+    FOREIGN KEY (guru_id) REFERENCES guru(id) ON DELETE CASCADE,
+    FOREIGN KEY (kelas_id) REFERENCES kelas(id) ON DELETE CASCADE,
+    FOREIGN KEY (mapel_id) REFERENCES mata_pelajaran(id) ON DELETE CASCADE,
+    FOREIGN KEY (jam_pelajaran_id) REFERENCES jam_pelajaran(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS jurnal_mengajar (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    guru_id INT NOT NULL,
+    jadwal_id INT,
+    kelas_id INT NOT NULL,
+    mapel_id INT NOT NULL,
+    tanggal DATE NOT NULL,
+    waktu_masuk_aktual TIME,
+    waktu_keluar_aktual TIME,
+    materi TEXT,
+    status_jurnal ENUM('Running', 'Selesai') DEFAULT 'Running',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (guru_id) REFERENCES guru(id) ON DELETE CASCADE,
+    FOREIGN KEY (jadwal_id) REFERENCES jadwal_pelajaran(id) ON DELETE SET NULL,
+    FOREIGN KEY (kelas_id) REFERENCES kelas(id) ON DELETE CASCADE,
+    FOREIGN KEY (mapel_id) REFERENCES mata_pelajaran(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS presensi_sesi (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    jurnal_id BIGINT NOT NULL,
+    siswa_id INT NOT NULL,
+    status ENUM('hadir', 'sakit', 'izin', 'alpha', 'bolos') NOT NULL,
+    keterangan TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (jurnal_id) REFERENCES jurnal_mengajar(id) ON DELETE CASCADE,
+    FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE,
+    UNIQUE KEY (jurnal_id, siswa_id)
 );

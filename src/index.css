@@ -55,3 +55,35 @@
 .w-full {
   width: 100%;
 }
+
+/* ============================================
+   📱 Mobile PWA Hacks & Native App Feel
+   ============================================ */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* Mencegah bounce/pull-to-refresh default dari browser Android */
+  overscroll-behavior-y: contain;
+}
+
+/* Class container khusus untuk layout Siswa (jika dibutuhkan) */
+.mobile-app-container {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Mencegah body scroll, gunakan scroll di dalam element */
+}
+
+/* Sembunyikan scrollbar bawaan agar terasa seperti Native App */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}

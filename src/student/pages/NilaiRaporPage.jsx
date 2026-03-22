@@ -1,24 +1,6 @@
 import { useState } from 'react'
 import { BookOpen, Award, ChevronDown, ChevronUp, Download } from 'lucide-react'
-
-const mockNilai = {
-    semester: 'Ganjil 2025/2026',
-    ranking: 5,
-    totalSiswa: 30,
-    average: 82.5,
-    subjects: [
-        { nama: 'Matematika', tugas: 85, uts: 78, uas: 82, akhir: 82 },
-        { nama: 'Bahasa Indonesia', tugas: 90, uts: 88, uas: 85, akhir: 88 },
-        { nama: 'Bahasa Inggris', tugas: 78, uts: 75, uas: 80, akhir: 78 },
-        { nama: 'Fisika', tugas: 80, uts: 72, uas: 75, akhir: 76 },
-        { nama: 'Kimia', tugas: 88, uts: 85, uas: 82, akhir: 85 },
-        { nama: 'Pemrograman Dasar', tugas: 95, uts: 90, uas: 92, akhir: 92 },
-        { nama: 'Basis Data', tugas: 88, uts: 82, uas: 85, akhir: 85 },
-        { nama: 'Pendidikan Agama', tugas: 90, uts: 88, uas: 90, akhir: 89 },
-        { nama: 'PKN', tugas: 85, uts: 80, uas: 82, akhir: 82 },
-        { nama: 'Penjas', tugas: 88, uts: 85, uas: 87, akhir: 87 },
-    ]
-}
+import { useStudent } from '../StudentApp'
 
 const getGradeColor = (val) => {
     if (val >= 85) return '#10B981'
@@ -28,8 +10,23 @@ const getGradeColor = (val) => {
 }
 
 export default function NilaiRaporPage() {
+    const { nilaiData } = useStudent()
     const [expandedSubject, setExpandedSubject] = useState(null)
-    const { semester, ranking, totalSiswa, average, subjects } = mockNilai
+    const { currentSemester, subjects } = nilaiData || { currentSemester: { semester: 'Ganjil', tahunAjaran: '' }, subjects: { muatanNasional: [], muatanKewilayahan: [], muatanPeminatan: [] } }
+
+    const allSubjects = [
+        ...(subjects?.muatanNasional || []),
+        ...(subjects?.muatanKewilayahan || []),
+        ...(subjects?.muatanPeminatan || [])
+    ]
+
+    const average = allSubjects.length > 0
+        ? Math.round(allSubjects.reduce((acc, curr) => acc + curr.final, 0) / allSubjects.length)
+        : 0
+
+    const semester = `${currentSemester.semester} ${currentSemester.tahunAjaran}`
+    const ranking = '-'
+    const totalSiswa = '-'
 
     return (
         <div className="stu-page">
@@ -62,25 +59,25 @@ export default function NilaiRaporPage() {
             <div className="stu-section">
                 <h3 className="stu-section-title">Nilai Per Mata Pelajaran</h3>
                 <div className="stu-list">
-                    {subjects.map((s, i) => (
+                    {allSubjects.map((s, i) => (
                         <div key={i} className="stu-subject-card" onClick={() => setExpandedSubject(expandedSubject === i ? null : i)}>
                             <div className="stu-subject-header">
-                                <div className="stu-subject-name">{s.nama}</div>
+                                <div className="stu-subject-name">{s.subject}</div>
                                 <div className="stu-subject-right">
-                                    <span className="stu-subject-grade" style={{ color: getGradeColor(s.akhir) }}>{s.akhir}</span>
+                                    <span className="stu-subject-grade" style={{ color: getGradeColor(s.final) }}>{s.final}</span>
                                     {expandedSubject === i ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                 </div>
                             </div>
                             {/* Grade bar */}
                             <div className="stu-grade-bar">
-                                <div className="stu-grade-fill" style={{ width: `${s.akhir}%`, background: getGradeColor(s.akhir) }} />
+                                <div className="stu-grade-fill" style={{ width: `${s.final}%`, background: getGradeColor(s.final) }} />
                             </div>
                             {expandedSubject === i && (
                                 <div className="stu-subject-detail">
                                     <div className="stu-detail-row"><span>Tugas/PR</span><span>{s.tugas}</span></div>
                                     <div className="stu-detail-row"><span>UTS</span><span>{s.uts}</span></div>
                                     <div className="stu-detail-row"><span>UAS</span><span>{s.uas}</span></div>
-                                    <div className="stu-detail-row final"><span>Nilai Akhir</span><span>{s.akhir}</span></div>
+                                    <div className="stu-detail-row final"><span>Nilai Akhir</span><span>{s.final}</span></div>
                                 </div>
                             )}
                         </div>

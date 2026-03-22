@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react'
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 import { useApp } from '../context/AppContext'
@@ -8,7 +9,7 @@ export function useCustomAlert() {
     const { theme } = useApp()
 
     // Base config that respects the current theme
-    const baseConfig = {
+    const baseConfig = useMemo(() => ({
         background: theme === 'dark' ? '#1f2937' : '#ffffff',
         color: theme === 'dark' ? '#ffffff' : '#111827',
         customClass: {
@@ -17,9 +18,9 @@ export function useCustomAlert() {
             popup: 'swal-custom-popup'
         },
         buttonsStyling: false
-    }
+    }), [theme])
 
-    const confirmDelete = async (title, text) => {
+    const confirmDelete = useCallback(async (title, text) => {
         const result = await MySwal.fire({
             ...baseConfig,
             title: title || 'Apakah Anda Yakin?',
@@ -31,9 +32,9 @@ export function useCustomAlert() {
             reverseButtons: true
         })
         return result.isConfirmed
-    }
+    }, [baseConfig])
 
-    const showError = (title, text) => {
+    const showError = useCallback((title, text) => {
         MySwal.fire({
             ...baseConfig,
             title: title || 'Error',
@@ -41,7 +42,17 @@ export function useCustomAlert() {
             icon: 'error',
             confirmButtonText: 'Tutup'
         })
-    }
+    }, [baseConfig])
 
-    return { confirmDelete, showError, MySwal }
+    const showSuccess = useCallback((title, text) => {
+        MySwal.fire({
+            ...baseConfig,
+            title: title || 'Berhasil',
+            text: text || 'Aksi berhasil dilakukan',
+            icon: 'success',
+            confirmButtonText: 'Mantap'
+        })
+    }, [baseConfig])
+
+    return { confirmDelete, showError, showSuccess, MySwal }
 }

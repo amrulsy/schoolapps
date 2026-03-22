@@ -1,9 +1,10 @@
-import { NavLink } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import {
     LayoutDashboard, Users, Building2, Calendar, ClipboardList, Landmark,
     FileText, CreditCard, BookOpen, BarChart3, UserCog, Settings,
-    ChevronLeft, History, Zap, Layout, Database
+    ChevronLeft, ChevronDown, History, Zap, Layout, Database, LayoutTemplate, Clock
 } from 'lucide-react'
 
 const menuSections = [
@@ -11,10 +12,17 @@ const menuSections = [
         label: 'DATA MASTER',
         items: [
             { to: '/admin/siswa', icon: Users, text: 'Siswa' },
+            { to: '/admin/guru', icon: Users, text: 'Guru' },
             { to: '/admin/unit-kelas', icon: Building2, text: 'Unit & Kelas' },
             { to: '/admin/tahun-ajaran', icon: Calendar, text: 'Tahun Ajaran' },
+            { to: '/admin/waktu-pelajaran', icon: Clock, text: 'Waktu Pelajaran' },
+            { to: '/admin/jadwal', icon: Calendar, text: 'Jadwal Pelajaran' },
             { to: '/admin/kategori-tagihan', icon: ClipboardList, text: 'Kategori Tagihan' },
             { to: '/admin/rekening', icon: Landmark, text: 'Rekening Bank' },
+            { to: '/admin/presensi', icon: ClipboardList, text: 'Presensi Siswa' },
+            { to: '/admin/bk', icon: ClipboardList, text: 'Bimbingan Konseling' },
+            { to: '/admin/akademik', icon: BookOpen, text: 'Nilai Akademik' },
+            { to: '/admin/pesan', icon: BookOpen, text: 'Manajemen Pesan' },
         ]
     },
     {
@@ -24,6 +32,7 @@ const menuSections = [
             { to: '/admin/riwayat-generate', icon: Zap, text: 'Riwayat Generate' },
             { to: '/admin/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
             { to: '/admin/pembayaran', icon: CreditCard, text: 'Pembayaran (POS)' },
+            { to: '/admin/tabungan', icon: Landmark, text: 'Kasir Tabungan' },
             { to: '/admin/riwayat', icon: History, text: 'Riwayat Transaksi' },
             { to: '/admin/arus-kas', icon: BookOpen, text: 'Arus Kas' },
         ]
@@ -38,6 +47,7 @@ const menuSections = [
         label: 'SISTEM',
         items: [
             { to: '/admin/users', icon: UserCog, text: 'Manajemen User' },
+            { to: '/admin/student-menus', icon: LayoutTemplate, text: 'Menu Siswa' },
             { to: '/admin/pengaturan', icon: Settings, text: 'Pengaturan' },
             { to: '/admin/backup', icon: Database, text: 'Backup & Restore' },
         ]
@@ -59,6 +69,21 @@ const menuSections = [
 
 export default function Sidebar() {
     const { sidebarCollapsed, setSidebarCollapsed, currentUser } = useApp()
+    const location = useLocation()
+    const [openSection, setOpenSection] = useState('')
+
+    useEffect(() => {
+        const currentSection = menuSections.find(sec =>
+            sec.items.some(item => location.pathname === item.to || location.pathname.startsWith(item.to + '/'))
+        )
+        if (currentSection) {
+            setOpenSection(currentSection.label)
+        }
+    }, [location.pathname])
+
+    const toggleSection = (label) => {
+        setOpenSection(prev => prev === label ? '' : label)
+    }
 
     return (
         <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
@@ -76,22 +101,36 @@ export default function Sidebar() {
                     <span>Dashboard</span>
                 </NavLink>
 
-                {menuSections.map(section => (
-                    <div key={section.label}>
-                        <div className="menu-label">{section.label}</div>
-                        {section.items.map(item => (
-                            <NavLink
-                                key={item.to}
-                                to={item.to}
-                                className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}
-                                title={sidebarCollapsed ? item.text : ''}
+                {menuSections.map(section => {
+                    const isOpen = openSection === section.label || sidebarCollapsed
+                    return (
+                        <div key={section.label} className="menu-category">
+                            <div
+                                className="menu-label d-flex justify-content-between align-items-center"
+                                onClick={() => !sidebarCollapsed && toggleSection(section.label)}
+                                style={{ cursor: sidebarCollapsed ? 'default' : 'pointer', userSelect: 'none' }}
                             >
-                                <span className="icon"><item.icon size={20} /></span>
-                                <span>{item.text}</span>
-                            </NavLink>
-                        ))}
-                    </div>
-                ))}
+                                <span>{section.label}</span>
+                                {!sidebarCollapsed && (
+                                    isOpen ? <ChevronDown size={14} /> : <ChevronLeft size={14} style={{ transform: 'rotate(-90deg)' }} />
+                                )}
+                            </div>
+                            <div className="menu-items-container" style={{ display: isOpen ? 'block' : 'none' }}>
+                                {section.items.map(item => (
+                                    <NavLink
+                                        key={item.to}
+                                        to={item.to}
+                                        className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}
+                                        title={sidebarCollapsed ? item.text : ''}
+                                    >
+                                        <span className="icon"><item.icon size={20} /></span>
+                                        <span>{item.text}</span>
+                                    </NavLink>
+                                ))}
+                            </div>
+                        </div>
+                    )
+                })}
             </nav>
 
             <div className="sidebar-footer">

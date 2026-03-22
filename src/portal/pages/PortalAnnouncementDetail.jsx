@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
 
 export default function PortalAnnouncementDetail() {
@@ -70,6 +71,11 @@ export default function PortalAnnouncementDetail() {
 
     return (
         <div className="portal-page">
+            <Helmet>
+                <title>{post.title} | Portal SMK PPRQ</title>
+                <meta name="description" content={post.excerpt ? post.excerpt : post.title} />
+                {post.cover_image && <meta property="og:image" content={post.cover_image} />}
+            </Helmet>
             <div className="portal-page-header">
                 <div className="portal-container">
                     <Link to="/pengumuman" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.9rem', display: 'inline-block', marginBottom: '12px' }}>

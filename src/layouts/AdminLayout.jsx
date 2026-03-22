@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useApp } from '../context/AppContext'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
@@ -38,6 +39,9 @@ export default function AdminLayout() {
 
     return (
         <div className={`app-layout ${isMobile ? 'mobile' : ''}`}>
+            <Helmet>
+                <meta name="robots" content="noindex, nofollow" />
+            </Helmet>
             {!isMobile && <Sidebar />}
             <div className="main-wrapper" style={{ marginLeft }}>
                 <Header isMobile={isMobile} />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
 import { Search, MapPin, Phone, GraduationCap, CheckCircle2, ClipboardCheck, ArrowRight, User, Calendar, BookOpen, MessageCircle, AlertCircle, Info, ChevronRight } from 'lucide-react'
 import Swal from 'sweetalert2'
@@ -205,6 +206,10 @@ export default function PortalPPDB() {
 
     return (
         <div className="portal-page">
+            <Helmet>
+                <title>Pendaftaran PPDB | Portal SMK PPRQ</title>
+                <meta name="description" content="Penerimaan Peserta Didik Baru (PPDB) SMK PPRQ. Segera daftarkan diri Anda dan raih masa depan yang gemilang bersama kami." />
+            </Helmet>
             <style>{`
                 .hero-glass {
                     background: var(--portal-gradient-hero);

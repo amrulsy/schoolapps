@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
 import { ArrowRight, CheckCircle, ChevronRight, BookOpen, Users, Trophy, Target } from 'lucide-react'
 
@@ -60,6 +61,11 @@ export default function PortalProgramDetail() {
 
     return (
         <div className="portal-page portal-program-detail">
+            <Helmet>
+                <title>{program.title} | Jurusan SMK PPRQ</title>
+                <meta name="description" content={program.tagline || program.description} />
+                {program.banner_image && <meta property="og:image" content={program.banner_image} />}
+            </Helmet>
             {/* ====== HERO SECTION ====== */}
             <section className="program-hero" style={{
                 background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)`,

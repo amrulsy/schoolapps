@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
 import { CheckCircle, AlertCircle, Send } from 'lucide-react'
 
@@ -53,6 +54,10 @@ export default function PortalContact() {
 
     return (
         <div className="portal-page">
+            <Helmet>
+                <title>Kontak Kami | Portal SMK PPRQ</title>
+                <meta name="description" content="Hubungi kami untuk pertanyaan, masukan, dan urusan administrasi pendaftaran SMK PPRQ." />
+            </Helmet>
             <div className="portal-page-header">
                 <div className="portal-container">
                     <h1>📞 Hubungi Kami</h1>

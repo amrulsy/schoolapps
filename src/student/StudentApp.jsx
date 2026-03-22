@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext, useCallback } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { API_BASE } from '../services/api'
 import StudentLayout from './StudentLayout'
 import StudentLoginPage from './pages/StudentLoginPage'
@@ -24,6 +25,13 @@ export default function StudentApp() {
     const [bills, setBills] = useState([])
     const [transactions, setTransactions] = useState([])
     const [announcements, setAnnouncements] = useState([])
+    const [menuItems, setMenuItems] = useState([])
+    const [attendanceSummary, setAttendanceSummary] = useState({ presentCount: 0 })
+    const [attendanceDocs, setAttendanceDocs] = useState([])
+    const [tabunganData, setTabunganData] = useState({ saldo: 0, history: [] })
+    const [bkData, setBkData] = useState({ poin: { pelanggaran: 0, prestasi: 0, netPoin: 0 }, pelanggaran: [], prestasi: [], tatatertib: [] })
+    const [nilaiData, setNilaiData] = useState({ currentSemester: {}, subjects: { muatanNasional: [], muatanKewilayahan: [], muatanPeminatan: [] } })
+    const [pesanList, setPesanList] = useState([])
     const [loading, setLoading] = useState(true)
 
     const authHeaders = useCallback(() => ({
@@ -34,23 +42,49 @@ export default function StudentApp() {
     const fetchStudentData = useCallback(async () => {
         if (!token) { setLoading(false); return }
         try {
-            const [profileRes, billsRes, txRes, announcementsRes] = await Promise.all([
+            const [profileRes, billsRes, txRes, announcementsRes, menusRes, attendanceRes, attendanceDocsRes, tabunganRes, bkRes, nilaiRes, pesanRes] = await Promise.all([
                 fetch(`${API_BASE}/student/profile`, { headers: authHeaders() }),
                 fetch(`${API_BASE}/student/bills`, { headers: authHeaders() }),
                 fetch(`${API_BASE}/student/transactions`, { headers: authHeaders() }),
-                fetch(`${API_BASE}/student/announcements`, { headers: authHeaders() })
+                fetch(`${API_BASE}/student/announcements`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/student/menus`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/student/attendance/summary`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/student/attendance`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/student/tabungan`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/student/bk`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/student/nilai`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/student/pesan`, { headers: authHeaders() })
             ])
             if (!profileRes.ok) { handleLogout(); return }
             setProfile(await profileRes.json())
             setBills(await billsRes.json())
             setTransactions(await txRes.json())
             try { setAnnouncements(await announcementsRes.json()) } catch { setAnnouncements([]) }
+            try { setMenuItems(await menusRes.json()) } catch { setMenuItems([]) }
+            try { setAttendanceSummary(await attendanceRes.json()) } catch { setAttendanceSummary({ presentCount: 0 }) }
+            try { setAttendanceDocs(await attendanceDocsRes.json()) } catch { setAttendanceDocs([]) }
+            try { setTabunganData(await tabunganRes.json()) } catch { setTabunganData({ saldo: 0, history: [] }) }
+            try { setBkData(await bkRes.json()) } catch { setBkData({ poin: { pelanggaran: 0, prestasi: 0, netPoin: 0 }, pelanggaran: [], prestasi: [], tatatertib: [] }) }
+            try { setNilaiData(await nilaiRes.json()) } catch { setNilaiData({ currentSemester: {}, subjects: { muatanNasional: [], muatanKewilayahan: [], muatanPeminatan: [] } }) }
+            try { setPesanList(await pesanRes.json()) } catch { setPesanList([]) }
         } catch (err) {
             console.error('Student data fetch error:', err)
         } finally {
             setLoading(false)
         }
     }, [token, authHeaders])
+
+    const sendMessage = async (text) => {
+        try {
+            const res = await fetch(`${API_BASE}/student/pesan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                body: JSON.stringify({ text })
+            })
+            if (res.ok) fetchStudentData() // Refresh chat
+            return res.ok
+        } catch (err) { return false }
+    }
 
     useEffect(() => {
         const savedStudent = localStorage.getItem('student_data')
@@ -84,7 +118,10 @@ export default function StudentApp() {
     }
 
     return (
-        <StudentContext.Provider value={{ student, profile, bills, transactions, announcements, loading, formatRupiah, handleLogout, fetchStudentData }}>
+        <StudentContext.Provider value={{ student, profile, bills, transactions, announcements, menuItems, attendanceSummary, attendanceDocs, tabunganData, bkData, nilaiData, pesanList, loading, formatRupiah, handleLogout, fetchStudentData, sendMessage }}>
+            <Helmet>
+                <meta name="robots" content="noindex, nofollow" />
+            </Helmet>
             <Routes>
                 <Route element={<StudentLayout />}>
                     <Route index element={<StudentDashboard />} />

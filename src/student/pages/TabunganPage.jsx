@@ -1,22 +1,10 @@
 import { PiggyBank, ArrowUpCircle, ArrowDownCircle, TrendingUp } from 'lucide-react'
-
-const mockTabungan = {
-    saldo: 1250000,
-    history: [
-        { id: 1, date: '2026-03-15', type: 'setor', amount: 200000, note: 'Setoran mingguan' },
-        { id: 2, date: '2026-03-08', type: 'setor', amount: 150000, note: 'Setoran mingguan' },
-        { id: 3, date: '2026-03-01', type: 'tarik', amount: 100000, note: 'Penarikan keperluan sekolah' },
-        { id: 4, date: '2026-02-22', type: 'setor', amount: 200000, note: 'Setoran mingguan' },
-        { id: 5, date: '2026-02-15', type: 'setor', amount: 300000, note: 'Setoran bulanan' },
-        { id: 6, date: '2026-02-01', type: 'setor', amount: 200000, note: 'Setoran mingguan' },
-        { id: 7, date: '2026-01-25', type: 'tarik', amount: 50000, note: 'Penarikan snack' },
-        { id: 8, date: '2026-01-15', type: 'setor', amount: 350000, note: 'Setoran awal semester' },
-    ]
-}
+import { useStudent } from '../StudentApp'
 
 export default function TabunganPage() {
-    const formatRupiah = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0)
-    const { saldo, history } = mockTabungan
+    const { formatRupiah, tabunganData } = useStudent()
+    const saldo = tabunganData?.saldo || 0
+    const history = tabunganData?.history || []
 
     const totalSetor = history.filter(h => h.type === 'setor').reduce((s, h) => s + h.amount, 0)
     const totalTarik = history.filter(h => h.type === 'tarik').reduce((s, h) => s + h.amount, 0)
