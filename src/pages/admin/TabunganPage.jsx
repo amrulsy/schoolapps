@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { API_BASE, getAuthHeaders } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
-import { PlusCircle, Search, PiggyBank, ArrowDownCircle, ArrowUpCircle, Wallet, TrendingUp, TrendingDown, X, BarChart as BarChartIcon, ChevronLeft, ChevronRight, FileText, Download, User, CheckCircle } from 'lucide-react'
+import { PlusCircle, Search, PiggyBank, ArrowDownCircle, ArrowUpCircle, Wallet, TrendingUp, X, BarChart as BarChartIcon, ChevronLeft, ChevronRight, FileText, Download, User, CheckCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 // Custom style for hover effects

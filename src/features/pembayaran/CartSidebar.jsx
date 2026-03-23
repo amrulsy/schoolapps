@@ -18,7 +18,6 @@ export default function CartSidebar({
     amountRef,
     payBtnRef
 }) {
-    const paidAmount = Number(amountPaid) || 0
 
     return (
         <div className="pos-cart">

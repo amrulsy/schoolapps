@@ -13,6 +13,91 @@ import SiswaForm from '../../features/siswa/SiswaForm'
 import SiswaProfile from '../../features/siswa/SiswaProfile'
 import ImportDropzoneModal from '../../features/siswa/ImportDropzoneModal'
 
+const styles = `
+  .siswa-header {
+    background: #fff;
+    padding: 24px 32px;
+    border-radius: 32px;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .stat-card-premium {
+    border: none;
+    border-radius: 32px;
+    overflow: hidden;
+    height: 100%;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.04);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+  }
+  .stat-card-premium:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  }
+  .card-glass-layer {
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 28px;
+    height: 100%;
+    width: 100%;
+    padding: 32px;
+    position: relative;
+    z-index: 1;
+  }
+  .filter-pill {
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    background: #f8fafc;
+    color: #64748b;
+  }
+  .filter-pill.active {
+    background: #1e293b;
+    color: #fff;
+  }
+  .filter-pill:hover:not(.active) {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+  .student-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    fontWeight: 800;
+    fontSize: '1rem';
+  }
+  .quick-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border: none;
+  }
+  .quick-action-btn:hover {
+    transform: scale(1.1);
+  }
+`;
+
 export default function SiswaPage() {
     const { students, addStudent, updateStudent, deleteStudent, units, formatRupiah, addToast } = useApp()
     const { confirmDelete } = useCustomAlert()

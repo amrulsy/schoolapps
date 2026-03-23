@@ -123,8 +123,8 @@ export default function WaktuPelajaranPage() {
                                                 </div>
                                             </td>
                                             <td>
-                                                <span className={`badge ${j.tipe === 'Pelajaran' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-warning bg-opacity-10 text-dark border-warning'} border`}>
-                                                    {j.tipe}
+                                                <span className={`badge ${j.tipe === 'Pelajaran' ? 'bg-primary text-white' : 'bg-warning text-dark'} px-3 py-2 rounded-pill`} style={{ fontWeight: 600, letterSpacing: '0.5px' }}>
+                                                    {j.tipe.toUpperCase()}
                                                 </span>
                                             </td>
                                             <td className="text-end">
