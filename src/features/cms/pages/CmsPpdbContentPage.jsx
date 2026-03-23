@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../../../context/AppContext'
-import { Save, Plus, Edit2, Trash2, Eye, LayoutList, ListOrdered, CheckCircle2, RefreshCw } from 'lucide-react'
+import { Save, Plus, Edit2, Trash2, Eye, LayoutList, ListOrdered, CheckCircle2, RefreshCw, Layers } from 'lucide-react'
 import { useCustomAlert } from '../../../hooks/useCustomAlert'
 
 import { API_BASE_CMS as API_BASE, getAuthHeaders } from '../../../services/api'
@@ -139,39 +139,54 @@ export default function CmsPpdbContentPage() {
 
     return (
         <div className="fade-in">
-            <div className="page-header" style={{ marginBottom: '32px', background: 'linear-gradient(135deg, var(--bg-card), #f8fafc)', padding: '24px 32px', borderRadius: '24px', border: '1px solid var(--border-color)', display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-                <div>
-                    <div style={{ display: 'inline-block', padding: '6px 16px', background: 'var(--primary-color)', color: 'white', borderRadius: '30px', fontSize: '0.8rem', fontWeight: 700, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Dashboard PPDB</div>
-                    <h1 style={{ fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-0.5px', marginBottom: '8px', background: 'linear-gradient(45deg, var(--text-color), var(--primary-color))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <LayoutList size={28} style={{ color: 'var(--primary-color)' }} /> Konten PPDB
+            <div className="cms-hero-header animate-fade-in mb-5">
+                <div className="cms-hero-overlay"></div>
+
+                <div className="cms-hero-content">
+                    <div className="d-flex align-items-center gap-3 mb-4">
+                        <div className="cms-hero-badge shadow-sm">Dashboard PPDB</div>
+                        <div className="cms-hero-badge-outline">
+                            <Layers size={14} className="text-primary" strokeWidth={2.5} />
+                            <span>T.A 2025/2026</span>
+                        </div>
+                    </div>
+
+                    <h1 className="cms-hero-title mb-3">
+                        <div className="cms-avatar bg-primary-light text-primary" style={{ width: 56, height: 56, borderRadius: 16 }}>
+                            <LayoutList size={28} strokeWidth={2.5} />
+                        </div>
+                        Konten PPDB
                     </h1>
-                    <p className="text-secondary" style={{ fontSize: '1.05rem', margin: 0, opacity: 0.8 }}>Kelola langkah pendaftaran dan syarat dokumen PPDB.</p>
+                    <p className="cms-hero-subtitle text-secondary">
+                        Pusat manajemen konfigurasi alur pendaftaran dan persyaratan dokumen administrasi.
+                    </p>
                 </div>
-                <div className="actions" style={{ gap: 12, marginLeft: 'auto', alignSelf: 'center' }}>
-                    <button className="btn btn-outline" style={{ borderRadius: 14, height: 44, fontWeight: 600 }} onClick={loadAll}>
-                        <RefreshCw size={16} /> Refresh
+
+                <div className="cms-hero-actions">
+                    <button className="btn btn-outline" style={{ height: 48, borderRadius: 14 }} onClick={loadAll}>
+                        <RefreshCw size={18} className="mr-2" /> Refresh
                     </button>
-                    <a href="/ppdb" target="_blank" rel="noreferrer" className="btn btn-primary" style={{ borderRadius: 14, height: 44, fontWeight: 600 }}>
-                        <Eye size={16} /> Lihat Portal
+                    <a href="/ppdb" target="_blank" rel="noreferrer" className="btn btn-primary" style={{ height: 48, borderRadius: 14 }}>
+                        <Eye size={18} className="mr-2" /> Lihat Portal
                     </a>
                 </div>
             </div>
 
-            {/* Tab Navigation */}
-            <div style={tabNavStyle}>
+            {/* Modern Tab Navigation */}
+            <div className="cms-tab-nav mb-4" style={{ maxWidth: 'fit-content' }}>
                 {TABS.map(t => (
                     <button
                         key={t.key}
                         onClick={() => changeTab(t.key)}
-                        style={{ ...tabBtnStyle, ...(activeTab === t.key ? tabBtnActiveStyle : {}) }}
+                        className={`cms-tab-btn ${activeTab === t.key ? 'active' : ''}`}
                     >
-                        <t.icon size={16} /> <span>{t.label}</span>
+                        <t.icon size={18} /> <span>{t.label}</span>
                     </button>
                 ))}
             </div>
 
-            {/* Tab Content */}
-            <div style={tabContentStyle}>
+            {/* Premium Content Area */}
+            <div className="cms-section-card animate-fade-in" style={{ borderRadius: '24px', padding: '32px', boxShadow: 'var(--shadow-sm)' }}>
                 {activeTab === 'steps' && renderStepsTab()}
                 {activeTab === 'requirements' && renderRequirementsTab()}
             </div>
@@ -187,14 +202,17 @@ export default function CmsPpdbContentPage() {
     function renderStepsTab() {
         return (
             <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                    <h3 style={sectionTitleStyle}>Alur Pendaftaran</h3>
-                    <button className="btn btn-primary btn-sm" style={{ borderRadius: 10 }} onClick={() => openStepModal()}>
-                        <Plus size={16} /> Tambah Langkah
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Alur Pendaftaran</h3>
+                        <p className="text-secondary small m-0">Susun langkah-langkah yang harus dilalui calon siswa.</p>
+                    </div>
+                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42 }} onClick={() => openStepModal()}>
+                        <Plus size={18} /> Tambah Langkah
                     </button>
                 </div>
 
-                <div className="table-responsive card" style={{ padding: 0, border: '1px solid var(--border-color)', borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
                     <table className="table" style={{ margin: 0 }}>
                         <thead style={{ background: 'var(--bg-hover)' }}>
                             <tr>
@@ -250,14 +268,17 @@ export default function CmsPpdbContentPage() {
     function renderRequirementsTab() {
         return (
             <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                    <h3 style={sectionTitleStyle}>Syarat Dokumen</h3>
-                    <button className="btn btn-primary btn-sm" style={{ borderRadius: 10 }} onClick={() => openReqModal()}>
-                        <Plus size={16} /> Tambah Syarat
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Syarat Dokumen</h3>
+                        <p className="text-secondary small m-0">Daftar dokumen wajib yang harus diunggah pendaftar.</p>
+                    </div>
+                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42 }} onClick={() => openReqModal()}>
+                        <Plus size={18} /> Tambah Syarat
                     </button>
                 </div>
 
-                <div className="table-responsive card" style={{ padding: 0, border: '1px solid var(--border-color)', borderRadius: 16, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
                     <table className="table" style={{ margin: 0 }}>
                         <thead style={{ background: 'var(--bg-hover)' }}>
                             <tr>
@@ -432,23 +453,4 @@ export default function CmsPpdbContentPage() {
 
 }
 
-// ==================== STYLES ====================
-// Reusing exact same styles from CmsHomePage.jsx
-
-const tabNavStyle = {
-    display: 'flex', borderBottom: '1px solid var(--border-color)', marginBottom: 24, gap: 10, overflowX: 'auto', paddingBottom: 5
-}
-const tabBtnStyle = {
-    padding: '12px 20px', background: 'none', border: 'none', borderBottom: '3px solid transparent', cursor: 'pointer',
-    fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', transition: 'all 0.2s'
-}
-const tabBtnActiveStyle = {
-    color: 'var(--primary)', borderBottomColor: 'var(--primary)'
-}
-const tabContentStyle = {
-    background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)', padding: 32,
-    boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid var(--border-color)', minHeight: 400
-}
-const sectionTitleStyle = {
-    fontSize: '1.25rem', fontWeight: 700, marginBottom: 8, color: 'var(--text-color)'
-}
+// End of file

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../../../context/AppContext'
-import { Save, Plus, Edit2, Trash2, Eye, Layout, Monitor, Handshake, GraduationCap, Megaphone, RefreshCw, Image as ImageIcon, FileText, Building2, Globe, Mail } from 'lucide-react'
+import { Save, Plus, Edit2, Trash2, Eye, Layout, Monitor, Handshake, GraduationCap, Megaphone, RefreshCw, Image as ImageIcon, FileText, Building2, Globe, Mail, Type, Star, PlayCircle, AlignLeft } from 'lucide-react'
 import { useCustomAlert } from '../../../hooks/useCustomAlert'
 import { getDirectDriveUrl } from '../../../utils/urlHelper'
 import MediaUploadField from '../../../components/MediaUploadField'
@@ -398,80 +398,131 @@ export default function CmsHomePage() {
     function renderHeroTab() {
         const heroKeys = ['hero_badge_text', 'hero_title', 'hero_highlight', 'hero_subtitle', 'hero_video_url']
         return (
-            <div>
-                <div className="cms-section-card">
-                    <h3 className="cms-section-title">🎯 Hero Section</h3>
-                    <p className="cms-section-desc">
-                        Kelola judul, subtitle, badge, dan video yang tampil di bagian atas halaman portal.
-                    </p>
+            <div className="cms-hero-container animate-fade-in">
+                <div className="cms-hero-flex">
+                    {/* Left Side: Editor Form */}
+                    <div className="cms-hero-editor">
+                        <div className="cms-section-card no-margin">
+                            <h3 className="cms-section-title">
+                                <Monitor size={20} className="mr-2 text-primary" /> Pengaturan Hero Section
+                            </h3>
+                            <p className="cms-section-desc">
+                                Kelola judul utama dan video pengenalan yang tampil di bagian atas portal.
+                            </p>
 
-                    <div className="form-group mb-4">
-                        <label>Badge Teks <span className="cms-hint">(teks kecil di atas judul)</span></label>
-                        <input
-                            type="text" className="form-control"
-                            value={settings.hero_badge_text || ''}
-                            onChange={e => handleSettingChange('hero_badge_text', e.target.value)}
-                            placeholder="Penerimaan Peserta Didik Baru"
-                        />
-                    </div>
-
-                    <div className="form-group mb-4">
-                        <label>Judul Hero <span className="cms-hint">(gunakan baris baru untuk pemisah)</span></label>
-                        <textarea
-                            className="form-control" rows={3}
-                            value={settings.hero_title || ''}
-                            onChange={e => handleSettingChange('hero_title', e.target.value)}
-                            placeholder="Raih Masa Depan&#10;Cemerlang Bersama&#10;SMK PPRQ"
-                        />
-                    </div>
-
-                    <div className="form-group mb-4">
-                        <label>Teks Highlight <span className="cms-hint">(bagian yang diberi warna gradient)</span></label>
-                        <input
-                            type="text" className="form-control"
-                            value={settings.hero_highlight || ''}
-                            onChange={e => handleSettingChange('hero_highlight', e.target.value)}
-                            placeholder="Cemerlang Bersama"
-                        />
-                    </div>
-
-                    <div className="form-group mb-4">
-                        <label>Subtitle Hero</label>
-                        <textarea
-                            className="form-control" rows={3}
-                            value={settings.hero_subtitle || ''}
-                            onChange={e => handleSettingChange('hero_subtitle', e.target.value)}
-                        />
-                    </div>
-
-                    <div className="form-group mb-4">
-                        <label>URL Video YouTube <span className="cms-hint">(embed format)</span></label>
-                        <input
-                            type="url" className="form-control"
-                            value={settings.hero_video_url || ''}
-                            onChange={e => handleSettingChange('hero_video_url', e.target.value)}
-                            placeholder="https://www.youtube.com/embed/VIDEO_ID"
-                        />
-                        {settings.hero_video_url && (
-                            <div style={{ marginTop: 10, borderRadius: 8, overflow: 'hidden', aspectRatio: '16/9', maxWidth: 400 }}>
-                                <iframe
-                                    width="100%" height="100%"
-                                    src={settings.hero_video_url}
-                                    title="Preview" frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                ></iframe>
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label className="cms-label">
+                                        <Star size={14} className="mr-1 text-warning" /> Badge Teks
+                                    </label>
+                                    <input
+                                        type="text" className="form-control"
+                                        value={settings.hero_badge_text || ''}
+                                        onChange={e => handleSettingChange('hero_badge_text', e.target.value)}
+                                        placeholder="Penerimaan Siswa Baru"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="cms-label">
+                                        <Type size={14} className="mr-1 text-primary" /> Teks Highlight
+                                    </label>
+                                    <input
+                                        type="text" className="form-control"
+                                        value={settings.hero_highlight || ''}
+                                        onChange={e => handleSettingChange('hero_highlight', e.target.value)}
+                                        placeholder="Gunakan Warna Gradient"
+                                    />
+                                </div>
                             </div>
-                        )}
+
+                            <div className="form-group mb-4">
+                                <label className="cms-label">
+                                    <AlignLeft size={14} className="mr-1 text-slate" /> Judul Utama
+                                </label>
+                                <textarea
+                                    className="form-control" rows={3}
+                                    value={settings.hero_title || ''}
+                                    onChange={e => handleSettingChange('hero_title', e.target.value)}
+                                    placeholder="Gunakan Baris Baru Untuk Pemisah Visual"
+                                />
+                                <small className="text-muted mt-1 d-block">💡 Tips: Gunakan 'Enter' untuk membagi judul menjadi beberapa baris.</small>
+                            </div>
+
+                            <div className="form-group mb-4">
+                                <label className="cms-label">
+                                    <AlignLeft size={14} className="mr-1 text-slate" /> Subtitle Hero
+                                </label>
+                                <textarea
+                                    className="form-control" rows={2}
+                                    value={settings.hero_subtitle || ''}
+                                    onChange={e => handleSettingChange('hero_subtitle', e.target.value)}
+                                    placeholder="Deskripsi singkat pendukung judul utama..."
+                                />
+                            </div>
+
+                            <div className="form-group mb-4">
+                                <label className="cms-label">
+                                    <PlayCircle size={14} className="mr-1 text-danger" /> YouTube Video Embed
+                                </label>
+                                <input
+                                    type="url" className="form-control"
+                                    value={settings.hero_video_url || ''}
+                                    onChange={e => handleSettingChange('hero_video_url', e.target.value)}
+                                    placeholder="https://www.youtube.com/embed/XXXXXX"
+                                />
+                            </div>
+
+                            <div className="cms-editor-footer mt-5">
+                                <button
+                                    className="btn btn-primary btn-lg w-full"
+                                    onClick={() => saveSettings(heroKeys)}
+                                    disabled={savingSettings}
+                                >
+                                    <Save size={18} className="mr-2" />
+                                    {savingSettings ? 'Sedang Menyimpan...' : 'Simpan Semua Perubahan Hero'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => saveSettings(heroKeys)}
-                        disabled={savingSettings}
-                    >
-                        <Save size={16} /> {savingSettings ? 'Menyimpan...' : 'Simpan Hero Section'}
-                    </button>
+                    {/* Right Side: Live Preview */}
+                    <div className="cms-hero-preview">
+                        <div className="cms-preview-sticky">
+                            <h4 className="cms-preview-label">Live Preview</h4>
+                            <div className="cms-hero-live-card">
+                                <div className="cms-preview-badge">
+                                    {settings.hero_badge_text || "BADGE TEKS"}
+                                </div>
+                                <h1 className="cms-preview-title">
+                                    {settings.hero_title ? settings.hero_title.split('\n').map((line, i) => (
+                                        <div key={i}>
+                                            {line} {i === 1 && <span className="text-gradient">{settings.hero_highlight}</span>}
+                                        </div>
+                                    )) : "Judul Utama Hero"}
+                                </h1>
+                                <p className="cms-preview-subtitle">
+                                    {settings.hero_subtitle || "Teks subtitle hero Anda akan tampil di sini..."}
+                                </p>
+
+                                {settings.hero_video_url ? (
+                                    <div className="cms-preview-video-container">
+                                        <iframe
+                                            width="100%" height="100%"
+                                            src={settings.hero_video_url}
+                                            title="YouTube video player" frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        ></iframe>
+                                    </div>
+                                ) : (
+                                    <div className="cms-preview-video-placeholder">
+                                        <PlayCircle size={32} className="mb-2" />
+                                        <span>Video Preview Belum Tersedia</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         )
