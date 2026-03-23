@@ -45,7 +45,6 @@ const drawerSections = [
             { to: '/admin/cms/pages', icon: FileText, text: 'Halaman Statis' },
             { to: '/admin/cms/ppdb', icon: ClipboardList, text: 'Pendaftaran PPDB' },
             { to: '/admin/cms/ppdb-content', icon: ClipboardList, text: 'Konten PPDB' },
-            { to: '/admin/cms/settings', icon: Settings, text: 'Pengaturan Portal' },
             { to: '/admin/cms/contacts', icon: Users, text: 'Pesan Kontak' },
         ]
     }

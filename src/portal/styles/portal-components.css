@@ -1696,3 +1696,254 @@
         transform: translateY(-20px);
     }
 }
+
+/* ==================== ADVANCED UX FEATURES ==================== */
+
+/* --- Infinite Marquee Partners --- */
+.portal-marquee-section {
+    position: relative;
+    border-top: 1px solid var(--portal-border);
+    border-bottom: 1px solid var(--portal-border);
+}
+
+.portal-marquee-wrapper {
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    /* Gradient masks for smooth fade-in/out at edges */
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.portal-marquee-track {
+    display: flex;
+    white-space: nowrap;
+    animation: scroll-marquee 25s linear infinite;
+    gap: 40px;
+    /* Space between logos */
+    padding-left: 40px;
+    /* Initial offset to prevent jump */
+}
+
+/* Pause animation on hover */
+.portal-marquee-wrapper:hover .portal-marquee-track {
+    animation-play-state: paused;
+}
+
+@keyframes scroll-marquee {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        /* Move left by exactly half the track width (one full set of logos) */
+        transform: translateX(-50%);
+    }
+}
+
+/* --- Banner Progress Bar --- */
+.portal-banner-progress-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    gap: 4px;
+    padding: 10px 20px;
+    z-index: 10;
+}
+
+.portal-banner-progress-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.portal-banner-progress-fill {
+    height: 100%;
+    background: #fff;
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+/* --- Tabbed Programs --- */
+.portal-program-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.portal-tab-btn {
+    padding: 12px 24px;
+    background: #fff;
+    border: 1px solid var(--portal-border);
+    border-radius: var(--portal-radius-full);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--portal-text-secondary);
+    cursor: pointer;
+    transition: var(--portal-transition);
+}
+
+.portal-tab-btn:hover {
+    border-color: var(--portal-primary);
+    color: var(--portal-primary);
+}
+
+.portal-tab-btn.active {
+    background: var(--portal-primary);
+    color: #fff;
+    border-color: var(--portal-primary);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.portal-program-tab-content {
+    display: none;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.portal-program-tab-content.active {
+    display: block;
+}
+
+.portal-program-tab-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    background: #fff;
+    border-radius: var(--portal-radius-2xl);
+    padding: 30px;
+    box-shadow: var(--portal-shadow-lg);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+@media (min-width: 992px) {
+    .portal-program-tab-grid {
+        grid-template-columns: 1fr 1fr;
+        padding: 50px;
+        align-items: center;
+    }
+}
+
+.portal-program-icon-large {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: inline-block;
+    padding: 20px;
+    background: var(--portal-gradient-soft);
+    border-radius: 24px;
+}
+
+.portal-program-tab-info h3 {
+    font-size: 2rem;
+    margin-bottom: 16px;
+    color: var(--portal-text);
+}
+
+.portal-program-tab-info p {
+    color: var(--portal-text-secondary);
+    line-height: 1.7;
+    margin-bottom: 24px;
+    font-size: 1.05rem;
+}
+
+.portal-program-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 30px 0;
+}
+
+.portal-program-features li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: var(--portal-text);
+    font-weight: 500;
+}
+
+.portal-program-features li svg {
+    color: #10B981;
+    /* Success green */
+}
+
+.portal-program-tab-image {
+    position: relative;
+    border-radius: var(--portal-radius-xl);
+    overflow: hidden;
+    box-shadow: var(--portal-shadow-lg);
+}
+
+.portal-program-tab-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    aspect-ratio: 4/3;
+}
+
+/* --- Smart Sticky Action Bar (Mobile Only) */
+.portal-mobile-sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--portal-border);
+    padding: 12px 20px;
+    z-index: 1000;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 768px) {
+    .portal-mobile-sticky-bar {
+        display: none;
+        /* Only show on mobile */
+    }
+}
+
+.portal-mobile-sticky-bar.visible {
+    transform: translateY(0);
+}
+
+.portal-sticky-bar-content {
+    display: flex;
+    gap: 12px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.portal-sticky-btn {
+    flex: 1;
+    text-align: center;
+    padding: 14px;
+    border-radius: var(--portal-radius-lg);
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: var(--portal-transition);
+}
+
+.portal-sticky-btn.primary {
+    background: var(--portal-primary);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.portal-sticky-btn.secondary {
+    background: #25D366;
+    /* WhatsApp Green */
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+}
+
+.portal-sticky-btn:active {
+    transform: scale(0.98);
+}

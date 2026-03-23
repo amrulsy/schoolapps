@@ -170,7 +170,11 @@ router.get('/programs', cacheMiddleware(1), async (req, res) => {
         // Parse JSON for lists
         const parsed = rows.map(r => ({
             ...r,
-            features_json: r.features_json ? (typeof r.features_json === 'string' ? JSON.parse(r.features_json) : r.features_json) : []
+            features_json: r.features_json ? (typeof r.features_json === 'string' ? JSON.parse(r.features_json) : r.features_json) : [],
+            milestones_json: r.milestones_json ? (typeof r.milestones_json === 'string' ? JSON.parse(r.milestones_json) : r.milestones_json) : [],
+            showcase_json: r.showcase_json ? (typeof r.showcase_json === 'string' ? JSON.parse(r.showcase_json) : r.showcase_json) : [],
+            alumni_json: r.alumni_json ? (typeof r.alumni_json === 'string' ? JSON.parse(r.alumni_json) : r.alumni_json) : [],
+            stats_json: r.stats_json ? (typeof r.stats_json === 'string' ? JSON.parse(r.stats_json) : r.stats_json) : {}
         }));
         res.json(parsed);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -188,6 +192,10 @@ router.get('/programs/:slug', cacheMiddleware(300), async (req, res) => {
         const p = rows[0];
         // Parse JSON
         p.features_json = p.features_json ? (typeof p.features_json === 'string' ? JSON.parse(p.features_json) : p.features_json) : [];
+        p.milestones_json = p.milestones_json ? (typeof p.milestones_json === 'string' ? JSON.parse(p.milestones_json) : p.milestones_json) : [];
+        p.showcase_json = p.showcase_json ? (typeof p.showcase_json === 'string' ? JSON.parse(p.showcase_json) : p.showcase_json) : [];
+        p.alumni_json = p.alumni_json ? (typeof p.alumni_json === 'string' ? JSON.parse(p.alumni_json) : p.alumni_json) : [];
+        p.stats_json = p.stats_json ? (typeof p.stats_json === 'string' ? JSON.parse(p.stats_json) : p.stats_json) : {};
 
         res.json(p);
     } catch (err) { res.status(500).json({ error: err.message }); }

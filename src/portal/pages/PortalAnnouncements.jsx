@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
+import { getDirectDriveUrl } from '../../utils/urlHelper'
 
 export default function PortalAnnouncements() {
     const { fetchPublic } = usePortal()
@@ -87,7 +88,7 @@ export default function PortalAnnouncements() {
                                     <Link key={post.id} to={`/pengumuman/${post.slug}`} style={{ textDecoration: 'none' }}>
                                         <div className="portal-card">
                                             {post.cover_image ? (
-                                                <img src={post.cover_image} alt={post.title} className="portal-card-image" loading="lazy" />
+                                                <img src={getDirectDriveUrl(post.cover_image)} alt={post.title} className="portal-card-image" loading="lazy" />
                                             ) : (
                                                 <div className="portal-card-image" style={{
                                                     background: 'var(--portal-gradient-soft)',

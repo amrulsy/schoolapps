@@ -1,18 +1,53 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../../../context/AppContext'
-import { Save, Plus, Edit2, Trash2, Eye, Layout, Monitor, Handshake, GraduationCap, Megaphone, RefreshCw } from 'lucide-react'
+import { Save, Plus, Edit2, Trash2, Eye, Layout, Monitor, Handshake, GraduationCap, Megaphone, RefreshCw, Image as ImageIcon, FileText, Building2, Globe, Mail } from 'lucide-react'
 import { useCustomAlert } from '../../../hooks/useCustomAlert'
+import { getDirectDriveUrl } from '../../../utils/urlHelper'
+import MediaUploadField from '../../../components/MediaUploadField'
 
 import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../../../services/api'
+import CmsBannersPage from './CmsBannersPage'
+import CmsPostsPage from './CmsPostsPage'
 
 const TABS = [
     { key: 'hero', label: 'Hero Section', icon: Monitor },
+    { key: 'banners', label: 'Banners', icon: ImageIcon },
+    { key: 'posts', label: 'Pengumuman / Berita', icon: FileText },
     { key: 'programs', label: 'Program Keahlian', icon: GraduationCap },
     { key: 'partners', label: 'Mitra / Partner', icon: Handshake },
+    { key: 'school-network', label: 'Network Sekolah', icon: Building2 },
     { key: 'cta', label: 'CTA Section', icon: Megaphone },
+    { key: 'site', label: 'Informasi Situs', icon: Globe },
+    { key: 'contact', label: 'Kontak & Sosial', icon: Mail },
 ]
 
 export default function CmsHomePage() {
+    const tabBtnStyle = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '10px 20px',
+        border: 'none',
+        background: 'none',
+        color: '#64748b',
+        fontWeight: 600,
+        cursor: 'pointer',
+        borderBottom: '2px solid transparent',
+        transition: 'all 0.2s'
+    }
+
+    const tabBtnActiveStyle = {
+        color: 'var(--primary-600)',
+        borderBottom: '2px solid var(--primary-600)',
+        background: 'var(--primary-50)'
+    }
+
+    const badgeStyle = {
+        padding: '4px 10px',
+        borderRadius: '100px',
+        fontSize: '0.75rem',
+        fontWeight: 700
+    }
     const { addToast } = useApp()
     const { confirmDelete } = useCustomAlert()
     const [activeTab, setActiveTab] = useState('hero')
@@ -35,6 +70,11 @@ export default function CmsHomePage() {
             { id: 3, title: '', description: '', icon: '' },
             { id: 4, title: '', description: '', icon: '' }
         ],
+        milestones_json: [],
+        showcase_json: [],
+        alumni_json: [],
+        careers_json: [],
+        stats_json: { labor_absorption: '', partners_count: '' },
         full_content: '', sort_order: 0
     })
     const [savingProgram, setSavingProgram] = useState(false)
@@ -45,6 +85,12 @@ export default function CmsHomePage() {
     const [editPartner, setEditPartner] = useState(null)
     const [partnerForm, setPartnerForm] = useState({ name: '', logo_url: '', website_url: '', sort_order: 0 })
     const [savingPartner, setSavingPartner] = useState(false)
+
+    // School Network state
+    const [showSchoolModal, setShowSchoolModal] = useState(false)
+    const [editSchool, setEditSchool] = useState(null)
+    const [schoolForm, setSchoolForm] = useState({ name: '', short: '', logo_url: '' })
+    const [savingSchool, setSavingSchool] = useState(false)
 
     useEffect(() => { loadAll() }, [])
 
@@ -115,10 +161,23 @@ export default function CmsHomePage() {
             // Ensure 4 items
             while (features.length < 4) features.push({ id: features.length + 1, title: '', description: '', icon: '' });
 
+            const parseJson = (val, def = []) => {
+                if (!val) return def;
+                if (typeof val === 'string') {
+                    try { return JSON.parse(val) } catch { return def }
+                }
+                return val;
+            };
+
             setProgramForm({
                 icon: p.icon, title: p.title, slug: p.slug || '', tagline: p.tagline || '',
                 description: p.description || '', banner_image: p.banner_image || '',
                 color_theme: p.color_theme || '#4f46e5', features_json: features,
+                milestones_json: parseJson(p.milestones_json, []),
+                showcase_json: parseJson(p.showcase_json, []),
+                alumni_json: parseJson(p.alumni_json, []),
+                careers_json: parseJson(p.careers_json, []),
+                stats_json: parseJson(p.stats_json, { labor_absorption: '', partners_count: '' }),
                 full_content: p.full_content || '', sort_order: p.sort_order, is_active: p.is_active
             })
         } else {
@@ -131,6 +190,11 @@ export default function CmsHomePage() {
                     { id: 3, title: '', description: '', icon: '' },
                     { id: 4, title: '', description: '', icon: '' }
                 ],
+                milestones_json: [],
+                showcase_json: [],
+                alumni_json: [],
+                careers_json: [],
+                stats_json: { labor_absorption: '', partners_count: '' },
                 full_content: '', sort_order: programs.length, is_active: 1
             })
         }
@@ -210,6 +274,67 @@ export default function CmsHomePage() {
         }
     }
 
+    // ==================== SCHOOL NETWORK ====================
+    const getSchoolList = () => {
+        const json = settings.school_network_json
+        if (!json) return []
+        try { return JSON.parse(json) } catch { return [] }
+    }
+
+    const openSchoolModal = (s = null) => {
+        setEditSchool(s)
+        setSchoolForm(s ? { ...s } : { name: '', short: '', logo_url: '' })
+        setShowSchoolModal(true)
+    }
+
+    const saveSchool = async (e) => {
+        e.preventDefault()
+        setSavingSchool(true)
+        try {
+            const list = getSchoolList()
+            let newList
+            if (editSchool) {
+                newList = list.map(item => item.id === editSchool.id ? { ...schoolForm } : item)
+            } else {
+                const newId = list.length > 0 ? Math.max(...list.map(i => i.id)) + 1 : 1
+                newList = [...list, { id: newId, ...schoolForm }]
+            }
+
+            const res = await fetch(`${API_BASE}/settings`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    updates: [{ setting_key: 'school_network_json', setting_value: JSON.stringify(newList) }]
+                })
+            })
+
+            if (res.ok) {
+                addToast('success', 'Berhasil', `Data sekolah ${editSchool ? 'diperbarui' : 'ditambahkan'}`)
+                setShowSchoolModal(false)
+                loadSettings()
+            } else {
+                addToast('danger', 'Gagal', 'Gagal menyimpan data')
+            }
+        } catch { addToast('danger', 'Error', 'Terjadi kesalahan') }
+        finally { setSavingSchool(false) }
+    }
+
+    const deleteSchool = async (s) => {
+        if (await confirmDelete(`Hapus data "${s.name}"?`)) {
+            try {
+                const list = getSchoolList().filter(item => item.id !== s.id)
+                const res = await fetch(`${API_BASE}/settings`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        updates: [{ setting_key: 'school_network_json', setting_value: JSON.stringify(list) }]
+                    })
+                })
+                if (res.ok) { addToast('success', 'Berhasil', 'Data dihapus'); loadSettings() }
+            } catch { addToast('danger', 'Error', 'Gagal menghapus') }
+        }
+    }
+
     // ==================== RENDER ====================
     if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Memuat data...</div>
 
@@ -251,14 +376,20 @@ export default function CmsHomePage() {
             {/* Tab Content */}
             <div style={{ minHeight: 400 }}>
                 {activeTab === 'hero' && renderHeroTab()}
+                {activeTab === 'banners' && <CmsBannersPage hideHeader={true} />}
+                {activeTab === 'posts' && <CmsPostsPage hideHeader={true} />}
                 {activeTab === 'programs' && renderProgramsTab()}
                 {activeTab === 'partners' && renderPartnersTab()}
+                {activeTab === 'school-network' && renderSchoolNetworkTab()}
                 {activeTab === 'cta' && renderCtaTab()}
+                {activeTab === 'site' && renderSiteTab()}
+                {activeTab === 'contact' && renderContactTab()}
             </div>
 
             {/* Modals */}
             {showProgramModal && renderProgramModal()}
             {showPartnerModal && renderPartnerModal()}
+            {showSchoolModal && renderSchoolModal()}
         </div>
     )
 
@@ -450,7 +581,7 @@ export default function CmsHomePage() {
                                         <td className="text-center">{i + 1}</td>
                                         <td>
                                             <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', borderRadius: 6, padding: 6 }}>
-                                                <img src={p.logo_url} alt={p.name} style={{ maxWidth: '100%', maxHeight: '100%', filter: 'brightness(0) saturate(100%)' }} />
+                                                <img src={getDirectDriveUrl(p.logo_url)} alt={p.name} style={{ maxWidth: '100%', maxHeight: '100%', filter: 'brightness(0) saturate(100%)' }} />
                                             </div>
                                         </td>
                                         <td><strong>{p.name}</strong></td>
@@ -483,59 +614,197 @@ export default function CmsHomePage() {
         )
     }
 
-    function renderCtaTab() {
-        const ctaKeys = ['cta_title', 'cta_subtitle', 'cta_button_text']
+    function renderSchoolNetworkTab() {
+        const schools = getSchoolList()
         return (
             <div className="cms-section-card">
-                <h3 className="cms-section-title">📣 Call-to-Action Section</h3>
-                <p className="cms-section-desc">
-                    Section ajakan di bagian bawah halaman portal sebelum footer.
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div>
+                        <h3 className="cms-section-title" style={{ marginBottom: 4 }}>🏫 Network Sekolah Affiliasi</h3>
+                        <p className="cms-section-desc">Daftar sekolah yang tampil pada kartu melayang di beranda portal.</p>
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={() => openSchoolModal()}>
+                        <Plus size={14} /> Tambah Sekolah
+                    </button>
+                </div>
+
+                {schools.length === 0 ? (
+                    <div className="cms-empty-state">Belum ada data sekolah. Klik tombol &quot;Tambah Sekolah&quot; untuk menambahkan.</div>
+                ) : (
+                    <div className="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: 50 }}>No</th>
+                                    <th style={{ width: 60 }}>Logo</th>
+                                    <th>Nama Sekolah</th>
+                                    <th>Singkatan</th>
+                                    <th style={{ width: 100 }}>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {schools.map((s, i) => (
+                                    <tr key={s.id}>
+                                        <td className="text-center">{i + 1}</td>
+                                        <td>
+                                            <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', borderRadius: 8, overflow: 'hidden' }}>
+                                                {s.logo_url ? (
+                                                    <img src={getDirectDriveUrl(s.logo_url)} alt={s.name} style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                                                ) : <div style={{ fontSize: '0.6rem', fontWeight: 800 }}>{s.short}</div>}
+                                            </div>
+                                        </td>
+                                        <td><strong>{s.name}</strong></td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-600)' }}>
+                                                    {s.short}
+                                                </div>
+                                                <span>{s.short}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className="action-group">
+                                                <button className="btn-icon btn-edit" onClick={() => openSchoolModal(s)} title="Edit"><Edit2 size={16} /></button>
+                                                <button className="btn-icon btn-delete danger" onClick={() => deleteSchool(s)} title="Hapus"><Trash2 size={16} /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    function renderSiteTab() {
+        const siteKeys = ['site_title', 'site_description', 'school_name', 'school_tagline', 'footer_description']
+        return (
+            <div className="cms-section-card">
+                <h3 className="cms-section-title">🌐 Informasi Situs & SEO</h3>
+                <p className="cms-section-desc">Konfigurasi judul situs, deskripsi SEO, dan identitas sekolah.</p>
 
                 <div className="form-group mb-4">
-                    <label>Judul CTA</label>
+                    <label>Judul Situs (SEO Title)</label>
                     <input type="text" className="form-control"
-                        value={settings.cta_title || ''}
-                        onChange={e => handleSettingChange('cta_title', e.target.value)}
-                        placeholder="Siap Bergabung Bersama Kami?"
+                        value={settings.site_title || ''}
+                        onChange={e => handleSettingChange('site_title', e.target.value)}
+                        placeholder="Contoh: SIAS SMK PPRQ - Portal Informasi Sekolah"
                     />
                 </div>
 
                 <div className="form-group mb-4">
-                    <label>Subtitle CTA</label>
+                    <label>Deskripsi Situs (SEO Meta Description)</label>
                     <textarea className="form-control" rows={3}
-                        value={settings.cta_subtitle || ''}
-                        onChange={e => handleSettingChange('cta_subtitle', e.target.value)}
+                        value={settings.site_description || ''}
+                        onChange={e => handleSettingChange('site_description', e.target.value)}
+                        placeholder="Deskripsi singkat mengenai sekolah untuk mesin pencari..."
                     />
                 </div>
 
-                <div className="form-group mb-4">
-                    <label>Teks Tombol CTA</label>
-                    <input type="text" className="form-control"
-                        value={settings.cta_button_text || ''}
-                        onChange={e => handleSettingChange('cta_button_text', e.target.value)}
-                        placeholder="✨ Daftar PPDB Sekarang"
-                    />
-                </div>
-
-                {/* Live Preview */}
-                <div style={{ marginBottom: 20 }}>
-                    <label style={{ fontWeight: 600, marginBottom: 8, display: 'block' }}>Preview:</label>
-                    <div className="cms-cta-preview">
-                        <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', marginBottom: 8 }}>
-                            {settings.cta_title || 'Judul CTA'}
-                        </h3>
-                        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem', marginBottom: 12 }}>
-                            {settings.cta_subtitle || 'Subtitle CTA'}
-                        </p>
-                        <span className="cms-cta-preview-btn">
-                            {settings.cta_button_text || '✨ Tombol CTA'}
-                        </span>
+                <div className="grid-2 gap-4 mb-4">
+                    <div className="form-group">
+                        <label>Nama Sekolah</label>
+                        <input type="text" className="form-control"
+                            value={settings.school_name || ''}
+                            onChange={e => handleSettingChange('school_name', e.target.value)}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Tagline Sekolah</label>
+                        <input type="text" className="form-control"
+                            value={settings.school_tagline || ''}
+                            onChange={e => handleSettingChange('school_tagline', e.target.value)}
+                        />
                     </div>
                 </div>
 
-                <button className="btn btn-primary" onClick={() => saveSettings(ctaKeys)} disabled={savingSettings}>
-                    <Save size={16} /> {savingSettings ? 'Menyimpan...' : 'Simpan CTA Section'}
+                <div className="form-group mb-4">
+                    <label>Deskripsi Footer</label>
+                    <textarea className="form-control" rows={3}
+                        value={settings.footer_description || ''}
+                        onChange={e => handleSettingChange('footer_description', e.target.value)}
+                    />
+                </div>
+
+                <button className="btn btn-primary" onClick={() => saveSettings(siteKeys)} disabled={savingSettings}>
+                    <Save size={16} /> {savingSettings ? 'Menyimpan...' : 'Simpan Informasi Situs'}
+                </button>
+            </div>
+        )
+    }
+
+    function renderContactTab() {
+        const contactKeys = ['contact_email', 'contact_phone', 'contact_address', 'wa_number', 'social_facebook', 'social_instagram', 'social_youtube']
+        return (
+            <div className="cms-section-card">
+                <h3 className="cms-section-title">📞 Kontak & Media Sosial</h3>
+                <p className="cms-section-desc">Informasi kontak sekolah dan link akun media sosial resmi.</p>
+
+                <div className="grid-2 gap-4 mb-4">
+                    <div className="form-group">
+                        <label>Email Kontak</label>
+                        <input type="email" className="form-control"
+                            value={settings.contact_email || ''}
+                            onChange={e => handleSettingChange('contact_email', e.target.value)}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Telepon / WhatsApp</label>
+                        <input type="text" className="form-control"
+                            value={settings.contact_phone || ''}
+                            onChange={e => handleSettingChange('contact_phone', e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="form-group mb-4">
+                    <label>No. WhatsApp (Hanya angka, misal: 628123456789)</label>
+                    <input type="text" className="form-control"
+                        value={settings.wa_number || ''}
+                        onChange={e => handleSettingChange('wa_number', e.target.value)}
+                    />
+                </div>
+
+                <div className="form-group mb-4">
+                    <label>Alamat Lengkap</label>
+                    <textarea className="form-control" rows={2}
+                        value={settings.contact_address || ''}
+                        onChange={e => handleSettingChange('contact_address', e.target.value)}
+                    />
+                </div>
+
+                <div className="divider mb-4" style={{ height: 1, background: '#e2e8f0' }} />
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 12, color: '#475569' }}>LINK MEDIA SOSIAL</h4>
+
+                <div className="form-group mb-4">
+                    <label>Facebook URL</label>
+                    <input type="url" className="form-control"
+                        value={settings.social_facebook || ''}
+                        onChange={e => handleSettingChange('social_facebook', e.target.value)}
+                        placeholder="https://facebook.com/..."
+                    />
+                </div>
+                <div className="form-group mb-4">
+                    <label>Instagram URL</label>
+                    <input type="url" className="form-control"
+                        value={settings.social_instagram || ''}
+                        onChange={e => handleSettingChange('social_instagram', e.target.value)}
+                        placeholder="https://instagram.com/..."
+                    />
+                </div>
+                <div className="form-group mb-4">
+                    <label>YouTube Channel URL</label>
+                    <input type="url" className="form-control"
+                        value={settings.social_youtube || ''}
+                        onChange={e => handleSettingChange('social_youtube', e.target.value)}
+                        placeholder="https://youtube.com/c/..."
+                    />
+                </div>
+
+                <button className="btn btn-primary" onClick={() => saveSettings(contactKeys)} disabled={savingSettings}>
+                    <Save size={16} /> {savingSettings ? 'Menyimpan...' : 'Simpan Kontak & Sosial'}
                 </button>
             </div>
         )
@@ -548,6 +817,22 @@ export default function CmsHomePage() {
             const newFeatures = [...programForm.features_json]
             newFeatures[index] = { ...newFeatures[index], [field]: value }
             setProgramForm({ ...programForm, features_json: newFeatures })
+        }
+
+        const addListItem = (key, defaultValue) => {
+            const newList = [...programForm[key], defaultValue]
+            setProgramForm({ ...programForm, [key]: newList })
+        }
+
+        const updateListItem = (key, index, field, value) => {
+            const newList = [...programForm[key]]
+            newList[index] = { ...newList[index], [field]: value }
+            setProgramForm({ ...programForm, [key]: newList })
+        }
+
+        const removeListItem = (key, index) => {
+            const newList = programForm[key].filter((_, i) => i !== index)
+            setProgramForm({ ...programForm, [key]: newList })
         }
 
         return (
@@ -619,12 +904,28 @@ export default function CmsHomePage() {
                                 />
                             </div>
 
-                            <div className="form-group mb-4">
-                                <label>URL Banner Image <span className="cms-hint">(karakter 3D / ilustrasi)</span></label>
-                                <input type="text" className="form-control" value={programForm.banner_image}
-                                    onChange={e => setProgramForm({ ...programForm, banner_image: e.target.value })}
-                                    placeholder="https://..."
-                                />
+                            <MediaUploadField
+                                label="Gambar Banner (3D / Ilustrasi)"
+                                value={programForm.banner_image || ''}
+                                onChange={(url) => setProgramForm({ ...programForm, banner_image: url })}
+                                helperText="Gunakan gambar PNG/WebP transparan untuk hasil terbaik."
+                            />
+
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label>Persentase Kerja <span className="cms-hint">(misal: 90%)</span></label>
+                                    <input type="text" className="form-control" value={programForm.stats_json?.labor_absorption || ''}
+                                        onChange={e => setProgramForm({ ...programForm, stats_json: { ...programForm.stats_json, labor_absorption: e.target.value } })}
+                                        placeholder="90%"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Jumlah Mitra <span className="cms-hint">(misal: 50+)</span></label>
+                                    <input type="text" className="form-control" value={programForm.stats_json?.partners_count || ''}
+                                        onChange={e => setProgramForm({ ...programForm, stats_json: { ...programForm.stats_json, partners_count: e.target.value } })}
+                                        placeholder="50+"
+                                    />
+                                </div>
                             </div>
 
                             <hr style={{ margin: '24px 0', borderColor: '#e2e8f0' }} />
@@ -647,6 +948,201 @@ export default function CmsHomePage() {
                                             <label style={{ fontSize: '0.75rem' }}>Icon/Emoji</label>
                                             <input type="text" className="form-control form-control-sm" value={feat.icon}
                                                 onChange={e => updateFeature(idx, 'icon', e.target.value)} placeholder="🚀" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* MILESTONES / ROADMAP */}
+                            <hr style={{ margin: '24px 0', borderColor: '#e2e8f0' }} />
+                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                <h4 style={{ margin: 0 }}>📍 Kurikulum Roadmap (Milestones)</h4>
+                                <button type="button" className="btn btn-sm btn-outline-primary"
+                                    onClick={() => addListItem('milestones_json', { grade: 'Kelas X', title: '', skills: [], icon: 'book', color: '#4f46e5' })}>
+                                    <Plus size={14} /> Tambah Milestone
+                                </button>
+                            </div>
+                            <div className="grid-1 gap-4 mb-4">
+                                {programForm.milestones_json.map((m, idx) => (
+                                    <div key={idx} style={{ padding: 16, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', position: 'relative' }}>
+                                        <button type="button" className="btn-icon" style={{ position: 'absolute', top: 10, right: 10, color: 'red' }}
+                                            onClick={() => removeListItem('milestones_json', idx)}><Trash2 size={16} /></button>
+                                        <div className="grid-3 gap-3 mb-3">
+                                            <div className="form-group">
+                                                <label style={{ fontSize: '0.75rem' }}>Tingkat (Grade)</label>
+                                                <input type="text" className="form-control form-control-sm" value={m.grade}
+                                                    onChange={e => updateListItem('milestones_json', idx, 'grade', e.target.value)} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label style={{ fontSize: '0.75rem' }}>Judul Milestone</label>
+                                                <input type="text" className="form-control form-control-sm" value={m.title}
+                                                    onChange={e => updateListItem('milestones_json', idx, 'title', e.target.value)} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label style={{ fontSize: '0.75rem' }}>Warna & Icon</label>
+                                                <div className="d-flex gap-2">
+                                                    <input type="color" className="form-control form-control-sm" style={{ width: 40, padding: 0 }} value={m.color}
+                                                        onChange={e => updateListItem('milestones_json', idx, 'color', e.target.value)} />
+                                                    <input type="text" className="form-control form-control-sm" value={m.icon}
+                                                        onChange={e => updateListItem('milestones_json', idx, 'icon', e.target.value)} placeholder="book" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="form-group">
+                                            <label style={{ fontSize: '0.75rem' }}>Skills (pisahkan dengan koma)</label>
+                                            <input type="text" className="form-control form-control-sm"
+                                                value={Array.isArray(m.skills) ? m.skills.join(', ') : m.skills || ''}
+                                                onChange={e => updateListItem('milestones_json', idx, 'skills', e.target.value.split(',').map(s => s.trim()))}
+                                                placeholder="Skill 1, Skill 2, Skill 3" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* SHOWCASE */}
+                            <hr style={{ margin: '24px 0', borderColor: '#e2e8f0' }} />
+                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                <h4 style={{ margin: 0 }}>🎨 Student Showcase (Karya Siswa)</h4>
+                                <button type="button" className="btn btn-sm btn-outline-primary"
+                                    onClick={() => addListItem('showcase_json', { type: 'image', url: '', title: '', author: '', size: 'standard' })}>
+                                    <Plus size={14} /> Tambah Karya
+                                </button>
+                            </div>
+                            <div className="grid-2 gap-4 mb-4">
+                                {programForm.showcase_json.map((s, idx) => (
+                                    <div key={idx} style={{ padding: 16, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', position: 'relative' }}>
+                                        <button type="button" className="btn-icon" style={{ position: 'absolute', top: 10, right: 10, color: 'red' }}
+                                            onClick={() => removeListItem('showcase_json', idx)}><Trash2 size={16} /></button>
+                                        <MediaUploadField
+                                            label="Upload Bukti/Gambar"
+                                            value={s.thumbnail}
+                                            onChange={(url) => updateListItem('showcase_json', idx, 'thumbnail', url)}
+                                            compact={true}
+                                            previewStyle={{ height: '120px' }}
+                                        />
+                                        <div className="grid-2 gap-2 mb-2">
+                                            <div className="form-group">
+                                                <label style={{ fontSize: '0.75rem' }}>Judul Karya</label>
+                                                <input type="text" className="form-control form-control-sm" value={s.title}
+                                                    onChange={e => updateListItem('showcase_json', idx, 'title', e.target.value)} />
+                                            </div>
+                                            <div className="form-group">
+                                                <label style={{ fontSize: '0.75rem' }}>Penulis/Siswa</label>
+                                                <input type="text" className="form-control form-control-sm" value={s.author}
+                                                    onChange={e => updateListItem('showcase_json', idx, 'author', e.target.value)} />
+                                            </div>
+                                        </div>
+                                        <div className="grid-2 gap-2">
+                                            <div className="form-group">
+                                                <label style={{ fontSize: '0.75rem' }}>Tipe</label>
+                                                <select className="form-control form-control-sm" value={s.type}
+                                                    onChange={e => updateListItem('showcase_json', idx, 'type', e.target.value)}>
+                                                    <option value="image">Image</option>
+                                                    <option value="video">Video</option>
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label style={{ fontSize: '0.75rem' }}>Ukuran Bento</label>
+                                                <select className="form-control form-control-sm" value={s.size}
+                                                    onChange={e => updateListItem('showcase_json', idx, 'size', e.target.value)}>
+                                                    <option value="standard">Standard</option>
+                                                    <option value="large">Large (2x2)</option>
+                                                    <option value="tall">Tall (1x2)</option>
+                                                    <option value="wide">Wide (2x1)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* CAREERS */}
+                            <hr style={{ margin: '24px 0', borderColor: '#e2e8f0' }} />
+                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                <h4 style={{ margin: 0 }}>💼 Prospek Karir (Lulusan Mau Jadi Apa?)</h4>
+                                <button type="button" className="btn btn-sm btn-outline-primary"
+                                    onClick={() => addListItem('careers_json', { title: '', description: '' })}>
+                                    <Plus size={14} /> Tambah Karir
+                                </button>
+                            </div>
+                            <div className="grid-2 gap-4 mb-4">
+                                {(programForm.careers_json || []).map((c, idx) => (
+                                    <div key={idx} style={{ padding: 16, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', position: 'relative' }}>
+                                        <button type="button" className="btn-icon" style={{ position: 'absolute', top: 10, right: 10, color: 'red' }}
+                                            onClick={() => removeListItem('careers_json', idx)}><Trash2 size={16} /></button>
+                                        <div className="form-group mb-2">
+                                            <label style={{ fontSize: '0.75rem' }}>Judul Karir / Role</label>
+                                            <input type="text" className="form-control form-control-sm" value={c.title}
+                                                onChange={e => updateListItem('careers_json', idx, 'title', e.target.value)}
+                                                placeholder="Contoh: Web Developer" />
+                                        </div>
+                                        <div className="form-group">
+                                            <label style={{ fontSize: '0.75rem' }}>Deskripsi Singkat</label>
+                                            <textarea className="form-control form-control-sm" rows={2} value={c.description}
+                                                onChange={e => updateListItem('careers_json', idx, 'description', e.target.value)}
+                                                placeholder="Contoh: Merancang dan membangun website modern." />
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!programForm.careers_json || programForm.careers_json.length === 0) && (
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'center', padding: 20, color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: 12 }}>
+                                        Belum ada data prospek karir. Klik &quot;Tambah Karir&quot;.
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ALUMNI */}
+                            <hr style={{ margin: '24px 0', borderColor: '#e2e8f0' }} />
+                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                <h4 style={{ margin: 0 }}>👨‍🎓 Alumni Success Stories</h4>
+                                <button type="button" className="btn btn-sm btn-outline-primary"
+                                    onClick={() => addListItem('alumni_json', { name: '', role: '', company: '', quote: '', image: '' })}>
+                                    <Plus size={14} /> Tambah Alumni
+                                </button>
+                            </div>
+                            <div className="grid-1 gap-3 mb-4">
+                                {programForm.alumni_json.map((a, idx) => (
+                                    <div key={idx} style={{ padding: 12, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', position: 'relative' }}>
+                                        <button type="button" className="btn-icon" style={{ position: 'absolute', top: 8, right: 8, color: 'red' }}
+                                            onClick={() => removeListItem('alumni_json', idx)}><Trash2 size={14} /></button>
+
+                                        <div style={{ display: 'flex', gap: 16 }}>
+                                            {/* Photo Column */}
+                                            <div style={{ width: 140, flexShrink: 0 }}>
+                                                <MediaUploadField
+                                                    label="Foto"
+                                                    value={a.image}
+                                                    onChange={(url) => updateListItem('alumni_json', idx, 'image', url)}
+                                                    compact={true}
+                                                />
+                                            </div>
+
+                                            {/* Info Column */}
+                                            <div style={{ flex: 1 }}>
+                                                <div className="grid-3 gap-2 mb-2">
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.7rem' }}>Nama</label>
+                                                        <input type="text" className="form-control form-control-sm" value={a.name}
+                                                            onChange={e => updateListItem('alumni_json', idx, 'name', e.target.value)} />
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.7rem' }}>Jabatan</label>
+                                                        <input type="text" className="form-control form-control-sm" value={a.role}
+                                                            onChange={e => updateListItem('alumni_json', idx, 'role', e.target.value)} />
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.7rem' }}>Perusahaan</label>
+                                                        <input type="text" className="form-control form-control-sm" value={a.company}
+                                                            onChange={e => updateListItem('alumni_json', idx, 'company', e.target.value)} />
+                                                    </div>
+                                                </div>
+                                                <div className="form-group">
+                                                    <label style={{ fontSize: '0.7rem' }}>Testimoni Singkat</label>
+                                                    <textarea className="form-control form-control-sm" rows={1} value={a.quote}
+                                                        onChange={e => updateListItem('alumni_json', idx, 'quote', e.target.value)}
+                                                        style={{ resize: 'none' }} />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -710,18 +1206,13 @@ export default function CmsHomePage() {
                                     placeholder="Nama perusahaan / lembaga"
                                 />
                             </div>
-                            <div className="form-group mb-4">
-                                <label>URL Logo <span className="text-danger">*</span></label>
-                                <input type="url" className="form-control" value={partnerForm.logo_url}
-                                    onChange={e => setPartnerForm({ ...partnerForm, logo_url: e.target.value })} required
-                                    placeholder="https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/..."
-                                />
-                                {partnerForm.logo_url && (
-                                    <div style={{ marginTop: 10, padding: 12, background: '#f8f9fa', borderRadius: 8, display: 'flex', justifyContent: 'center' }}>
-                                        <img src={partnerForm.logo_url} alt="Preview" style={{ maxHeight: 50, filter: 'brightness(0) saturate(100%)' }} />
-                                    </div>
-                                )}
-                            </div>
+                            <MediaUploadField
+                                label="Logo Partner"
+                                value={partnerForm.logo_url}
+                                onChange={(url) => setPartnerForm({ ...partnerForm, logo_url: url })}
+                                helperText="Disarankan menggunakan logo monokrom/SVG untuk tampilan terbaik."
+                                previewStyle={{ height: '120px', background: '#f8f9fa' }}
+                            />
                             <div className="form-group mb-4">
                                 <label>Website (Opsional)</label>
                                 <input type="url" className="form-control" value={partnerForm.website_url}
@@ -754,6 +1245,52 @@ export default function CmsHomePage() {
                         <button className="btn btn-secondary" onClick={() => setShowPartnerModal(false)} disabled={savingPartner}>Batal</button>
                         <button type="submit" form="partnerForm" className="btn btn-primary" disabled={savingPartner}>
                             {savingPartner ? 'Menyimpan...' : 'Simpan Partner'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    function renderSchoolModal() {
+        return (
+            <div className="modal-backdrop">
+                <div className="modal" style={{ maxWidth: 400 }}>
+                    <div className="modal-header">
+                        <h3>{editSchool ? 'Edit Data Sekolah' : 'Tambah Sekolah'}</h3>
+                        <button className="btn-icon" onClick={() => setShowSchoolModal(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                        <form id="schoolForm" onSubmit={saveSchool}>
+                            <div className="form-group mb-4">
+                                <label>Nama Sekolah <span className="text-danger">*</span></label>
+                                <input type="text" className="form-control" value={schoolForm.name}
+                                    onChange={e => setSchoolForm({ ...schoolForm, name: e.target.value })} required
+                                    placeholder="Contoh: MTS PPRQ"
+                                />
+                            </div>
+                            <div className="form-group mb-2">
+                                <label>Singkatan (Max 4 char) <span className="text-danger">*</span></label>
+                                <input type="text" className="form-control" value={schoolForm.short}
+                                    onChange={e => setSchoolForm({ ...schoolForm, short: e.target.value.toUpperCase() })}
+                                    maxLength={4} required
+                                    placeholder="MTS"
+                                />
+                                <p className="cms-hint mt-1">Teks ini akan tampil jika logo tidak ada.</p>
+                            </div>
+                            <MediaUploadField
+                                label="Logo Sekolah (PNG/SVG)"
+                                value={schoolForm.logo_url}
+                                onChange={(url) => setSchoolForm({ ...schoolForm, logo_url: url })}
+                                helperText="Gunakan logo dengan latar transparan."
+                                previewStyle={{ height: '100px', background: '#f8f9fa' }}
+                            />
+                        </form>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowSchoolModal(false)} disabled={savingSchool}>Batal</button>
+                        <button type="submit" form="schoolForm" className="btn btn-primary" disabled={savingSchool}>
+                            {savingSchool ? 'Menyimpan...' : 'Simpan Data'}
                         </button>
                     </div>
                 </div>

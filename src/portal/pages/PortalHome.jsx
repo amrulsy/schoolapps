@@ -1,30 +1,81 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { Play, X, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
+import { Play, X, ChevronLeft, ChevronRight, ArrowRight, CheckCircle } from 'lucide-react'
 import { usePortal } from '../context/PortalContext'
 import '../styles/portal-banners.css'
+import '../styles/portal-home-partners.css'
+import { getDirectDriveUrl } from '../../utils/urlHelper'
 
 export default function PortalHome() {
     const { fetchPublic } = usePortal()
+
     const [stats, setStats] = useState(null)
     const [posts, setPosts] = useState([])
     const [banners, setBanners] = useState([])
     const [programs, setPrograms] = useState([])
     const [partners, setPartners] = useState([])
+    const [activePartner, setActivePartner] = useState(0)
     const [settings, setSettings] = useState({})
     const [loading, setLoading] = useState(true)
     const [isVideoOpen, setIsVideoOpen] = useState(false)
     const [currentBanner, setCurrentBanner] = useState(0)
 
+    // --- New States for Advanced UX ---
+    const [offsetY, setOffsetY] = useState(0)
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+    const [bannerProgress, setBannerProgress] = useState(0)
+    // ----------------------------------
+
+    // --- Event Listeners for Parallax & Tilt ---
+    useEffect(() => {
+        const handleScroll = () => setOffsetY(window.scrollY)
+        const handleMouseMove = (e) => {
+            setMousePos({
+                x: (e.clientX / window.innerWidth - 0.5) * 20, // max 20deg tilt
+                y: (e.clientY / window.innerHeight - 0.5) * 20
+            })
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        window.addEventListener('mousemove', handleMouseMove, { passive: true })
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+            window.removeEventListener('mousemove', handleMouseMove)
+        }
+    }, [])
+    // -------------------------------------------
+
     useEffect(() => {
         if (banners.length > 0) {
+            setBannerProgress(0) // Reset progress on banner change
+
+            const progressTimer = setInterval(() => {
+                setBannerProgress(prev => {
+                    if (prev >= 100) return 100
+                    return prev + (100 / 60) // 60 steps per 6 seconds (100ms interval)
+                })
+            }, 100)
+
             const timer = setInterval(() => {
                 setCurrentBanner((prev) => (prev + 1) % banners.length)
             }, 6000)
-            return () => clearInterval(timer)
+
+            return () => {
+                clearInterval(timer)
+                clearInterval(progressTimer)
+            }
         }
-    }, [banners])
+    }, [banners, currentBanner])
+
+    useEffect(() => {
+        if (partners.length <= 1) return
+        const timer = setInterval(() => {
+            setActivePartner(prev => (prev + 1) % partners.length)
+        }, 4000)
+        return () => clearInterval(timer)
+    }, [partners.length])
 
     useEffect(() => {
         async function loadData() {
@@ -47,6 +98,16 @@ export default function PortalHome() {
         }
         loadData()
     }, [fetchPublic])
+
+    const scrollPartners = (direction) => {
+        const total = partners.length
+        if (total === 0) return
+        if (direction === 'left') {
+            setActivePartner(prev => (prev - 1 + total) % total)
+        } else {
+            setActivePartner(prev => (prev + 1) % total)
+        }
+    }
 
     const formatDate = (dateStr) => {
         if (!dateStr) return ''
@@ -93,13 +154,19 @@ export default function PortalHome() {
             </div>
             {/* ====== HERO SECTION ====== */}
             <section className="portal-hero">
-                <div className="portal-hero-shapes">
+                <div
+                    className="portal-hero-shapes"
+                    style={{ transform: `translateY(${offsetY * 0.5}px)` }}
+                >
                     <div className="portal-hero-shape" />
                     <div className="portal-hero-shape" />
                     <div className="portal-hero-shape" />
                 </div>
 
-                <div className="portal-hero-content hero-centered">
+                <div
+                    className="portal-hero-content hero-centered"
+                    style={{ transform: `translateY(${offsetY * -0.2}px)` }}
+                >
                     <div className="portal-hero-grid">
                         <div className="portal-hero-text-column">
                             <div className="portal-hero-badge">
@@ -129,7 +196,13 @@ export default function PortalHome() {
                         </div>
 
                         <div className="portal-hero-video-column">
-                            <div className="portal-video-frame-wrapper">
+                            <div
+                                className="portal-video-frame-wrapper"
+                                style={{
+                                    transform: `perspective(1000px) rotateX(${mousePos.y}deg) rotateY(${-mousePos.x}deg)`,
+                                    transition: 'transform 0.1s ease-out'
+                                }}
+                            >
                                 <div className="portal-video-frame">
                                     <iframe
                                         width="100%"
@@ -170,28 +243,110 @@ export default function PortalHome() {
                 </div>
             )}
 
-            {/* ====== PARTNER LOGOS SECTION ====== */}
+            {/* ====== SCHOOL NETWORK FLOATING SECTION ====== */}
+            {(() => {
+                try {
+                    const json = settings.school_network_json;
+                    if (!json) return null;
+                    const schools = JSON.parse(json);
+                    if (!schools || schools.length === 0) return null;
+
+                    return (
+                        <div className="portal-school-network">
+                            <div className="school-network-card">
+                                {schools.map(school => (
+                                    <div key={school.id} className="school-item" title={school.name}>
+                                        <div className="school-logo-circle">
+                                            {school.logo_url ? (
+                                                <img
+                                                    src={getDirectDriveUrl(school.logo_url)}
+                                                    alt={school.name}
+                                                    style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }}
+                                                />
+                                            ) : school.short}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                } catch (e) {
+                    return null;
+                }
+            })()}
+
+            {/* ====== MITRA & PARTNER SECTION ====== */}
             {partners.length > 0 && (
-                <section className="portal-section" style={{ paddingTop: 0, paddingBottom: 0, overflow: 'visible', zIndex: 30 }}>
+                <section className="portal-partners-section">
                     <div className="portal-container">
-                        <div className="portal-partner-logos-row">
-                            {partners.map(partner => (
-                                <div key={partner.id} className="portal-partner-logo-container">
-                                    {partner.website_url ? (
-                                        <a href={partner.website_url} target="_blank" rel="noreferrer" title={partner.name}>
-                                            <img src={partner.logo_url} alt={partner.name} />
-                                        </a>
-                                    ) : (
-                                        <img src={partner.logo_url} alt={partner.name} />
-                                    )}
-                                </div>
-                            ))}
+                        <div className="portal-section-header">
+                            <span className="portal-section-label">Networking</span>
+                            <h2 className="portal-section-title">Mitra & Partner Industri</h2>
+                            <p className="portal-section-subtitle">
+                                Bekerja sama dengan berbagai industri ternama untuk memastikan kurikulum yang relevan dan peluang karir yang luas bagi lulusan.
+                            </p>
+                        </div>
+
+                        <div style={{ position: 'relative', marginTop: '40px' }}>
+                            {/* Navigation */}
+                            <button onClick={() => scrollPartners('left')} className="partners-nav-btn left">
+                                <ChevronLeft size={32} />
+                            </button>
+                            <button onClick={() => scrollPartners('right')} className="partners-nav-btn right">
+                                <ChevronRight size={32} />
+                            </button>
+
+                            {/* CoverFlow Slider */}
+                            <div className="partners-coverflow-container">
+                                {partners.map((partner, i) => {
+                                    let offset = i - activePartner
+                                    const total = partners.length
+
+                                    // Wrap around logic for smooth infinite loops
+                                    if (offset < -Math.floor(total / 2)) offset += total
+                                    if (offset > Math.floor(total / 2)) offset -= total
+
+                                    const isCenter = offset === 0
+                                    const isHidden = Math.abs(offset) > 2
+
+                                    // Scale, Blur, Translates based on offset
+                                    const scale = isCenter ? 1 : isHidden ? 0.6 : 0.8
+                                    const blur = isCenter ? '0px' : isHidden ? '10px' : '4px'
+                                    const opacity = isCenter ? 1 : isHidden ? 0 : 0.5
+                                    const zIndex = isCenter ? 20 : isHidden ? 0 : 10
+                                    const translateX = isCenter ? '0%' : offset < 0 ? `${-110 + (offset + 1) * 25}%` : `${110 + (offset - 1) * 25}%`
+
+                                    return (
+                                        <div
+                                            key={partner.id}
+                                            className={`partner-card ${isCenter ? 'center' : ''}`}
+                                            style={{
+                                                position: 'absolute',
+                                                transform: `translateX(${translateX}) scale(${scale})`,
+                                                opacity: opacity,
+                                                filter: `blur(${blur})`,
+                                                zIndex: zIndex,
+                                                pointerEvents: isCenter ? 'auto' : 'none'
+                                            }}
+                                            onClick={() => setActivePartner(i)}
+                                        >
+                                            <div className="partner-logo-wrapper">
+                                                <img src={getDirectDriveUrl(partner.logo_url)} alt={partner.name} />
+                                            </div>
+                                            <div className="partner-info">
+                                                <h4>{partner.name}</h4>
+                                                <p>Mitra Industri Strategis</p>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         </div>
                     </div>
                 </section>
             )}
 
-            {/* ====== PROGRAM KEAHLIAN ====== */}
+            {/* ====== TABBED PROGRAM KEAHLIAN ====== */}
             <section className="portal-section portal-section-tight-top">
                 <div className="portal-container">
                     <div className="portal-section-header">
@@ -202,49 +357,50 @@ export default function PortalHome() {
                             {settings.programs_section_title || 'Jurusan Unggulan Kami'}
                         </h2>
                         <p className="portal-section-subtitle">
-                            {settings.programs_section_subtitle || 'Pilih jalur kariermu dan kuasai keahlian yang dibutuhkan industri masa kini.'}
+                            {settings.programs_section_subtitle || 'Cari tahu spesialisasi yang paling cocok dengan minat dan bakatmu.'}
                         </p>
                     </div>
 
-                    <div className="portal-grid portal-grid-3">
-                        {programs.length > 0 ? programs.map(program => (
-                            <Link key={program.id} to={`/jurusan/${program.slug || '#'}`} className="portal-program-card-link" style={{ textDecoration: 'none', color: 'inherit' }}>
-                                <div className="portal-program-card">
-                                    <div className="portal-program-icon">{program.icon}</div>
-                                    <h3>{program.title}</h3>
-                                    <p>{program.description}</p>
-                                    <div className="portal-program-more" style={{
-                                        marginTop: 'auto',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '0.85rem',
-                                        fontWeight: 700,
-                                        color: 'var(--portal-primary)'
-                                    }}>
-                                        Detail Jurusan <ArrowRight size={14} />
-                                    </div>
-                                </div>
-                            </Link>
-                        )) : (
+                    {/* Tab Navigation */}
+                    <div className="portal-program-tabs">
+                        {programs.length > 0 ? (
+                            programs.map((prog, idx) => (
+                                <button
+                                    key={prog.id}
+                                    className={`portal-tab-btn ${idx === 0 ? 'active' : ''}`}
+                                >
+                                    {prog.title}
+                                </button>
+                            ))
+                        ) : (
                             <>
-                                <div className="portal-program-card">
-                                    <div className="portal-program-icon">💻</div>
-                                    <h3>Teknik Komputer & Jaringan</h3>
-                                    <p>Kuasai jaringan, server, dan infrastruktur IT modern untuk dunia industri digital.</p>
-                                </div>
-                                <div className="portal-program-card">
-                                    <div className="portal-program-icon">🏢</div>
-                                    <h3>Otomatisasi & Tata Kelola Perkantoran</h3>
-                                    <p>Pelajari manajemen perkantoran digital, administrasi, dan komunikasi profesional.</p>
-                                </div>
-                                <div className="portal-program-card">
-                                    <div className="portal-program-icon">📊</div>
-                                    <h3>Akuntansi & Keuangan</h3>
-                                    <p>Dalami akuntansi, perpajakan, dan pengelolaan keuangan perusahaan secara digital.</p>
-                                </div>
+                                <button className="portal-tab-btn active">Teknik Komputer</button>
+                                <button className="portal-tab-btn">Otomatisasi Perkantoran</button>
+                                <button className="portal-tab-btn">Akuntansi Keuangan</button>
                             </>
                         )}
+                    </div>
+
+                    {/* Tab Content Display */}
+                    <div className="portal-program-tab-content active">
+                        <div className="portal-program-tab-grid">
+                            <div className="portal-program-tab-info">
+                                <div className="portal-program-icon-large">💻</div>
+                                <h3>Teknik Komputer & Jaringan</h3>
+                                <p>Kuasai jaringan, server, dan infrastruktur IT modern untuk dunia industri digital. Lulusan dipersiapkan menjadi Network Administrator atau IT Support handal.</p>
+                                <ul className="portal-program-features">
+                                    <li><CheckCircle size={16} /> Praktik Lab Cisco & Mikrotik</li>
+                                    <li><CheckCircle size={16} /> Sertifikasi Internasional</li>
+                                    <li><CheckCircle size={16} /> Magang di Perusahaan IT</li>
+                                </ul>
+                                <Link to="/jurusan/tkj" className="portal-btn portal-btn-outline-dark portal-btn-sm" style={{ marginTop: '20px' }}>
+                                    Lihat Kurikulum <ArrowRight size={14} />
+                                </Link>
+                            </div>
+                            <div className="portal-program-tab-image">
+                                <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=800" alt="TKJ Lab" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -262,7 +418,7 @@ export default function PortalHome() {
                                         style={{ display: index === currentBanner ? 'block' : 'none' }}
                                     >
                                         <img
-                                            src={banner.image_url}
+                                            src={getDirectDriveUrl(banner.image_url)}
                                             alt={banner.title}
                                             className="portal-banner-image"
                                         />
@@ -285,7 +441,22 @@ export default function PortalHome() {
 
                                 {banners.length > 1 && (
                                     <>
-                                        <div className="portal-banner-dots">
+                                        {/* Progress Bar Header */}
+                                        <div className="portal-banner-progress-container">
+                                            {banners.map((_, i) => (
+                                                <div key={i} className="portal-banner-progress-track">
+                                                    <div
+                                                        className="portal-banner-progress-fill"
+                                                        style={{
+                                                            width: i === currentBanner ? `${bannerProgress}%` : (i < currentBanner ? '100%' : '0%'),
+                                                            transition: i === currentBanner ? 'width 0.1s linear' : 'none'
+                                                        }}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="portal-banner-dots" style={{ bottom: '20px' }}>
                                             {banners.map((_, i) => (
                                                 <div
                                                     key={i}
@@ -347,7 +518,7 @@ export default function PortalHome() {
                                     <div className="portal-card">
                                         {post.cover_image && (
                                             <img
-                                                src={post.cover_image}
+                                                src={getDirectDriveUrl(post.cover_image)}
                                                 alt={post.title}
                                                 className="portal-card-image"
                                                 loading="lazy"
@@ -404,6 +575,18 @@ export default function PortalHome() {
                     </Link>
                 </div>
             </section>
+
+            {/* ====== SMART STICKY ACTION BAR (MOBILE ONLY) ====== */}
+            <div className={`portal-mobile-sticky-bar ${offsetY > 300 ? 'visible' : ''}`}>
+                <div className="portal-sticky-bar-content">
+                    <Link to="/ppdb" className="portal-sticky-btn primary">
+                        Daftar PPDB
+                    </Link>
+                    <a href={`https://wa.me/${settings.contact_whatsapp || '628123456789'}`} target="_blank" rel="noreferrer" className="portal-sticky-btn secondary">
+                        Tanya Admin
+                    </a>
+                </div>
+            </div>
         </div>
     )
 }

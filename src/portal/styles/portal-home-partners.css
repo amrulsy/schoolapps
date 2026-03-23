@@ -1,0 +1,233 @@
+/* ============================================
+   PORTAL HOME - PARTNERS COVERFLOW SLIDER
+   ============================================ */
+
+.portal-partners-section {
+    padding: 100px 0 80px;
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    position: relative;
+    z-index: 20;
+    overflow: hidden;
+}
+
+/* School Network Floating Card */
+.portal-school-network {
+    position: relative;
+    z-index: 50;
+    margin-top: -80px;
+    /* Overlap Hero */
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.school-network-card {
+    background: #fff;
+    padding: 30px 60px;
+    border-radius: 40px;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    max-width: 1100px;
+    width: 90%;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.school-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.school-item:hover {
+    opacity: 1;
+    transform: translateY(-3px);
+}
+
+.school-logo-circle {
+    width: 64px;
+    height: 64px;
+    background: var(--portal-gradient-soft, #f1f5f9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: var(--portal-primary, #4f46e5);
+    font-size: 1.1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.school-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--portal-text, #1e293b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+@media (max-width: 991px) {
+    .school-network-card {
+        padding: 24px 30px;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .portal-school-network {
+        margin-top: -50px;
+    }
+
+    .school-network-card {
+        padding: 20px;
+        border-radius: 24px;
+        gap: 16px;
+    }
+
+    .school-logo-circle {
+        width: 48px;
+        height: 48px;
+        font-size: 0.9rem;
+    }
+
+    .school-name {
+        display: none;
+        /* Hide text on small mobile if needed */
+    }
+
+    .school-item {
+        gap: 0;
+    }
+}
+
+.partners-coverflow-container {
+    position: relative;
+    height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-top: 40px;
+}
+
+/* Partner Card */
+.partner-card {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: #fff;
+    padding: 32px;
+    border-radius: 32px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    cursor: pointer;
+    width: 100%;
+    max-width: 380px;
+}
+
+.partner-card.center {
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+    z-index: 20;
+}
+
+.partner-logo-wrapper {
+    width: 120px;
+    height: 80px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.partner-logo-wrapper img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: grayscale(100%);
+    opacity: 0.6;
+    transition: all 0.4s ease;
+}
+
+.partner-card.center .partner-logo-wrapper img {
+    filter: grayscale(0%);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.partner-info h4 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.partner-info p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Navigation Buttons */
+.partners-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 30;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    color: var(--portal-primary, #4f46e5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.partners-nav-btn:hover {
+    background: var(--portal-primary, #4f46e5);
+    color: #fff;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.partners-nav-btn.left {
+    left: 40px;
+}
+
+.partners-nav-btn.right {
+    right: 40px;
+}
+
+@media (max-width: 768px) {
+    .partners-nav-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .partners-nav-btn.left {
+        left: 10px;
+    }
+
+    .partners-nav-btn.right {
+        right: 10px;
+    }
+
+    .partner-card {
+        max-width: 300px;
+        padding: 24px;
+    }
+}

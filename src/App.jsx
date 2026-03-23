@@ -45,7 +45,6 @@ import ManajemenPesanPage from './pages/admin/ManajemenPesanPage'
 import CmsBannersPage from './features/cms/pages/CmsBannersPage'
 import CmsPostsPage from './features/cms/pages/CmsPostsPage'
 import CmsPagesPage from './features/cms/pages/CmsPagesPage'
-import CmsSettingsPage from './features/cms/pages/CmsSettingsPage'
 import CmsContactsPage from './features/cms/pages/CmsContactsPage'
 import CmsPpdbPage from './features/cms/pages/CmsPpdbPage'
 import CmsHomePage from './features/cms/pages/CmsHomePage'
@@ -92,7 +91,6 @@ export default function App() {
           <Route path="cms/banners" element={<CmsBannersPage />} />
           <Route path="cms/posts" element={<CmsPostsPage />} />
           <Route path="cms/pages" element={<CmsPagesPage />} />
-          <Route path="cms/settings" element={<CmsSettingsPage />} />
           <Route path="cms/contacts" element={<CmsContactsPage />} />
           <Route path="cms/ppdb" element={<CmsPpdbPage />} />
           <Route path="cms/ppdb-content" element={<CmsPpdbContentPage />} />

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
+import { getDirectDriveUrl } from '../../utils/urlHelper'
 
 export default function PortalAnnouncementDetail() {
     const { slug } = useParams()
@@ -74,7 +75,7 @@ export default function PortalAnnouncementDetail() {
             <Helmet>
                 <title>{post.title} | Portal SMK PPRQ</title>
                 <meta name="description" content={post.excerpt ? post.excerpt : post.title} />
-                {post.cover_image && <meta property="og:image" content={post.cover_image} />}
+                {post.cover_image && <meta property="og:image" content={getDirectDriveUrl(post.cover_image)} />}
             </Helmet>
             <div className="portal-page-header">
                 <div className="portal-container">
@@ -95,7 +96,7 @@ export default function PortalAnnouncementDetail() {
 
             <div className="portal-content">
                 {post.cover_image && (
-                    <img src={post.cover_image} alt={post.title} style={{ width: '100%', borderRadius: 'var(--portal-radius-lg)', marginBottom: '32px' }} />
+                    <img src={getDirectDriveUrl(post.cover_image)} alt={post.title} style={{ width: '100%', borderRadius: 'var(--portal-radius-lg)', marginBottom: '32px' }} />
                 )}
                 <div dangerouslySetInnerHTML={{ __html: post.content }} />
             </div>

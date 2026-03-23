@@ -7,6 +7,7 @@ const router = express.Router();
 const pool = require('../../db');
 const { invalidateCache } = require('../../middleware/cache');
 const { upload } = require('../../middleware/upload');
+const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
@@ -263,17 +264,45 @@ router.post('/media/upload', upload.single('file'), async (req, res) => {
             return res.status(400).json({ error: 'Tidak ada file yang diupload.' });
         }
 
-        const fileUrl = `/uploads/${req.file.filename}`;
+        const extOriginal = path.extname(req.file.originalname).toLowerCase();
+        const isImage = (req.file.mimetype.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.webp'].includes(extOriginal)) && req.file.mimetype !== 'image/gif';
+
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        let filename = `media-${uniqueSuffix}`;
+        const uploadDir = path.join(__dirname, '../../uploads');
+
+        if (isImage) {
+            filename += '.webp';
+            const filePath = path.join(uploadDir, filename);
+            try {
+                await sharp(req.file.buffer)
+                    .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+                    .webp({ quality: 80 })
+                    .toFile(filePath);
+            } catch (sharpError) {
+                console.error('Sharp Error:', sharpError);
+                // Fallback to original if sharp fails
+                const ext = path.extname(req.file.originalname) || '.jpg';
+                filename = `media-${uniqueSuffix}${ext}`;
+                fs.writeFileSync(path.join(uploadDir, filename), req.file.buffer);
+            }
+        } else {
+            const ext = path.extname(req.file.originalname);
+            filename += ext;
+            fs.writeFileSync(path.join(uploadDir, filename), req.file.buffer);
+        }
+
+        const fileUrl = `/uploads/${filename}`;
 
         const [result] = await pool.query(
             'INSERT INTO cms_media (filename, original_name, mimetype, size, path, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
-            [req.file.filename, req.file.originalname, req.file.mimetype, req.file.size, fileUrl, req.user?.id || null]
+            [filename, req.file.originalname, isImage ? 'image/webp' : req.file.mimetype, req.file.size, fileUrl, req.user?.id || null]
         );
 
         res.status(201).json({
             id: result.insertId,
             url: fileUrl,
-            filename: req.file.filename,
+            filename: filename,
             original_name: req.file.originalname
         });
     } catch (err) {
@@ -322,7 +351,11 @@ router.get('/programs', async (req, res) => {
 
 router.post('/programs', async (req, res) => {
     try {
-        const { icon, title, slug, tagline, description, banner_image, color_theme, features_json, full_content, sort_order } = req.body;
+        const {
+            icon, title, slug, tagline, description, banner_image,
+            color_theme, features_json, full_content, sort_order,
+            milestones_json, showcase_json, alumni_json, stats_json, careers_json
+        } = req.body;
 
         // Auto-generate slug if not provided
         const finalSlug = slug || title.toLowerCase()
@@ -331,11 +364,14 @@ router.post('/programs', async (req, res) => {
 
         const [result] = await pool.query(
             `INSERT INTO cms_programs 
-            (icon, title, slug, tagline, description, banner_image, color_theme, features_json, full_content, sort_order) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (icon, title, slug, tagline, description, banner_image, color_theme, features_json, full_content, sort_order, milestones_json, showcase_json, alumni_json, stats_json, careers_json) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [icon || '📚', title, finalSlug, tagline || null, description || null,
             banner_image || null, color_theme || '#4f46e5',
-            JSON.stringify(features_json || []), full_content || null, sort_order || 0]
+            JSON.stringify(features_json || []), full_content || null, sort_order || 0,
+            JSON.stringify(milestones_json || []), JSON.stringify(showcase_json || []),
+            JSON.stringify(alumni_json || []), JSON.stringify(stats_json || {}),
+            JSON.stringify(careers_json || [])]
         );
         invalidateCache('/api/public/programs');
         res.status(201).json({ id: result.insertId });
@@ -344,16 +380,24 @@ router.post('/programs', async (req, res) => {
 
 router.put('/programs/:id', async (req, res) => {
     try {
-        const { icon, title, slug, tagline, description, banner_image, color_theme, features_json, full_content, sort_order, is_active } = req.body;
+        const {
+            icon, title, slug, tagline, description, banner_image,
+            color_theme, features_json, full_content, sort_order, is_active,
+            milestones_json, showcase_json, alumni_json, stats_json, careers_json
+        } = req.body;
 
         await pool.query(
             `UPDATE cms_programs SET 
                 icon = ?, title = ?, slug = ?, tagline = ?, description = ?, 
                 banner_image = ?, color_theme = ?, features_json = ?, 
-                full_content = ?, sort_order = ?, is_active = ? 
+                full_content = ?, sort_order = ?, is_active = ?,
+                milestones_json = ?, showcase_json = ?, alumni_json = ?, stats_json = ?, careers_json = ? 
             WHERE id = ?`,
             [icon, title, slug, tagline, description, banner_image, color_theme,
-                JSON.stringify(features_json || []), full_content, sort_order || 0, is_active ?? true, req.params.id]
+                JSON.stringify(features_json || []), full_content, sort_order || 0, is_active ?? true,
+                JSON.stringify(milestones_json || []), JSON.stringify(showcase_json || []),
+                JSON.stringify(alumni_json || []), JSON.stringify(stats_json || {}),
+                JSON.stringify(careers_json || []), req.params.id]
         );
         invalidateCache('/api/public/programs');
         res.json({ success: true });
