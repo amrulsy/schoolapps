@@ -1,3 +1,15 @@
+:root {
+    --pos-primary: #6366f1;
+    --pos-primary-light: #818cf8;
+    --pos-secondary: #0ea5e9;
+    --pos-success: #10b981;
+    --pos-warning: #f59e0b;
+    --pos-danger: #ef4444;
+    --pos-bg-soft: #f8fafc;
+    --pos-border: rgba(0, 0, 0, 0.06);
+    --pos-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
 /* --- Nota / Receipt --- */
 .receipt {
     font-family: 'JetBrains Mono', monospace;
@@ -68,25 +80,41 @@
     color: var(--text-secondary);
 }
 
-/* --- POS specific --- */
 .pos-layout {
     display: grid;
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: 1fr 400px;
     gap: 24px;
     height: calc(100vh - var(--header-height) - 48px);
 }
 
 .pos-student {
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.pos-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--pos-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 .pos-cart {
     display: flex;
     flex-direction: column;
     background: var(--bg-card);
-    border-radius: var(--radius-lg);
+    border-radius: 24px;
     border: 1px solid var(--border-color);
+    box-shadow: var(--pos-shadow);
     overflow: hidden;
+    position: sticky;
+    top: 0;
 }
 
 .pos-cart-header {
@@ -104,20 +132,20 @@
 .pos-cart-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--border-color);
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--pos-border);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pos-cart-item:hover {
-    background: var(--bg-hover);
+    background: var(--pos-bg-soft);
 }
 
 .pos-cart-item.selected {
-    background: var(--primary-50);
-    border-color: var(--primary-200);
+    background: rgba(99, 102, 241, 0.04);
+    border-left: 4px solid var(--pos-primary);
 }
 
 .pos-cart-item .item-info {
@@ -125,24 +153,55 @@
 }
 
 .pos-cart-item .item-info .item-name {
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
 }
 
 .pos-cart-item .item-info .item-period {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
 }
 
 .pos-cart-item .item-amount {
     font-family: 'JetBrains Mono', monospace;
-    font-weight: 600;
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--pos-primary);
     white-space: nowrap;
 }
 
 .pos-cart-footer {
-    padding: 20px;
-    border-top: 2px solid var(--border-color);
+    padding: 24px;
+    background: var(--pos-bg-soft);
+    border-top: 2px solid var(--pos-border);
+}
+
+.pos-quick-pay {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.pos-quick-btn {
+    padding: 8px;
+    background: #fff;
+    border: 1px solid var(--pos-border);
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.pos-quick-btn:hover {
+    border-color: var(--pos-primary);
+    color: var(--pos-primary);
+    background: rgba(99, 102, 241, 0.05);
 }
 
 .pos-total-row {

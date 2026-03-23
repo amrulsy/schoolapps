@@ -186,17 +186,17 @@ export default function ReceiptModal({ receipt, formatRupiah, onClose }) {
     return (
         <Modal title="🧾 Nota Pembayaran" onClose={onClose} footer={
             <>
-                <button className="btn btn-ghost" onClick={handlePrint} type="button">
+                <button className="btn btn-ghost" onClick={handlePrint} type="button" style={{ borderRadius: 12 }}>
                     <Printer size={16} /> Cetak Nota
                 </button>
-                <button className="btn btn-primary" onClick={handleDownloadPdf} disabled={loadingPdf} type="button">
-                    <FileDown size={16} /> {loadingPdf ? 'Memproses...' : 'Download PDF'}
+                <button className="btn btn-primary" onClick={handleDownloadPdf} disabled={loadingPdf} type="button" style={{ borderRadius: 12, background: 'var(--pos-primary)', borderColor: 'var(--pos-primary)' }}>
+                    <FileDown size={16} /> {loadingPdf ? '...' : 'PDF'}
                 </button>
-                <button className="btn btn-outline" onClick={handleBluetoothPrint} disabled={loadingBT} type="button" style={{ border: '1.5px solid var(--primary-500)', color: 'var(--primary-600)' }}>
-                    <Bluetooth size={16} /> {loadingBT ? 'Menyambung...' : 'Bluetooth'}
+                <button className="btn btn-outline" onClick={handleBluetoothPrint} disabled={loadingBT} type="button" style={{ borderRadius: 12, border: '1.5px solid var(--pos-primary)', color: 'var(--pos-primary)' }}>
+                    <Bluetooth size={16} /> {loadingBT ? '...' : 'Bluetooth'}
                 </button>
-                <button className="btn btn-success" onClick={handleShareWA} disabled={loadingWA} type="button" style={{ background: '#25D366', borderColor: '#25D366', color: '#fff' }}>
-                    <MessageCircle size={16} /> {loadingWA ? 'Mengolah...' : 'Kirim WhatsApp'}
+                <button className="btn btn-success" onClick={handleShareWA} disabled={loadingWA} type="button" style={{ borderRadius: 12, background: '#22c55e', borderColor: '#22c55e', color: '#fff' }}>
+                    <MessageCircle size={16} /> {loadingWA ? '...' : 'WhatsApp'}
                 </button>
             </>
         }>
@@ -243,8 +243,10 @@ export default function ReceiptModal({ receipt, formatRupiah, onClose }) {
                 </div>
 
                 <div className="receipt-footer">
-                    <p>Metode: Tunai</p>
-                    <p style={{ marginTop: 8 }}>Terima kasih atas pembayarannya 🙏</p>
+                    <p style={{ fontWeight: 700 }}>Metode: TUNAI</p>
+                    <div style={{ marginTop: 12, fontSize: '0.65rem', opacity: 0.6 }}>
+                        Simpan bukti pembayaran ini sebagai tanda bukti yang sah.
+                    </div>
                 </div>
             </div>
         </Modal>

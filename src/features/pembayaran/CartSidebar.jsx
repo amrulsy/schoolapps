@@ -107,12 +107,39 @@ export default function CartSidebar({
                     />
                 </div>
 
-                {paidAmount > 0 && (
-                    <div className="pos-total-row" style={{ marginBottom: 16 }}>
-                        <span className="label">Kembalian</span>
-                        <span className="amount" style={{ color: change >= 0 ? 'var(--success-600)' : 'var(--danger-500)' }}>
-                            {change >= 0 ? formatRupiah(change) : `Kurang ${formatRupiah(Math.abs(change))}`}
-                            {change >= 0 && ' ✅'}
+                <div className="pos-quick-pay">
+                    {[10000, 20000, 50000, 100000].map(val => (
+                        <button
+                            key={val}
+                            className="pos-quick-btn"
+                            onClick={() => setAmountPaid((Number(amountPaid) + val).toString())}
+                        >
+                            +{formatRupiah(val).replace('Rp', '').trim()}
+                        </button>
+                    ))}
+                    <button
+                        className="pos-quick-btn"
+                        style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--pos-primary)', border: '1px solid var(--pos-primary)' }}
+                        onClick={() => setAmountPaid(totalSelected.toString())}
+                    >
+                        PAS
+                    </button>
+                    <button
+                        className="pos-quick-btn"
+                        style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--pos-danger)', border: '1px solid var(--pos-danger)' }}
+                        onClick={() => setAmountPaid('')}
+                    >
+                        HAPUS
+                    </button>
+                </div>
+
+                {amountPaid && (
+                    <div className="pos-total-row" style={{ marginBottom: 16, padding: '12px 16px', background: change >= 0 ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)', borderRadius: 12 }}>
+                        <span className="label" style={{ color: change >= 0 ? 'var(--pos-success)' : 'var(--pos-danger)', fontWeight: 700 }}>
+                            {change >= 0 ? 'Kembalian' : 'Kurang'}
+                        </span>
+                        <span className="amount" style={{ color: change >= 0 ? 'var(--pos-success)' : 'var(--pos-danger)', fontSize: '1.2rem' }}>
+                            {formatRupiah(Math.abs(change))}
                         </span>
                     </div>
                 )}

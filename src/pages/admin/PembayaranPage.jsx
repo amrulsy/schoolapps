@@ -144,8 +144,29 @@ export default function PembayaranPage() {
 
     return (
         <div className="fade-in">
-            <div className="page-header">
-                <h1>💳 Proses Pembayaran</h1>
+            {/* POS Header */}
+            <div className="pos-header-info mb-4">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ padding: 10, background: 'rgba(99, 102, 241, 0.1)', color: 'var(--pos-primary)', borderRadius: 12 }}>
+                        <CreditCard size={24} />
+                    </div>
+                    <div>
+                        <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>Terminal Pembayaran</h2>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <div style={{ width: 8, height: 8, background: 'var(--pos-success)', borderRadius: '50%' }}></div>
+                                {currentUser?.nama || 'Operator'}
+                            </span>
+                            <span>•</span>
+                            <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tahun Ajaran Aktif</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--pos-primary)' }}>{activeTahunAjaran}</div>
+                </div>
             </div>
 
             {/* Search bar */}
@@ -200,33 +221,44 @@ export default function PembayaranPage() {
                 <div className="pos-layout">
                     {/* Left: Student Info */}
                     <div className="pos-student">
-                        <div className="card" style={{ marginBottom: 16 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                        <div className="card" style={{ marginBottom: 16, border: '1px solid var(--pos-border)', borderRadius: 24, padding: 24, position: 'relative', overflow: 'hidden' }}>
+                            {/* Decorative Background */}
+                            <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, background: 'rgba(99, 102, 241, 0.05)', borderRadius: '50%', zIndex: 0 }}></div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20, position: 'relative', zIndex: 1 }}>
                                 <div style={{
-                                    width: 56, height: 56, borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, var(--primary-500), var(--secondary-500))',
+                                    width: 64, height: 64, borderRadius: 20,
+                                    background: 'linear-gradient(135deg, var(--pos-primary), var(--pos-primary-light))',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: '#fff', fontWeight: 700, fontSize: '1.2rem',
+                                    color: '#fff', fontWeight: 800, fontSize: '1.5rem',
+                                    boxShadow: '0 8px 16px rgba(99, 102, 241, 0.25)'
                                 }}>
                                     {(selectedStudent.nama || '?').charAt(0)}
                                 </div>
-                                <div>
-                                    <h2 style={{ marginBottom: 2 }}>{selectedStudent.nama || 'Tanpa Nama'}</h2>
-                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                                        NISN: <span className="mono">{selectedStudent.nisn}</span>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>{selectedStudent.nama || 'Tanpa Nama'}</h2>
+                                        <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--pos-success)', fontWeight: 700, borderRadius: 8 }}>AKTIF</span>
+                                    </div>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '4px 0 0' }}>
+                                        NISN: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedStudent.nisn}</span>
                                     </p>
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px 24px', fontSize: '0.85rem' }}>
-                                <div><span style={{ color: 'var(--text-secondary)' }}>Kelas:</span> <strong>{selectedStudent.kelas}</strong></div>
-                                <div><span style={{ color: 'var(--text-secondary)' }}>Wali:</span> <strong>{selectedStudent.wali || '-'}</strong></div>
-                                <div><span style={{ color: 'var(--text-secondary)' }}>Telp:</span> <strong className="mono">{selectedStudent.telp || '-'}</strong></div>
-                                <div><span style={{ color: 'var(--text-secondary)' }}>Status:</span> <span className="badge badge-success">Aktif</span></div>
-                            </div>
-                            <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--danger-50)', borderRadius: 'var(--radius-md)' }}>
-                                <span style={{ color: 'var(--danger-600)', fontWeight: 600, fontSize: '0.85rem' }}>
-                                    Total Tunggakan: <span className="mono">{formatRupiah(studentBills.reduce((s, b) => s + Number(b.nominal), 0))}</span> ({studentBills.length} item)
-                                </span>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', position: 'relative', zIndex: 1 }}>
+                                <div style={{ padding: '12px', background: 'var(--pos-bg-soft)', borderRadius: 12, border: '1px solid var(--pos-border)' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Kelas</div>
+                                    <div style={{ fontWeight: 800 }}>{selectedStudent.kelas}</div>
+                                </div>
+                                <div style={{ padding: '12px', background: 'var(--pos-bg-soft)', borderRadius: 12, border: '1px solid var(--pos-border)' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Wali Kelas</div>
+                                    <div style={{ fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedStudent.wali || '-'}</div>
+                                </div>
+                                <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--pos-danger)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Tunggakan</div>
+                                    <div style={{ fontWeight: 800, color: 'var(--pos-danger)' }}>{formatRupiah(studentBills.reduce((s, b) => s + Number(b.nominal), 0))}</div>
+                                </div>
                             </div>
                         </div>
 
@@ -310,11 +342,21 @@ export default function PembayaranPage() {
                     />
                 </div>
             ) : (
-                <div className="card" style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
-                    <CreditCard size={48} style={{ marginBottom: 16, opacity: 0.3 }} />
-                    <h3 style={{ color: 'var(--text-secondary)' }}>Cari Siswa untuk Memulai</h3>
-                    <p style={{ maxWidth: 400, margin: '8px auto 0', fontSize: '0.85rem' }}>
-                        Ketik nama atau NISN siswa pada kolom pencarian di atas untuk menampilkan tagihan yang belum lunas.
+                <div style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    padding: '80px 20px', background: 'var(--bg-card)', borderRadius: 32,
+                    border: '1px solid var(--pos-border)', marginTop: 40, textAlign: 'center'
+                }}>
+                    <div style={{
+                        width: 120, height: 120, background: 'var(--pos-bg-soft)', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+                        color: 'var(--pos-primary)', opacity: 0.8
+                    }}>
+                        <CreditCard size={56} />
+                    </div>
+                    <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Input Siswa</h3>
+                    <p style={{ maxWidth: 460, margin: '12px auto 0', fontSize: '0.95rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                        Ketik nama atau NISN siswa untuk menarik data tagihan secara otomatis. Sistem akan menampilkan rincian tunggakan yang belum lunas.
                     </p>
                 </div>
             )}
