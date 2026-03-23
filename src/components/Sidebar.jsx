@@ -56,8 +56,7 @@ const menuSections = [
         label: 'KONTEN PORTAL (CMS)',
         items: [
             { to: '/admin/cms/home', icon: Layout, text: 'Konten Halaman Utama' },
-            { to: '/admin/cms/ppdb', icon: ClipboardList, text: 'Pendaftaran PPDB' },
-            { to: '/admin/cms/ppdb-content', icon: ClipboardList, text: 'Konten PPDB' },
+            { to: '/admin/cms/ppdb', icon: ClipboardList, text: 'Manajemen PPDB' },
             { to: '/admin/cms/contacts', icon: Users, text: 'Pesan Kontak' },
         ]
     }

@@ -52,83 +52,83 @@ export default function PortalPPDB() {
         loadData()
     }, [fetchPublic])
 
-    const isOpen = settings.registration_open === 'true' || settings.registration_open === '1'
+    const isOpen = settings.ppdb_is_open === '1' || settings.ppdb_is_open === 'true'
+    const heroTitle = settings.ppdb_hero_title || 'Masa Depanmu Dimulai di Sini.'
+    const heroSubtitle = settings.ppdb_hero_subtitle || 'Bergabunglah bersama komunitas pembelajar kreatif dan inovatif di SMK PPRQ.'
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+}
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
+const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!formData.nisn || !formData.nama_lengkap || !formData.asal_sekolah || !formData.telepon_ortu || !formData.alamat_lengkap) {
+        Swal.fire('Peringatan', 'Mohon lengkapi semua data wajib yang bertanda (*)', 'warning')
+        return
     }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
+    setSubmitting(true)
+    try {
+        const data = await postPublic('/ppdb', formData)
 
-        if (!formData.nisn || !formData.nama_lengkap || !formData.asal_sekolah || !formData.telepon_ortu || !formData.alamat_lengkap) {
-            Swal.fire('Peringatan', 'Mohon lengkapi semua data wajib yang bertanda (*)', 'warning')
-            return
-        }
-
-        setSubmitting(true)
-        try {
-            const data = await postPublic('/ppdb', formData)
-
-            if (!data.error) {
-                Swal.fire({
-                    title: 'Pendaftaran Berhasil!',
-                    html: `
+        if (!data.error) {
+            Swal.fire({
+                title: 'Pendaftaran Berhasil!',
+                html: `
                         <div style="text-align: center; background: rgba(99, 102, 241, 0.05); padding: 25px; border-radius: 20px; margin-top: 20px; border: 2px dashed var(--portal-primary);">
                             <p style="margin-bottom: 10px; font-weight: 500; color: #64748b;">Nomor Registrasi Anda:</p>
                             <h2 style="color: var(--portal-primary); margin: 5px 0; font-size: 2.2rem; letter-spacing: 2px; font-weight: 900;">${data.registration_number}</h2>
                             <p style="font-size: 0.85rem; color: #666; margin-top: 15px; line-height: 1.5;">Harap simpan nomor ini atau screenshot layar ini untuk verifikasi selanjutnya.<br/>Panitia akan menghubungi Anda melalui WhatsApp.</p>
                         </div>
                     `,
-                    icon: 'success',
-                    confirmButtonText: 'Selesai',
-                    confirmButtonColor: 'var(--portal-primary)',
-                    customClass: {
-                        popup: 'portal-swal-popup'
-                    }
-                })
-                setFormData({
-                    nisn: '', nama_lengkap: '', tempat_lahir: '', tgl_lahir: '',
-                    jenis_kelamin: 'L', agama: '', asal_sekolah: '',
-                    telepon_siswa: '', telepon_ortu: '', alamat_lengkap: ''
-                })
-            } else {
-                Swal.fire('Gagal', data.error || 'Terjadi kesalahan saat mengirim data.', 'error')
-            }
-        } catch (err) {
-            Swal.fire('Error', 'Gagal menghubungi server.', 'error')
-        } finally {
-            setSubmitting(false)
+                icon: 'success',
+                confirmButtonText: 'Selesai',
+                confirmButtonColor: 'var(--portal-primary)',
+                customClass: {
+                    popup: 'portal-swal-popup'
+                }
+            })
+            setFormData({
+                nisn: '', nama_lengkap: '', tempat_lahir: '', tgl_lahir: '',
+                jenis_kelamin: 'L', agama: '', asal_sekolah: '',
+                telepon_siswa: '', telepon_ortu: '', alamat_lengkap: ''
+            })
+        } else {
+            Swal.fire('Gagal', data.error || 'Terjadi kesalahan saat mengirim data.', 'error')
         }
+    } catch (err) {
+        Swal.fire('Error', 'Gagal menghubungi server.', 'error')
+    } finally {
+        setSubmitting(false)
+    }
+}
+
+const handleCheckStatus = async (e) => {
+    e.preventDefault()
+    if (!searchQuery) {
+        Swal.fire('Peringatan', 'Masukkan nomor registrasi atau NISN Anda.', 'warning')
+        return
     }
 
-    const handleCheckStatus = async (e) => {
-        e.preventDefault()
-        if (!searchQuery) {
-            Swal.fire('Peringatan', 'Masukkan nomor registrasi atau NISN Anda.', 'warning')
-            return
-        }
+    setLoading(true)
+    try {
+        const data = await postPublic('/ppdb/check', { identifier: searchQuery })
 
-        setLoading(true)
-        try {
-            const data = await postPublic('/ppdb/check', { identifier: searchQuery })
+        if (!data.error) {
+            const statusColors = {
+                pending: '#f59e0b',
+                approved: '#10b981',
+                rejected: '#ef4444'
+            }
+            const statusText = {
+                pending: 'Menunggu Verifikasi',
+                approved: 'Diterima / Lolos Seleksi',
+                rejected: 'Ditolak / Tidak Lolos'
+            }
 
-            if (!data.error) {
-                const statusColors = {
-                    pending: '#f59e0b',
-                    approved: '#10b981',
-                    rejected: '#ef4444'
-                }
-                const statusText = {
-                    pending: 'Menunggu Verifikasi',
-                    approved: 'Diterima / Lolos Seleksi',
-                    rejected: 'Ditolak / Tidak Lolos'
-                }
-
-                Swal.fire({
-                    title: 'Status Pendaftaran',
-                    html: `
+            Swal.fire({
+                title: 'Status Pendaftaran',
+                html: `
                         <div style="text-align: left; background: #f8fafc; padding: 24px; border-radius: 20px; border: 1px solid #e2e8f0; margin-top: 10px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                                 <span style="font-size: 0.8rem; color: #64748b; font-weight: 700; letter-spacing: 0.05em;">STATUS SAAT INI</span>
@@ -179,38 +179,38 @@ export default function PortalPPDB() {
                             </div>
                         ` : ''}
                     `,
-                    confirmButtonText: 'Selesai',
-                    confirmButtonColor: 'var(--portal-primary)',
-                    customClass: {
-                        popup: 'portal-swal-popup'
-                    }
-                })
-            } else {
-                Swal.fire({
-                    title: 'Data Tidak Ditemukan',
-                    text: data.error || 'Mohon periksa kembali nomor registrasi atau NISN Anda.',
-                    icon: 'error',
-                    confirmButtonText: 'Coba Lagi',
-                    confirmButtonColor: 'var(--portal-primary)',
-                    customClass: {
-                        popup: 'portal-swal-popup'
-                    }
-                })
-            }
-        } catch (err) {
-            Swal.fire('Error', 'Gagal memproses permintaan. Pastikan koneksi internet stabil.', 'error')
-        } finally {
-            setLoading(false)
+                confirmButtonText: 'Selesai',
+                confirmButtonColor: 'var(--portal-primary)',
+                customClass: {
+                    popup: 'portal-swal-popup'
+                }
+            })
+        } else {
+            Swal.fire({
+                title: 'Data Tidak Ditemukan',
+                text: data.error || 'Mohon periksa kembali nomor registrasi atau NISN Anda.',
+                icon: 'error',
+                confirmButtonText: 'Coba Lagi',
+                confirmButtonColor: 'var(--portal-primary)',
+                customClass: {
+                    popup: 'portal-swal-popup'
+                }
+            })
         }
+    } catch (err) {
+        Swal.fire('Error', 'Gagal memproses permintaan. Pastikan koneksi internet stabil.', 'error')
+    } finally {
+        setLoading(false)
     }
+}
 
-    return (
-        <div className="portal-page">
-            <Helmet>
-                <title>Pendaftaran PPDB | Portal SMK PPRQ</title>
-                <meta name="description" content="Penerimaan Peserta Didik Baru (PPDB) SMK PPRQ. Segera daftarkan diri Anda dan raih masa depan yang gemilang bersama kami." />
-            </Helmet>
-            <style>{`
+return (
+    <div className="portal-page">
+        <Helmet>
+            <title>Pendaftaran PPDB | Portal SMK PPRQ</title>
+            <meta name="description" content="Penerimaan Peserta Didik Baru (PPDB) SMK PPRQ. Segera daftarkan diri Anda dan raih masa depan yang gemilang bersama kami." />
+        </Helmet>
+        <style>{`
                 .hero-glass {
                     background: var(--portal-gradient-hero);
                     padding: 100px 0 120px;
@@ -476,274 +476,274 @@ export default function PortalPPDB() {
                 .wa-button-float:hover { transform: scale(1.02); box-shadow: 0 15px 35px rgba(99, 102, 241, 0.3); }
             `}</style>
 
-            <div className="hero-glass">
-                <div className="portal-container" style={{ position: 'relative', zIndex: 1 }}>
-                    <div className={isOpen ? 'ppdb-status-badge badge-open' : 'ppdb-status-badge badge-closed'}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'currentColor', boxShadow: '0 0 10px currentColor' }}></div>
-                        {isOpen ? 'Pendaftaran Dibuka' : 'Pendaftaran Online Ditutup'}
-                    </div>
-                    <h1 style={{ fontSize: '3.5rem', fontWeight: 900, marginBottom: '20px', letterSpacing: '-0.04em', lineHeight: 1.1 }}>
-                        Masa Depanmu <br /> <span className="portal-text-gradient">Dimulai di Sini.</span>
-                    </h1>
-                    <p style={{ fontSize: '1.25rem', opacity: 0.8, maxWidth: '750px', margin: '0 auto', lineHeight: 1.6 }}>
-                        Tahun Ajaran {settings.ppdb_year || '2026/2027'}. Bergabunglah bersama komunitas pembelajar kreatif dan inovatif di SMK PPRQ.
-                    </p>
+        <div className="hero-glass">
+            <div className="portal-container" style={{ position: 'relative', zIndex: 1 }}>
+                <div className={isOpen ? 'ppdb-status-badge badge-open' : 'ppdb-status-badge badge-closed'}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'currentColor', boxShadow: '0 0 10px currentColor' }}></div>
+                    {isOpen ? 'Pendaftaran Dibuka' : 'Pendaftaran Online Ditutup'}
                 </div>
+                <h1 style={{ fontSize: '3.5rem', fontWeight: 900, marginBottom: '20px', letterSpacing: '-0.04em', lineHeight: 1.1 }}>
+                    {heroTitle}
+                </h1>
+                <p style={{ fontSize: '1.25rem', opacity: 0.8, maxWidth: '750px', margin: '0 auto', lineHeight: 1.6 }}>
+                    Tahun Ajaran {settings.ppdb_year || '2025/2026'}. {heroSubtitle}
+                </p>
             </div>
+        </div>
 
-            <section className="portal-section" style={{ marginTop: '-60px', position: 'relative', zIndex: 2 }}>
-                <div className="portal-container">
-                    {/* Steps Container */}
-                    <div className="portal-section-header">
-                        <span className="portal-section-label">Langkah Pendaftaran</span>
-                        <h2 className="portal-section-title">Alur Penerimaan Peserta Didik</h2>
-                    </div>
+        <section className="portal-section" style={{ marginTop: '-60px', position: 'relative', zIndex: 2 }}>
+            <div className="portal-container">
+                {/* Steps Container */}
+                <div className="portal-section-header">
+                    <span className="portal-section-label">Langkah Pendaftaran</span>
+                    <h2 className="portal-section-title">Alur Penerimaan Peserta Didik</h2>
+                </div>
 
-                    <div style={{ maxWidth: '1140px', margin: '0 auto 80px' }}>
-                        <div className="steps-flow-container">
-                            {steps.length > 0 ? steps.map((step, idx) => (
-                                <div key={step.id} className="step-item-wrapper">
-                                    <div className="step-card" style={{ animationDelay: `${idx * 0.1}s`, width: '100%' }}>
-                                        <div className="step-icon">
-                                            <span style={{ fontSize: '1.5rem' }}>{step.icon || '📌'}</span>
-                                        </div>
-                                        <h3 style={{ fontSize: '0.92rem', fontWeight: 800, marginBottom: '8px', color: '#1e293b' }}>{step.title}</h3>
-                                        <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>{step.description}</p>
+                <div style={{ maxWidth: '1140px', margin: '0 auto 80px' }}>
+                    <div className="steps-flow-container">
+                        {steps.length > 0 ? steps.map((step, idx) => (
+                            <div key={step.id} className="step-item-wrapper">
+                                <div className="step-card" style={{ animationDelay: `${idx * 0.1}s`, width: '100%' }}>
+                                    <div className="step-icon">
+                                        <span style={{ fontSize: '1.5rem' }}>{step.icon || '📌'}</span>
                                     </div>
-                                    {idx < steps.length - 1 && (
-                                        <div className="step-arrow-connector">
-                                            <ChevronRight size={28} strokeWidth={1.5} />
-                                        </div>
-                                    )}
+                                    <h3 style={{ fontSize: '0.92rem', fontWeight: 800, marginBottom: '8px', color: '#1e293b' }}>{step.title}</h3>
+                                    <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>{step.description}</p>
                                 </div>
-                            )) : (
-                                <div style={{ textAlign: 'center', width: '100%', padding: '20px', color: '#64748b' }}>Belum ada langkah pendaftaran.</div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="portal-grid-2" style={{ gap: '48px', alignItems: 'start' }}>
-                        {/* Info Section */}
-                        <div className="portal-animate-in">
-                            <div className="portal-section-header" style={{ textAlign: 'center', alignItems: 'center', marginBottom: 32 }}>
-                                <span className="portal-section-label">Panduan Siswa</span>
-                                <h2 className="portal-section-title">Syarat & Ketentuan</h2>
-                            </div>
-
-                            <div className="info-panel">
-                                <div className="requirement-list">
-                                    {requirements.length > 0 ? requirements.map((req, i) => (
-                                        <div key={req.id} className="requirement-item" style={{ animationDelay: `${i * 0.1}s` }}>
-                                            <div className="requirement-check">
-                                                <CheckCircle2 size={18} strokeWidth={2.5} />
-                                            </div>
-                                            <span className="requirement-text">{req.text}</span>
-                                        </div>
-                                    )) : (
-                                        <div style={{ textAlign: 'center', padding: '10px', color: '#64748b' }}>Belum ada syarat dokumen.</div>
-                                    )}
-                                </div>
-
-                                <div className="note-box-premium">
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: '10px', color: '#b45309' }}>
-                                        <AlertCircle size={20} strokeWidth={2.5} />
-                                        <span style={{ fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Catatan Penting</span>
+                                {idx < steps.length - 1 && (
+                                    <div className="step-arrow-connector">
+                                        <ChevronRight size={28} strokeWidth={1.5} />
                                     </div>
-                                    <p style={{ fontSize: '0.88rem', color: '#92400e', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-                                        Setelah mengisi formulir online, harap segera melakukan verifikasi berkas ke sekolah pada hari kerja dengan membawa dokumen fisik yang tertera di atas untuk proses validasi.
-                                    </p>
-                                </div>
+                                )}
                             </div>
+                        )) : (
+                            <div style={{ textAlign: 'center', width: '100%', padding: '20px', color: '#64748b' }}>Belum ada langkah pendaftaran.</div>
+                        )}
+                    </div>
+                </div>
 
-                            <a href={`https://wa.me/${settings.wa_number?.replace(/^0/, '62')}`} target="_blank" rel="noreferrer" className="wa-button-float">
-                                <div style={{ background: 'white', color: 'var(--portal-primary)', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Phone size={20} />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>Konsultasi Via WhatsApp</h4>
-                                    <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>Tanya seputar jurusan & pendaftaran</p>
-                                </div>
-                                <ArrowRight size={24} />
-                            </a>
+                <div className="portal-grid-2" style={{ gap: '48px', alignItems: 'start' }}>
+                    {/* Info Section */}
+                    <div className="portal-animate-in">
+                        <div className="portal-section-header" style={{ textAlign: 'center', alignItems: 'center', marginBottom: 32 }}>
+                            <span className="portal-section-label">Panduan Siswa</span>
+                            <h2 className="portal-section-title">Syarat & Ketentuan</h2>
                         </div>
 
-                        {/* Form Section */}
-                        <div className="portal-animate-in portal-animate-delay-1">
-                            <div className="tab-switch">
-                                <button className={`tab-btn ${activeTab === 'register' ? 'active' : ''}`} onClick={() => setActiveTab('register')}>
-                                    Formulir Pendaftaran
-                                </button>
-                                <button className={`tab-btn ${activeTab === 'check' ? 'active' : ''}`} onClick={() => setActiveTab('check')}>
-                                    Cek Status
-                                </button>
+                        <div className="info-panel">
+                            <div className="requirement-list">
+                                {requirements.length > 0 ? requirements.map((req, i) => (
+                                    <div key={req.id} className="requirement-item" style={{ animationDelay: `${i * 0.1}s` }}>
+                                        <div className="requirement-check">
+                                            <CheckCircle2 size={18} strokeWidth={2.5} />
+                                        </div>
+                                        <span className="requirement-text">{req.text}</span>
+                                    </div>
+                                )) : (
+                                    <div style={{ textAlign: 'center', padding: '10px', color: '#64748b' }}>Belum ada syarat dokumen.</div>
+                                )}
                             </div>
 
-                            {activeTab === 'register' ? (
-                                !isOpen ? (
-                                    <div className="closed-state">
-                                        <div style={{ padding: 20, background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', borderRadius: '50%', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                                            <Calendar size={40} />
-                                        </div>
-                                        <h3 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '12px', color: '#1e293b' }}>Pendaftaran Belum Dibuka</h3>
-                                        <p style={{ color: '#64748b', lineHeight: 1.6, maxWidth: '350px', margin: '0 auto' }}>Mohon maaf, saat ini pendaftaran online sedang ditutup. Pantau terus sosial media kami untuk info pembukaan.</p>
+                            <div className="note-box-premium">
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: '10px', color: '#b45309' }}>
+                                    <AlertCircle size={20} strokeWidth={2.5} />
+                                    <span style={{ fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Catatan Penting</span>
+                                </div>
+                                <p style={{ fontSize: '0.88rem', color: '#92400e', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+                                    Setelah mengisi formulir online, harap segera melakukan verifikasi berkas ke sekolah pada hari kerja dengan membawa dokumen fisik yang tertera di atas untuk proses validasi.
+                                </p>
+                            </div>
+                        </div>
+
+                        <a href={`https://wa.me/${(settings.ppdb_contact_wa || settings.wa_number || '').replace(/^0/, '62')}`} target="_blank" rel="noreferrer" className="wa-button-float">
+                            <div style={{ background: 'white', color: 'var(--portal-primary)', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Phone size={20} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>Konsultasi Via WhatsApp</h4>
+                                <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>Tanya seputar jurusan & pendaftaran</p>
+                            </div>
+                            <ArrowRight size={24} />
+                        </a>
+                    </div>
+
+                    {/* Form Section */}
+                    <div className="portal-animate-in portal-animate-delay-1">
+                        <div className="tab-switch">
+                            <button className={`tab-btn ${activeTab === 'register' ? 'active' : ''}`} onClick={() => setActiveTab('register')}>
+                                Formulir Pendaftaran
+                            </button>
+                            <button className={`tab-btn ${activeTab === 'check' ? 'active' : ''}`} onClick={() => setActiveTab('check')}>
+                                Cek Status
+                            </button>
+                        </div>
+
+                        {activeTab === 'register' ? (
+                            !isOpen ? (
+                                <div className="closed-state">
+                                    <div style={{ padding: 20, background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', borderRadius: '50%', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                                        <Calendar size={40} />
                                     </div>
-                                ) : (
-                                    <div className="form-container-glass">
-                                        <form onSubmit={handleSubmit}>
-                                            <div className="portal-form-title-group">
-                                                <User size={22} strokeWidth={2.5} />
-                                                <h3>Identitas Calon Siswa</h3>
-                                            </div>
-
-                                            <div className="portal-form-group">
-                                                <label className="portal-form-label">NISN <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
-                                                <input type="text" name="nisn" className="portal-form-input" value={formData.nisn} onChange={handleInputChange} placeholder="10 Digit NISN Aktif" required />
-                                            </div>
-
-                                            <div className="portal-form-group">
-                                                <label className="portal-form-label">Nama Lengkap <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
-                                                <input type="text" name="nama_lengkap" className="portal-form-input" value={formData.nama_lengkap} onChange={handleInputChange} placeholder="Sesuai Akta Kelahiran" required />
-                                            </div>
-
-                                            <div className="form-row form-row-2">
-                                                <div className="portal-form-group">
-                                                    <label className="portal-form-label">Tempat Lahir</label>
-                                                    <input type="text" name="tempat_lahir" className="portal-form-input" value={formData.tempat_lahir} onChange={handleInputChange} placeholder="Kota Kelahiran" />
-                                                </div>
-                                                <div className="portal-form-group">
-                                                    <label className="portal-form-label">Tanggal Lahir</label>
-                                                    <input type="date" name="tgl_lahir" className="portal-form-input" value={formData.tgl_lahir} onChange={handleInputChange} />
-                                                </div>
-                                            </div>
-
-                                            <div className="form-row form-row-2">
-                                                <div className="portal-form-group">
-                                                    <label className="portal-form-label">Jenis Kelamin</label>
-                                                    <select name="jenis_kelamin" className="portal-form-input" value={formData.jenis_kelamin} onChange={handleInputChange}>
-                                                        <option value="L">Laki-laki</option>
-                                                        <option value="P">Perempuan</option>
-                                                    </select>
-                                                </div>
-                                                <div className="portal-form-group">
-                                                    <label className="portal-form-label">Agama</label>
-                                                    <select name="agama" className="portal-form-input" value={formData.agama} onChange={handleInputChange}>
-                                                        <option value="">Pilih Agama</option>
-                                                        <option value="Islam">Islam</option>
-                                                        <option value="Kristen">Kristen</option>
-                                                        <option value="Katholik">Katholik</option>
-                                                        <option value="Hindu">Hindu</option>
-                                                        <option value="Budha">Budha</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div className="form-section-divider"></div>
-
-                                            <div className="portal-form-title-group" style={{ color: 'var(--portal-accent)' }}>
-                                                <BookOpen size={22} strokeWidth={2.5} />
-                                                <h3>Informasi Akademik & Kontak</h3>
-                                            </div>
-
-                                            <div className="portal-form-group">
-                                                <label className="portal-form-label">Nama Sekolah Asal <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
-                                                <input type="text" name="asal_sekolah" className="portal-form-input" value={formData.asal_sekolah} onChange={handleInputChange} placeholder="Contoh: SMP Negeri 1 Jakarta" required />
-                                            </div>
-
-                                            <div className="form-row form-row-2">
-                                                <div className="portal-form-group">
-                                                    <label className="portal-form-label">No. WhatsApp Siswa</label>
-                                                    <input type="tel" name="telepon_siswa" className="portal-form-input" value={formData.telepon_siswa} onChange={handleInputChange} placeholder="08xxxx" />
-                                                </div>
-                                                <div className="portal-form-group">
-                                                    <label className="portal-form-label">WhatsApp Orang Tua <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
-                                                    <input type="tel" name="telepon_ortu" className="portal-form-input" value={formData.telepon_ortu} onChange={handleInputChange} placeholder="Wajib untuk konfirmasi" required />
-                                                </div>
-                                            </div>
-
-                                            <div className="portal-form-group">
-                                                <label className="portal-form-label">Alamat Lengkap <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
-                                                <textarea name="alamat_lengkap" className="portal-form-textarea" value={formData.alamat_lengkap} onChange={handleInputChange} rows="3" placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan" required></textarea>
-                                            </div>
-
-                                            <button
-                                                type="submit"
-                                                className="portal-btn portal-btn-primary"
-                                                style={{ width: '100%', height: '60px', borderRadius: '18px', fontSize: '1.05rem', marginTop: '16px', boxShadow: '0 15px 30px rgba(99, 102, 241, 0.3)' }}
-                                                disabled={submitting}
-                                            >
-                                                {submitting ? (
-                                                    <><div className="portal-spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div> Memproses...</>
-                                                ) : (
-                                                    <>Submit Pendaftaran Online <ArrowRight size={20} /></>
-                                                )}
-                                            </button>
-                                        </form>
-                                    </div>
-                                )
+                                    <h3 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '12px', color: '#1e293b' }}>Pendaftaran Belum Dibuka</h3>
+                                    <p style={{ color: '#64748b', lineHeight: 1.6, maxWidth: '350px', margin: '0 auto' }}>Mohon maaf, saat ini pendaftaran online sedang ditutup. Pantau terus sosial media kami untuk info pembukaan.</p>
+                                </div>
                             ) : (
                                 <div className="form-container-glass">
-                                    <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                                        <div style={{ width: 70, height: 70, background: 'var(--portal-gradient-soft)', borderRadius: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'var(--portal-primary)' }}>
-                                            <Search size={32} />
+                                    <form onSubmit={handleSubmit}>
+                                        <div className="portal-form-title-group">
+                                            <User size={22} strokeWidth={2.5} />
+                                            <h3>Identitas Calon Siswa</h3>
                                         </div>
-                                        <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#1e293b' }}>Lacak Status Pendaftaran</h3>
-                                        <p style={{ color: '#64748b', fontSize: '0.95rem' }}>Gunakan Nomor Registrasi atau NISN Anda.</p>
-                                    </div>
 
-                                    <form onSubmit={handleCheckStatus}>
                                         <div className="portal-form-group">
-                                            <input
-                                                type="text"
-                                                className="portal-form-input"
-                                                placeholder="Contoh: REG-2026123456"
-                                                value={searchQuery}
-                                                onChange={e => setSearchQuery(e.target.value)}
-                                                style={{ textAlign: 'center', fontSize: '1.15rem', height: '64px', borderRadius: '18px', background: '#f8fafc' }}
-                                            />
+                                            <label className="portal-form-label">NISN <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
+                                            <input type="text" name="nisn" className="portal-form-input" value={formData.nisn} onChange={handleInputChange} placeholder="10 Digit NISN Aktif" required />
                                         </div>
-                                        <button className="portal-btn portal-btn-primary" style={{ width: '100%', height: '60px', borderRadius: '18px' }}>
-                                            Cek Sekarang <ArrowRight size={20} />
-                                        </button>
 
-                                        <div style={{ marginTop: 24, padding: 16, background: 'rgba(59, 130, 246, 0.05)', borderRadius: 12, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                                            <Info size={18} style={{ color: 'var(--portal-info)', marginTop: 2 }} />
-                                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>Data pendaftaran biasanya muncul di sistem dalam 1x24 jam setelah pengisian formulir online.</p>
+                                        <div className="portal-form-group">
+                                            <label className="portal-form-label">Nama Lengkap <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
+                                            <input type="text" name="nama_lengkap" className="portal-form-input" value={formData.nama_lengkap} onChange={handleInputChange} placeholder="Sesuai Akta Kelahiran" required />
                                         </div>
+
+                                        <div className="form-row form-row-2">
+                                            <div className="portal-form-group">
+                                                <label className="portal-form-label">Tempat Lahir</label>
+                                                <input type="text" name="tempat_lahir" className="portal-form-input" value={formData.tempat_lahir} onChange={handleInputChange} placeholder="Kota Kelahiran" />
+                                            </div>
+                                            <div className="portal-form-group">
+                                                <label className="portal-form-label">Tanggal Lahir</label>
+                                                <input type="date" name="tgl_lahir" className="portal-form-input" value={formData.tgl_lahir} onChange={handleInputChange} />
+                                            </div>
+                                        </div>
+
+                                        <div className="form-row form-row-2">
+                                            <div className="portal-form-group">
+                                                <label className="portal-form-label">Jenis Kelamin</label>
+                                                <select name="jenis_kelamin" className="portal-form-input" value={formData.jenis_kelamin} onChange={handleInputChange}>
+                                                    <option value="L">Laki-laki</option>
+                                                    <option value="P">Perempuan</option>
+                                                </select>
+                                            </div>
+                                            <div className="portal-form-group">
+                                                <label className="portal-form-label">Agama</label>
+                                                <select name="agama" className="portal-form-input" value={formData.agama} onChange={handleInputChange}>
+                                                    <option value="">Pilih Agama</option>
+                                                    <option value="Islam">Islam</option>
+                                                    <option value="Kristen">Kristen</option>
+                                                    <option value="Katholik">Katholik</option>
+                                                    <option value="Hindu">Hindu</option>
+                                                    <option value="Budha">Budha</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-section-divider"></div>
+
+                                        <div className="portal-form-title-group" style={{ color: 'var(--portal-accent)' }}>
+                                            <BookOpen size={22} strokeWidth={2.5} />
+                                            <h3>Informasi Akademik & Kontak</h3>
+                                        </div>
+
+                                        <div className="portal-form-group">
+                                            <label className="portal-form-label">Nama Sekolah Asal <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
+                                            <input type="text" name="asal_sekolah" className="portal-form-input" value={formData.asal_sekolah} onChange={handleInputChange} placeholder="Contoh: SMP Negeri 1 Jakarta" required />
+                                        </div>
+
+                                        <div className="form-row form-row-2">
+                                            <div className="portal-form-group">
+                                                <label className="portal-form-label">No. WhatsApp Siswa</label>
+                                                <input type="tel" name="telepon_siswa" className="portal-form-input" value={formData.telepon_siswa} onChange={handleInputChange} placeholder="08xxxx" />
+                                            </div>
+                                            <div className="portal-form-group">
+                                                <label className="portal-form-label">WhatsApp Orang Tua <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
+                                                <input type="tel" name="telepon_ortu" className="portal-form-input" value={formData.telepon_ortu} onChange={handleInputChange} placeholder="Wajib untuk konfirmasi" required />
+                                            </div>
+                                        </div>
+
+                                        <div className="portal-form-group">
+                                            <label className="portal-form-label">Alamat Lengkap <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
+                                            <textarea name="alamat_lengkap" className="portal-form-textarea" value={formData.alamat_lengkap} onChange={handleInputChange} rows="3" placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan" required></textarea>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            className="portal-btn portal-btn-primary"
+                                            style={{ width: '100%', height: '60px', borderRadius: '18px', fontSize: '1.05rem', marginTop: '16px', boxShadow: '0 15px 30px rgba(99, 102, 241, 0.3)' }}
+                                            disabled={submitting}
+                                        >
+                                            {submitting ? (
+                                                <><div className="portal-spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div> Memproses...</>
+                                            ) : (
+                                                <>Submit Pendaftaran Online <ArrowRight size={20} /></>
+                                            )}
+                                        </button>
                                     </form>
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
+                            )
+                        ) : (
+                            <div className="form-container-glass">
+                                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                                    <div style={{ width: 70, height: 70, background: 'var(--portal-gradient-soft)', borderRadius: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'var(--portal-primary)' }}>
+                                        <Search size={32} />
+                                    </div>
+                                    <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#1e293b' }}>Lacak Status Pendaftaran</h3>
+                                    <p style={{ color: '#64748b', fontSize: '0.95rem' }}>Gunakan Nomor Registrasi atau NISN Anda.</p>
+                                </div>
 
-            <section className="portal-section" style={{ background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
-                <div className="portal-container">
-                    <div className="portal-grid-3" style={{ gap: '32px' }}>
-                        <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-                            <div style={{ width: 60, height: 60, background: 'white', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--portal-primary)', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}><MapPin size={28} /></div>
-                            <div>
-                                <h4 style={{ fontWeight: 800, marginBottom: 4, fontSize: '1rem' }}>Kampus Utama</h4>
-                                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>{settings.contact_address || 'Jl. Pendidikan No. 123, Kota Pendidikan'}</p>
+                                <form onSubmit={handleCheckStatus}>
+                                    <div className="portal-form-group">
+                                        <input
+                                            type="text"
+                                            className="portal-form-input"
+                                            placeholder="Contoh: REG-2026123456"
+                                            value={searchQuery}
+                                            onChange={e => setSearchQuery(e.target.value)}
+                                            style={{ textAlign: 'center', fontSize: '1.15rem', height: '64px', borderRadius: '18px', background: '#f8fafc' }}
+                                        />
+                                    </div>
+                                    <button className="portal-btn portal-btn-primary" style={{ width: '100%', height: '60px', borderRadius: '18px' }}>
+                                        Cek Sekarang <ArrowRight size={20} />
+                                    </button>
+
+                                    <div style={{ marginTop: 24, padding: 16, background: 'rgba(59, 130, 246, 0.05)', borderRadius: 12, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                        <Info size={18} style={{ color: 'var(--portal-info)', marginTop: 2 }} />
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>Data pendaftaran biasanya muncul di sistem dalam 1x24 jam setelah pengisian formulir online.</p>
+                                    </div>
+                                </form>
                             </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section className="portal-section" style={{ background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
+            <div className="portal-container">
+                <div className="portal-grid-3" style={{ gap: '32px' }}>
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                        <div style={{ width: 60, height: 60, background: 'white', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--portal-primary)', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}><MapPin size={28} /></div>
+                        <div>
+                            <h4 style={{ fontWeight: 800, marginBottom: 4, fontSize: '1rem' }}>Kampus Utama</h4>
+                            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>{settings.contact_address || 'Jl. Pendidikan No. 123, Kota Pendidikan'}</p>
                         </div>
-                        <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-                            <div style={{ width: 60, height: 60, background: 'white', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--portal-primary)', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}><Calendar size={28} /></div>
-                            <div>
-                                <h4 style={{ fontWeight: 800, marginBottom: 4, fontSize: '1rem' }}>Jam Layanan</h4>
-                                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>{settings.opening_hours || 'Senin - Jumat | 08.00 - 15.00 WIB'}</p>
-                            </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                        <div style={{ width: 60, height: 60, background: 'white', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--portal-primary)', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}><Calendar size={28} /></div>
+                        <div>
+                            <h4 style={{ fontWeight: 800, marginBottom: 4, fontSize: '1rem' }}>Jam Layanan</h4>
+                            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>{settings.opening_hours || 'Senin - Jumat | 08.00 - 15.00 WIB'}</p>
                         </div>
-                        <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-                            <div style={{ width: 60, height: 60, background: 'white', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--portal-primary)', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}><CheckCircle2 size={28} /></div>
-                            <div>
-                                <h4 style={{ fontWeight: 800, marginBottom: 4, fontSize: '1rem' }}>Kuota Terbatas</h4>
-                                <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>Segera daftar sebelum kuota jurusan terpenuhi.</p>
-                            </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                        <div style={{ width: 60, height: 60, background: 'white', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--portal-primary)', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}><CheckCircle2 size={28} /></div>
+                        <div>
+                            <h4 style={{ fontWeight: 800, marginBottom: 4, fontSize: '1rem' }}>Kuota Terbatas</h4>
+                            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>Segera daftar sebelum kuota jurusan terpenuhi.</p>
                         </div>
                     </div>
                 </div>
-            </section>
-        </div>
-    )
+            </div>
+        </section>
+    </div>
+)
 }

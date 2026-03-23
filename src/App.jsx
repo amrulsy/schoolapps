@@ -48,7 +48,6 @@ import CmsPagesPage from './features/cms/pages/CmsPagesPage'
 import CmsContactsPage from './features/cms/pages/CmsContactsPage'
 import CmsPpdbPage from './features/cms/pages/CmsPpdbPage'
 import CmsHomePage from './features/cms/pages/CmsHomePage'
-import CmsPpdbContentPage from './features/cms/pages/CmsPpdbContentPage'
 
 import LoadingSpinner from './components/LoadingSpinner';
 import OfflineBanner from './components/OfflineBanner';
@@ -93,7 +92,6 @@ export default function App() {
           <Route path="cms/pages" element={<CmsPagesPage />} />
           <Route path="cms/contacts" element={<CmsContactsPage />} />
           <Route path="cms/ppdb" element={<CmsPpdbPage />} />
-          <Route path="cms/ppdb-content" element={<CmsPpdbContentPage />} />
         </Route>
 
         {/* ======= GURU PORTAL (/guru/...) ======= */}
