@@ -30,12 +30,12 @@ const jwt = require('jsonwebtoken');
 const app = express();
 
 // Batasi CORS ke origin yang diizinkan
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:3000'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [];
 app.use(cors({
     origin: (origin, callback) => {
-        // Izinkan request tanpa origin (curl, tools, dll.) di development
+        // Di development: Jika ALLOWED_ORIGINS kosong, izinkan semua (penting untuk --host / IP lokal)
+        if (allowedOrigins.length === 0) return callback(null, true);
+        // Di production: Validasi strict
         if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
         callback(new Error('CORS: Origin tidak diizinkan'));
     },
