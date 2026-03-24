@@ -7,9 +7,11 @@ import {
     ChevronDown, ChevronRight, BookOpen, RefreshCw, Layout,
     TrendingUp, CheckCircle, ShieldCheck, List, Info, Book, User, GraduationCap
 } from 'lucide-react'
+import { useCustomAlert } from '../../hooks/useCustomAlert'
 import '../../styles/cms.css'
 
 export default function JadwalPelajaranPage() {
+    const { showSuccess, showError, confirmDelete, MySwal } = useCustomAlert()
     const [activeTab, setActiveTab] = useState('jadwal') // 'jadwal' | 'waktu' | 'mapel'
 
     const [jadwalList, setJadwalList] = useState([])
@@ -29,7 +31,7 @@ export default function JadwalPelajaranPage() {
     const [showModal, setShowModal] = useState(false)
     const [isEdit, setIsEdit] = useState(false)
     const [submitLoading, setSubmitLoading] = useState(false)
-    const [formData, setFormData] = useState({ id: '', guru_id: '', kelas_id: '', mapel_id: '', hari: 'Senin', jam_pelajaran_id: '' })
+    const [formData, setFormData] = useState({ id: '', guru_id: '', kelas_id: '', mapel_id: '', hari: 'Senin', jam_pelajaran_id: '', end_jam_pelajaran_id: '' })
 
     // Modal state (Waktu)
     const [showJamModal, setShowJamModal] = useState(false)
@@ -41,7 +43,7 @@ export default function JadwalPelajaranPage() {
     const [showMapelModal, setShowMapelModal] = useState(false)
     const [isEditMapel, setIsEditMapel] = useState(false)
     const [submitLoadingMapel, setSubmitLoadingMapel] = useState(false)
-    const [mapelFormData, setMapelFormData] = useState({ id: '', nama: '', tingkat: 'Nasional' })
+    const [mapelFormData, setMapelFormData] = useState({ id: '', nama: '', tingkat: 'Nasional', guru_id: '', kelas_id: '' })
 
     const fetchData = async () => {
         setLoading(true)
@@ -82,27 +84,28 @@ export default function JadwalPelajaranPage() {
        ========================================= */
     const openCreateModal = (hari = 'Senin') => {
         setIsEdit(false)
-        setFormData({ id: '', guru_id: '', kelas_id: selectedKelasId || (kelasList[0]?.id || ''), mapel_id: '', hari: hari, jam_pelajaran_id: jamList.length > 0 ? jamList[0].id : '' })
+        setFormData({ id: '', guru_id: '', kelas_id: selectedKelasId || (kelasList[0]?.id || ''), mapel_id: '', hari: hari, jam_pelajaran_id: jamList.length > 0 ? jamList[0].id : '', end_jam_pelajaran_id: jamList.length > 0 ? jamList[0].id : '' })
         setShowModal(true)
     }
 
     const openEditModal = (j) => {
         setIsEdit(true)
-        setFormData({ id: j.id, guru_id: j.guru_id, kelas_id: j.kelas_id, mapel_id: j.mapel_id, hari: j.hari, jam_pelajaran_id: j.jam_pelajaran_id })
+        setFormData({ id: j.id, guru_id: j.guru_id, kelas_id: j.kelas_id, mapel_id: j.mapel_id, hari: j.hari, jam_pelajaran_id: j.jam_pelajaran_id, end_jam_pelajaran_id: j.jam_pelajaran_id })
         setShowModal(true)
     }
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Yakin ingin menghapus jadwal ini?')) return
+        if (!await confirmDelete('Hapus Jadwal?', 'Jadwal ini akan dihapus permanen.')) return
         try {
             const res = await fetch(`${API_BASE}/admin/jadwal/${id}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders()
             })
             if (!res.ok) throw new Error('Gagal menghapus')
+            showSuccess('Dihapus!', 'Jadwal berhasil dihapus.')
             fetchData()
         } catch (err) {
-            alert(err.message)
+            showError('Gagal!', err.message)
         }
     }
 
@@ -113,19 +116,40 @@ export default function JadwalPelajaranPage() {
             const method = isEdit ? 'PUT' : 'POST'
             const url = isEdit ? `${API_BASE}/admin/jadwal/${formData.id}` : `${API_BASE}/admin/jadwal`
 
+            const mapel = mapelList.find(m => String(m.id) === String(formData.mapel_id));
+            let submitData = { ...formData, guru_id: mapel ? mapel.guru_id : '' };
+            if (!isEdit) {
+                // Range calculation
+                const startJam = jamList.find(j => j.id === parseInt(formData.jam_pelajaran_id));
+                const endJam = jamList.find(j => j.id === parseInt(formData.end_jam_pelajaran_id));
+
+                if (startJam && endJam) {
+                    if (startJam.jam_ke > endJam.jam_ke) {
+                        throw new Error("Jam selesai tidak boleh lebih awal dari jam mulai.");
+                    }
+                    const jam_pelajaran_ids = jamList
+                        .filter(j => j.jam_ke >= startJam.jam_ke && j.jam_ke <= endJam.jam_ke && j.tipe === 'Pelajaran')
+                        .map(j => j.id);
+
+                    submitData = { ...submitData, jam_pelajaran_ids };
+                }
+            }
+
             const res = await fetch(url, {
                 method,
                 headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(submitData)
             })
 
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan')
 
             setShowModal(false)
+            showSuccess('Berhasil!', `Jadwal berhasil ${isEdit ? 'diperbarui' : 'ditambahkan'}`)
             fetchData()
         } catch (err) {
-            alert(err.message)
+            setShowModal(false)
+            showError('Gagal!', err.message)
         } finally {
             setSubmitLoading(false)
         }
@@ -148,7 +172,7 @@ export default function JadwalPelajaranPage() {
     }
 
     const handleJamDelete = async (id) => {
-        if (!window.confirm('Yakin ingin menghapus jam pelajaran ini? Jika sedang dipakai di Jadwal Pelajaran, penghapusan akan gagal.')) return
+        if (!await confirmDelete('Hapus Waktu?', 'Pastikan tidak ada jadwal yang menggunakan waktu ini.')) return
         try {
             const res = await fetch(`${API_BASE}/admin/jam-pelajaran/${id}`, {
                 method: 'DELETE',
@@ -156,9 +180,10 @@ export default function JadwalPelajaranPage() {
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data.error || 'Gagal menghapus')
+            showSuccess('Dihapus!', 'Waktu pelajaran berhasil dihapus.')
             fetchData() // Refresh both jam and jadwal
         } catch (err) {
-            alert(err.message)
+            showError('Gagal!', err.message)
         }
     }
 
@@ -179,11 +204,59 @@ export default function JadwalPelajaranPage() {
             if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan')
 
             setShowJamModal(false)
+            showSuccess('Berhasil!', `Waktu pelajaran berhasil ${isEditJam ? 'diperbarui' : 'ditambahkan'}`)
             fetchData()
         } catch (err) {
-            alert(err.message)
+            showError('Gagal!', err.message)
         } finally {
             setSubmitLoadingJam(false)
+        }
+    }
+
+    const handleBulkDelete = async () => {
+        const result = await MySwal.fire({
+            title: 'Kosongkan Jadwal?',
+            text: `Pilih cakupan jadwal yang ingin dihapus untuk Kelas ${selectedKelasData?.nama}`,
+            icon: 'warning',
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: 'Hapus Semua Hari',
+            denyButtonText: `Hapus Hanya Hari ${expandedHari || 'Terpilih'}`,
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#ef4444',
+            denyButtonColor: '#f59e0b',
+            customClass: {
+                confirmButton: 'btn btn-danger px-4 py-2 rounded-xl fw-bold mx-2',
+                denyButton: 'btn btn-warning px-4 py-2 rounded-xl fw-bold mx-2',
+                cancelButton: 'btn btn-outline-secondary px-4 py-2 rounded-xl fw-bold mx-2',
+            },
+            buttonsStyling: false
+        })
+
+        if (result.isDismissed) return
+
+        const payload = {
+            kelas_id: selectedKelasId,
+            hari: result.isDenied ? expandedHari : null
+        }
+
+        if (result.isDenied && !expandedHari) {
+            showError('Gagal!', 'Silakan buka salah satu hari terlebih dahulu untuk menghapus per hari.')
+            return
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/admin/jadwal/bulk/delete`, {
+                method: 'DELETE',
+                headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Gagal menghapus')
+            showSuccess('Dihapus!', `${data.count} sesi jadwal telah dihapus.`)
+            fetchData()
+        } catch (err) {
+            showError('Gagal!', err.message)
         }
     }
 
@@ -192,27 +265,28 @@ export default function JadwalPelajaranPage() {
        ========================================= */
     const openCreateMapelModal = () => {
         setIsEditMapel(false)
-        setMapelFormData({ id: '', nama: '', tingkat: 'Nasional' })
+        setMapelFormData({ id: '', nama: '', tingkat: 'Nasional', guru_id: '', kelas_id: '' })
         setShowMapelModal(true)
     }
 
     const openEditMapelModal = (m) => {
         setIsEditMapel(true)
-        setMapelFormData({ id: m.id, nama: m.nama, tingkat: m.tingkat || 'Nasional' })
+        setMapelFormData({ id: m.id, nama: m.nama, tingkat: m.tingkat || 'Nasional', guru_id: m.guru_id || '', kelas_id: m.kelas_id || '' })
         setShowMapelModal(true)
     }
 
     const handleMapelDelete = async (id, nama) => {
-        if (!window.confirm(`Yakin ingin menghapus mata pelajaran ${nama}?`)) return
+        if (!await confirmDelete('Hapus Mapel?', `Yakin ingin menghapus mata pelajaran ${nama}? Menghapus mapel akan menghapus semua jadwal terkait.`)) return
         try {
             const res = await fetch(`${API_BASE}/admin/akademik/mapel/${id}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders()
             })
             if (!res.ok) throw new Error('Gagal menghapus')
+            showSuccess('Dihapus!', 'Mata pelajaran berhasil dihapus.')
             fetchData()
         } catch (err) {
-            alert(err.message)
+            showError('Gagal!', err.message)
         }
     }
 
@@ -239,9 +313,10 @@ export default function JadwalPelajaranPage() {
             if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan')
 
             setShowMapelModal(false)
+            showSuccess('Berhasil!', `Mata pelajaran berhasil ${isEditMapel ? 'diperbarui' : 'ditambahkan'}`)
             fetchData()
         } catch (err) {
-            alert(err.message)
+            showError('Gagal!', err.message)
         } finally {
             setSubmitLoadingMapel(false)
         }
@@ -401,6 +476,24 @@ export default function JadwalPelajaranPage() {
             transition: all 0.2s;
         }
         .modern-input:focus { border-color: var(--primary-600); outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        
+        .btn-modern-primary {
+            background: var(--primary-600); color: white; border: none;
+            padding: 0.6rem 1.25rem; border-radius: 14px; font-weight: 700;
+            display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn-modern-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(var(--primary-rgb), 0.2); filter: brightness(1.1); }
+        .btn-modern-primary:active { transform: translateY(0); }
+
+        .btn-modern-danger {
+            background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1.5px solid rgba(239, 68, 68, 0.2);
+            padding: 0.6rem 1.25rem; border-radius: 14px; font-weight: 700;
+            display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .btn-modern-danger:hover { background: #ef4444; color: white; transform: translateY(-2px); box-shadow: 0 8px 16px rgba(239, 68, 68, 0.2); }
+        .btn-modern-danger:active { transform: translateY(0); }
 
         .kelas-btn {
             width: 100%; text-align: left; padding: 1rem 1.25rem; border: none; 
@@ -630,9 +723,14 @@ export default function JadwalPelajaranPage() {
                                                 </h4>
                                                 <p className="text-muted small fw-bold text-uppercase letter-spacing-1 mb-0">Kelola distribusi waktu pengajaran</p>
                                             </div>
-                                            <button className="btn-modern-primary" onClick={() => openCreateModal(expandedHari)}>
-                                                <PlusCircle size={18} /> Tambah Sesi
-                                            </button>
+                                            <div className="d-flex gap-2">
+                                                <button className="btn-modern-danger" onClick={handleBulkDelete}>
+                                                    <Trash2 size={18} /> Kosongkan
+                                                </button>
+                                                <button className="btn-modern-primary" onClick={() => openCreateModal(expandedHari)}>
+                                                    <PlusCircle size={18} /> Tambah Sesi
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <div className="d-flex flex-column gap-3">
@@ -806,7 +904,7 @@ export default function JadwalPelajaranPage() {
                                         <thead>
                                             <tr>
                                                 <th>Mata Pelajaran</th>
-                                                <th>Tingkat/Kelompok</th>
+                                                <th>Kelas & Guru</th>
                                                 <th className="text-end">Aksi</th>
                                             </tr>
                                         </thead>
@@ -824,9 +922,8 @@ export default function JadwalPelajaranPage() {
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <span className="pill-soft pill-soft-primary">
-                                                            {m.tingkat || 'Nasional'}
-                                                        </span>
+                                                        <div className="fw-bold mb-1" style={{ fontSize: '0.85rem' }}>{m.kelas_nama || '-'}</div>
+                                                        <div className="text-muted" style={{ fontSize: '0.75rem' }}><User size={12} className="me-1" />{m.guru_nama || 'Belum diatur'}</div>
                                                     </td>
                                                     <td className="text-end">
                                                         <div className="d-flex justify-content-end gap-2">
@@ -866,31 +963,37 @@ export default function JadwalPelajaranPage() {
                                 <div className="form-section-card">
                                     <div className="section-title"><Clock size={16} /> Waktu & Sesi</div>
                                     <div className="row g-3">
-                                        <div className="col-12">
-                                            <label className="text-muted small fw-bold mb-2 d-block">PILIH JAM PELAJARAN</label>
+                                        <div className={isEdit ? "col-12" : "col-6"}>
+                                            <label className="text-muted small fw-bold mb-2 d-block">{isEdit ? 'PILIH JAM PELAJARAN' : 'DARI JAM KE-'}</label>
                                             <select className="modern-input" required value={formData.jam_pelajaran_id} onChange={e => setFormData({ ...formData, jam_pelajaran_id: e.target.value })}>
                                                 <option value="">-- Pilih Jam --</option>
-                                                {jamList.map(j => (
+                                                {jamList.filter(j => j.tipe === 'Pelajaran').map(j => (
                                                     <option key={j.id} value={j.id}>Jam ke-{j.jam_ke} ({j.jam_mulai.substring(0, 5)}-{j.jam_selesai.substring(0, 5)})</option>
                                                 ))}
                                             </select>
                                         </div>
+                                        {!isEdit && (
+                                            <div className="col-6">
+                                                <label className="text-muted small fw-bold mb-2 d-block">SAMPAI JAM KE-</label>
+                                                <select className="modern-input" required value={formData.end_jam_pelajaran_id} onChange={e => setFormData({ ...formData, end_jam_pelajaran_id: e.target.value })}>
+                                                    <option value="">-- Pilih Jam Akhir --</option>
+                                                    {jamList.filter(j => j.tipe === 'Pelajaran').map(j => (
+                                                        <option key={j.id} value={j.id}>Jam ke-{j.jam_ke} ({j.jam_mulai.substring(0, 5)}-{j.jam_selesai.substring(0, 5)})</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="form-section-card">
                                     <div className="section-title"><BookOpen size={16} /> Materi & Pengajar</div>
-                                    <div className="mb-3">
+                                    <div className="mb-0">
                                         <label className="text-muted small fw-bold mb-2 d-block">MATA PELAJARAN</label>
                                         <select className="modern-input" required value={formData.mapel_id} onChange={e => setFormData({ ...formData, mapel_id: e.target.value })}>
                                             <option value="">-- Pilih Mapel --</option>
-                                            {mapelList.map(m => <option key={m.id} value={m.id}>{m.nama}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="mb-0">
-                                        <label className="text-muted small fw-bold mb-2 d-block">GURU PENGAJAR</label>
-                                        <select className="modern-input" required value={formData.guru_id} onChange={e => setFormData({ ...formData, guru_id: e.target.value })}>
-                                            <option value="">-- Pilih Guru --</option>
-                                            {guruList.map(g => <option key={g.id} value={g.id}>{g.nama}</option>)}
+                                            {mapelList.filter(m => String(m.kelas_id) === String(formData.kelas_id)).map(m => (
+                                                <option key={m.id} value={m.id}>{m.nama} (Oleh: {m.guru_nama})</option>
+                                            ))}
                                         </select>
                                     </div>
                                 </div>
@@ -989,12 +1092,26 @@ export default function JadwalPelajaranPage() {
                                         <label className="text-muted small fw-bold mb-2 d-block">NAMA MATA PELAJARAN</label>
                                         <input type="text" className="modern-input" placeholder="Misal: Matematika Terapan" required value={mapelFormData.nama} onChange={e => setMapelFormData({ ...mapelFormData, nama: e.target.value })} />
                                     </div>
-                                    <div className="mb-0">
+                                    <div className="mb-3">
                                         <label className="text-muted small fw-bold mb-2 d-block">TINGKAT/KELOMPOK</label>
                                         <select className="modern-input" required value={mapelFormData.tingkat} onChange={e => setMapelFormData({ ...mapelFormData, tingkat: e.target.value })}>
                                             <option value="Nasional">Nasional (Wajib)</option>
                                             <option value="Kewilayahan">Kewilayahan</option>
                                             <option value="Peminatan">Peminatan Kejuruan</option>
+                                        </select>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="text-muted small fw-bold mb-2 d-block">KELAS</label>
+                                        <select className="modern-input" required value={mapelFormData.kelas_id} onChange={e => setMapelFormData({ ...mapelFormData, kelas_id: e.target.value })}>
+                                            <option value="">-- Pilih Kelas --</option>
+                                            {kelasList.map(k => <option key={k.id} value={k.id}>{k.nama}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="mb-0">
+                                        <label className="text-muted small fw-bold mb-2 d-block">GURU PENGAMPU</label>
+                                        <select className="modern-input" required value={mapelFormData.guru_id} onChange={e => setMapelFormData({ ...mapelFormData, guru_id: e.target.value })}>
+                                            <option value="">-- Pilih Guru --</option>
+                                            {guruList.map(g => <option key={g.id} value={g.id}>{g.nama}</option>)}
                                         </select>
                                     </div>
                                 </div>

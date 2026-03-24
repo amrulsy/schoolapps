@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { API_BASE, getAuthHeaders } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import {
-    Calendar, Clock, PlayCircle, PlusCircle, CheckCircle,
-    ChevronRight, X, Layout, BookOpen, UserCheck,
-    TrendingUp, ArrowRight, HelpCircle, Info, Activity
+    Clock, Info, Save, UserX, UserCheck, CheckCircle2,
+    BookOpen, Search, Users, Activity, ChevronRight, CheckCircle,
+    History, Layout, PlayCircle, PlusCircle, TrendingUp, ArrowRight, HelpCircle,
+    Calendar
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
+import { useCustomAlert } from '../../hooks/useCustomAlert'
 
 // --- STYLES ---
 const styles = /*css*/`
@@ -228,15 +230,10 @@ const styles = /*css*/`
 
 export default function GuruDashboard() {
     const { currentUser } = useApp()
+    const { confirmAction } = useCustomAlert()
     const [data, setData] = useState({ schedules: [], activeJournals: [], day: '', date: '' })
     const [loading, setLoading] = useState(true)
-    const [showAdhoc, setShowAdhoc] = useState(false)
     const navigate = useNavigate()
-
-    const [classes, setClasses] = useState([])
-    const [mapels, setMapels] = useState([])
-    const [adhocForm, setAdhocForm] = useState({ kelas_id: '', mapel_id: '', materi: '' })
-    const [submitting, setSubmitting] = useState(false)
 
     const fetchData = async () => {
         setLoading(true)
@@ -250,36 +247,31 @@ export default function GuruDashboard() {
         }
     }
 
-    const fetchAdhocData = async () => {
-        try {
-            const res = await fetch(`${API_BASE}/guru/session/my-classes`, { headers: getAuthHeaders() })
-            if (res.ok) {
-                const json = await res.json()
-                setClasses(json.kelas || [])
-                setMapels(json.mapel || [])
-            }
-        } catch (err) { }
-    }
-
     useEffect(() => {
         fetchData()
-        fetchAdhocData()
     }, [])
 
-    const handleStartSession = async (jadwal_id, currentStatus, jurnal_id) => {
+    const handleStartSession = async (jadwal_id, jadwal_id_end, currentStatus, jurnal_id) => {
         if (currentStatus === 'Running') {
             navigate(`/guru/session/${jurnal_id}`)
             return
         }
         if (currentStatus === 'Selesai') return
 
-        if (!window.confirm('Mulai sesi belajar sekarang? (Waktu masuk akan tercatat saat ini)')) return
+        const confirmed = await confirmAction({
+            title: 'Mulai Sesi Belajar?',
+            text: 'Waktu masuk Anda akan secara otomatis tercatat pada jam sekarang.',
+            confirmText: 'Ya, Mulai Sekarang',
+            cancelText: 'Batal',
+            icon: 'info'
+        })
+        if (!confirmed) return
 
         try {
             const res = await fetch(`${API_BASE}/guru/session/start`, {
                 method: 'POST',
                 headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jadwal_id })
+                body: JSON.stringify({ jadwal_id, jadwal_id_end })
             })
             const result = await res.json()
             if (!res.ok) throw new Error(result.error)
@@ -287,25 +279,6 @@ export default function GuruDashboard() {
             navigate(`/guru/session/${result.id}`)
         } catch (err) {
             alert(err.message)
-        }
-    }
-
-    const handleAdhocSubmit = async (e) => {
-        e.preventDefault()
-        setSubmitting(true)
-        try {
-            const res = await fetch(`${API_BASE}/guru/session/ad-hoc`, {
-                method: 'POST',
-                headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-                body: JSON.stringify(adhocForm)
-            })
-            const result = await res.json()
-            if (!res.ok) throw new Error(result.error)
-
-            navigate(`/guru/session/${result.id}`)
-        } catch (err) {
-            alert(err.message)
-            setSubmitting(false)
         }
     }
 
@@ -343,12 +316,12 @@ export default function GuruDashboard() {
                     </div>
                 </div>
                 <button
-                    className="btn btn-primary"
-                    style={{ borderRadius: 12, padding: '12px 24px', fontWeight: 700 }}
-                    onClick={() => setShowAdhoc(true)}
+                    className="btn btn-outline-primary shadow-sm"
+                    style={{ borderRadius: 12, padding: '12px 24px', fontWeight: 700, border: '1.5px solid var(--primary-200)', background: 'var(--bg-card)' }}
+                    onClick={() => navigate('/guru/history')}
                 >
-                    <PlusCircle size={20} className="me-2" />
-                    Mulai Sesi Ad-Hoc
+                    <History size={20} className="me-2" />
+                    Riwayat Jurnal & Absensi
                 </button>
             </div>
 
@@ -379,32 +352,14 @@ export default function GuruDashboard() {
                                 <ScheduleCard
                                     key={j.id}
                                     schedule={j}
-                                    onAction={() => handleStartSession(j.id, j.status, j.jurnal?.id)}
+                                    onAction={() => {
+                                        const endId = (j.jadwal_ids && Array.isArray(j.jadwal_ids))
+                                            ? j.jadwal_ids[j.jadwal_ids.length - 1]
+                                            : j.id;
+                                        handleStartSession(j.id, endId, j.status, j.jurnal?.id)
+                                    }}
                                 />
                             ))
-                        )}
-
-                        {data.activeJournals.length > 0 && (
-                            <div className="mt-5">
-                                <h5 className="fw-black mb-4 d-flex align-items-center gap-2 text-primary px-1" style={{ fontSize: '1.1rem', letterSpacing: '-0.5px' }}>
-                                    <Clock size={20} className="text-warning" />
-                                    Sesi Tambahan / Ad-Hoc
-                                </h5>
-                                {data.activeJournals.map(aj => (
-                                    <ScheduleCard
-                                        key={aj.id}
-                                        schedule={{
-                                            ...aj,
-                                            jam_mulai: aj.waktu_masuk_aktual,
-                                            jam_selesai: aj.waktu_keluar_aktual || '??:??',
-                                            status: aj.status_jurnal,
-                                            jurnal: aj
-                                        }}
-                                        isAdhoc={true}
-                                        onAction={() => navigate(`/guru/session/${aj.id}`)}
-                                    />
-                                ))}
-                            </div>
                         )}
                     </div>
 
@@ -458,78 +413,6 @@ export default function GuruDashboard() {
                     </div>
                 </div>
             )}
-
-            {/* Modal Ad-Hoc */}
-            {showAdhoc && (
-                <div className="modal-backdrop">
-                    <div className="modal-container">
-                        <div className="modal-header">
-                            <div className="header-content">
-                                <div className="header-icon">
-                                    <BookOpen size={24} />
-                                </div>
-                                <div className="header-text">
-                                    <h2>Mulai Sesi Ad-Hoc</h2>
-                                    <p>Mulai sesi pengajaran di luar jadwal master</p>
-                                </div>
-                            </div>
-                            <button className="btn-close-circle" onClick={() => setShowAdhoc(false)}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="modal-body-scroll">
-                            <form id="adhocForm" onSubmit={handleAdhocSubmit}>
-                                <div className="form-section-card">
-                                    <div className="section-title">
-                                        <Info size={18} />
-                                        <h3>Detail Pengajaran</h3>
-                                    </div>
-                                    <div className="row g-3">
-                                        <div className="col-md-6">
-                                            <div className="form-group mb-3">
-                                                <label className="form-label small fw-bold text-uppercase text-muted mb-2">Pilih Kelas <span className="text-danger">*</span></label>
-                                                <select className="modern-input" required value={adhocForm.kelas_id} onChange={e => setAdhocForm({ ...adhocForm, kelas_id: e.target.value })}>
-                                                    <option value="">-- Pilih Kelas --</option>
-                                                    {classes.map(k => <option key={k.id} value={k.id}>{k.nama}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div className="col-md-6">
-                                            <div className="form-group mb-3">
-                                                <label className="form-label small fw-bold text-uppercase text-muted mb-2">Mata Pelajaran <span className="text-danger">*</span></label>
-                                                <select className="modern-input" required value={adhocForm.mapel_id} onChange={e => setAdhocForm({ ...adhocForm, mapel_id: e.target.value })}>
-                                                    <option value="">-- Pilih Mapel --</option>
-                                                    {mapels.map(m => <option key={m.id} value={m.id}>{m.nama}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label small fw-bold text-uppercase text-muted mb-2">Materi Ajar (Opsional)</label>
-                                        <input type="text" className="modern-input" value={adhocForm.materi} onChange={e => setAdhocForm({ ...adhocForm, materi: e.target.value })} placeholder="Topik yang akan diajarkan..." />
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-
-                        <div className="modal-footer-custom">
-                            <button type="button" className="btn-glass-secondary" onClick={() => setShowAdhoc(false)}>Batal</button>
-                            <button type="submit" form="adhocForm" className="btn-modern-primary" disabled={submitting} style={{ background: 'var(--primary-600)', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
-                                {submitting ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm" /> Memproses...
-                                    </>
-                                ) : (
-                                    <>
-                                        <PlayCircle size={18} /> Mulai Sesi Sekarang
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }
@@ -557,6 +440,9 @@ function ScheduleCard({ schedule, onAction, isAdhoc }) {
                         <div className="d-flex align-items-center gap-2 mb-1">
                             <span className="badge border-0 px-2 py-1" style={{ borderRadius: 8, fontSize: '0.7rem', background: 'var(--primary-100)', color: 'var(--primary-700)', fontWeight: 800 }}>
                                 {schedule.kelas_nama}
+                            </span>
+                            <span className="badge border-0 px-2 py-1" style={{ borderRadius: 8, fontSize: '0.7rem', background: 'var(--primary-100)', color: 'var(--primary-700)', fontWeight: 800 }}>
+                                Jam ke-{schedule.jam_ke}{schedule.jam_ke_end && schedule.jam_ke_end !== schedule.jam_ke ? ` s.d ${schedule.jam_ke_end}` : ''}
                             </span>
                             {isAdhoc && (
                                 <span className="badge border-0 px-2 py-1" style={{ borderRadius: 8, fontSize: '0.7rem', background: 'var(--warning-100)', color: 'var(--warning-700)', fontWeight: 800 }}>

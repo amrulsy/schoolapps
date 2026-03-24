@@ -5,23 +5,35 @@ const pool = require('../../db');
 // Mata Pelajaran
 router.get('/mapel', async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT * FROM mata_pelajaran ORDER BY nama');
+        const [rows] = await pool.query(`
+            SELECT m.*, k.nama as kelas_nama, g.nama as guru_nama 
+            FROM mata_pelajaran m 
+            LEFT JOIN kelas k ON m.kelas_id = k.id 
+            LEFT JOIN guru g ON m.guru_id = g.id 
+            ORDER BY m.nama
+        `);
         res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.post('/mapel', async (req, res) => {
     try {
-        const { nama, tingkat } = req.body;
-        const [result] = await pool.query('INSERT INTO mata_pelajaran (nama, tingkat) VALUES (?, ?)', [nama, tingkat || null]);
+        const { nama, tingkat, guru_id, kelas_id } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO mata_pelajaran (nama, tingkat, guru_id, kelas_id) VALUES (?, ?, ?, ?)',
+            [nama, tingkat || null, guru_id || null, kelas_id || null]
+        );
         res.status(201).json({ id: result.insertId, success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.put('/mapel/:id', async (req, res) => {
     try {
-        const { nama, tingkat } = req.body;
-        await pool.query('UPDATE mata_pelajaran SET nama = ?, tingkat = ? WHERE id = ?', [nama, tingkat || null, req.params.id]);
+        const { nama, tingkat, guru_id, kelas_id } = req.body;
+        await pool.query(
+            'UPDATE mata_pelajaran SET nama = ?, tingkat = ?, guru_id = ?, kelas_id = ? WHERE id = ?',
+            [nama, tingkat || null, guru_id || null, kelas_id || null, req.params.id]
+        );
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });

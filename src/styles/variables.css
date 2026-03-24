@@ -80,6 +80,7 @@
     /* Theme variables (Light) */
     --bg-body: #ECEEF2;
     --bg-card: #FFFFFF;
+    --bg-card-rgb: 255, 255, 255;
     --bg-sidebar: var(--primary-900);
     --bg-header: #FFFFFF;
     --text-primary: var(--gray-900);
@@ -99,6 +100,7 @@
 [data-theme="dark"] {
     --bg-body: #0F172A;
     --bg-card: #1E293B;
+    --bg-card-rgb: 30, 41, 59;
     --bg-sidebar: #0C1526;
     --bg-header: #1E293B;
     --text-primary: #F1F5F9;

@@ -14,6 +14,7 @@ const StudentApp = lazy(() => import('./student/StudentApp'))
 // Guru Pages
 import GuruDashboard from './pages/guru/GuruDashboard'
 import ClassSession from './pages/guru/ClassSession'
+import GuruHistory from './pages/guru/GuruHistory'
 
 // Admin Pages
 import DashboardPage from './pages/admin/DashboardPage'
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="/guru" element={<GuruLayout />}>
           <Route index element={<GuruDashboard />} />
           <Route path="session/:id" element={<ClassSession />} />
+          <Route path="history" element={<GuruHistory />} />
         </Route>
 
         {/* ======= STUDENT PORTAL (/siswa-portal/...) ======= */}
