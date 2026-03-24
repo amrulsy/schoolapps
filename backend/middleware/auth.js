@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'R4h4s!a_SIAS_T0k3n_2026';
+if (!process.env.JWT_SECRET) {
+    throw new Error('[FATAL] JWT_SECRET tidak dikonfigurasi di environment variable!');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
  * Middleware untuk memvalidasi JWT Token pada rute Admin.

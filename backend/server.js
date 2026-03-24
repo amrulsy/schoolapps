@@ -22,22 +22,40 @@ const adminPesanRoutes = require('./routes/admin/pesan');
 
 // Middleware
 const { authMiddleware } = require('./middleware/auth');
+const { studentAuthMiddleware } = require('./middleware/studentAuth');
 const { rateLimiter } = require('./middleware/rateLimiter');
+const { cacheMiddleware } = require('./middleware/cache');
+const jwt = require('jsonwebtoken');
 
 const app = express();
-app.use(cors());
+
+// Batasi CORS ke origin yang diizinkan
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:3000'];
+app.use(cors({
+    origin: (origin, callback) => {
+        // Izinkan request tanpa origin (curl, tools, dll.) di development
+        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+        callback(new Error('CORS: Origin tidak diizinkan'));
+    },
+    credentials: true
+}));
 app.use(express.json());
 
 // Serve uploaded media files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- PUBLIC PORTAL ROUTES (no auth, rate-limited) ---
-app.use('/api/public', rateLimiter(60, 60000), publicPortalRoutes);
+// --- PUBLIC PORTAL ROUTES (no auth, rate-limited, cached 5 menit) ---
+app.use('/api/public', rateLimiter(60, 60000), cacheMiddleware(300), publicPortalRoutes);
 
 // --- AUTH ROUTES ---
-// Mendaftarkan authMiddleware khusus untuk rute /me SEBELUM authRoutes di-mount
+// Rate limit ketat untuk endpoint login (10 request per menit)
+const loginRateLimit = rateLimiter(10, 60000);
 app.use('/api/auth/me', authMiddleware);
+app.use('/api/auth/login', loginRateLimit);
 app.use('/api/auth', authRoutes);
+app.use('/api/student/login', loginRateLimit);
 
 // --- ADMIN CMS ROUTES (auth required) ---
 app.use('/api/admin/cms', authMiddleware, adminCmsRoutes);
@@ -63,13 +81,10 @@ app.get('/api/student/menus', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/student/attendance/summary', async (req, res) => {
+// Semua endpoint student berikut memerlukan JWT student
+app.get('/api/student/attendance/summary', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
         const now = new Date();
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
         const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -78,13 +93,9 @@ app.get('/api/student/attendance/summary', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/student/tabungan', async (req, res) => {
+app.get('/api/student/tabungan', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
         const [rows] = await pool.query(`SELECT id, tanggal as date, tipe as type, nominal as amount, note FROM tabungan WHERE siswa_id = ? ORDER BY tanggal DESC`, [studentId]);
         const totalSetor = rows.filter(r => r.type === 'setor').reduce((acc, r) => acc + Number(r.amount), 0);
         const totalTarik = rows.filter(r => r.type === 'tarik').reduce((acc, r) => acc + Number(r.amount), 0);
@@ -93,25 +104,17 @@ app.get('/api/student/tabungan', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/student/attendance', async (req, res) => {
+app.get('/api/student/attendance', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
         const [rows] = await pool.query(`SELECT id, tanggal as date, status, keterangan FROM siswa_presensi WHERE siswa_id = ? ORDER BY tanggal DESC LIMIT 50`, [studentId]);
         res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/student/bk', async (req, res) => {
+app.get('/api/student/bk', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
         const [catatan] = await pool.query(`SELECT c.id, c.tanggal as date, c.keterangan, c.poin, kat.nama as kategori, kat.tipe FROM bk_catatan c JOIN bk_kategori kat ON c.bk_kategori_id = kat.id WHERE c.siswa_id = ? ORDER BY c.tanggal DESC`, [studentId]);
         let poinPelanggaran = 0, poinPrestasi = 0;
         const pelanggaran = catatan.filter(c => { if (c.tipe === 'pelanggaran') { poinPelanggaran += c.poin; return true; } return false; });
@@ -121,13 +124,9 @@ app.get('/api/student/bk', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/student/nilai', async (req, res) => {
+app.get('/api/student/nilai', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
         const { semester, tahun_ajaran_id } = req.query;
         let query = `SELECT n.id, m.nama as mapel, n.tugas, n.uts, n.uas, n.akhir, m.tingkat FROM nilai_siswa n JOIN mata_pelajaran m ON n.mapel_id = m.id WHERE n.siswa_id = ?`;
         const params = [studentId];
@@ -144,26 +143,18 @@ app.get('/api/student/nilai', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/student/pesan', async (req, res) => {
+app.get('/api/student/pesan', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
         const [rows] = await pool.query(`SELECT p.*, a.nama as admin_nama FROM pesan p LEFT JOIN users a ON p.pengirim_id = a.id AND p.pengirim_type = 'admin' WHERE (p.pengirim_id = ? AND p.pengirim_type = 'student') OR (p.penerima_id = ? AND p.penerima_type = 'student') ORDER BY p.waktu ASC`, [studentId, studentId]);
         await pool.query(`UPDATE pesan SET is_read = TRUE WHERE penerima_id = ? AND penerima_type = 'student' AND is_read = FALSE`, [studentId]);
         res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/student/pesan', async (req, res) => {
+app.post('/api/student/pesan', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
         const { text } = req.body;
         const [result] = await pool.query(`INSERT INTO pesan (pengirim_id, pengirim_type, penerima_id, penerima_type, pesan, waktu, is_read) VALUES (?, 'student', 1, 'admin', ?, UTC_TIMESTAMP(), FALSE)`, [studentId, text]);
         res.status(201).json({ id: result.insertId, success: true });
@@ -369,7 +360,6 @@ app.post('/api/siswa', async (req, res) => {
 });
 
 app.put('/api/siswa/:id', async (req, res) => {
-    console.log(`[BACKEND] PUT /api/siswa/${req.params.id} payload:`, JSON.stringify(req.body, null, 2));
     try {
         const {
             nisn, nama, jk, status, tempatLahir, tglLahir, telp, alamat, wali, kelasId,
@@ -388,7 +378,6 @@ app.put('/api/siswa/:id', async (req, res) => {
         // 2. Update/Insert Orang Tua (Ayah, Ibu, Wali)
         const updateParent = async (jenis, p) => {
             if (!p || !p.nama) return;
-            console.log(`[BACKEND] Updating Parent: ${jenis}`, p);
             const fields = ['nama', 'nik', 'pendidikan', 'pekerjaan', 'penghasilan', 'hp', 'status_hidup', 'hubungan', 'alamat'];
             const vals = fields.map(f => p[f] || null);
             await pool.query(`
@@ -705,8 +694,12 @@ app.post('/api/student/login', async (req, res) => {
             return res.status(401).json({ error: 'Tanggal lahir tidak cocok' });
         }
 
-        // Simple token: base64 encode siswa id + nisn
-        const token = Buffer.from(`student:${siswa.id}:${siswa.nisn}`).toString('base64');
+        // Buat JWT token siswa (berlaku 12 jam)
+        const token = jwt.sign(
+            { studentId: siswa.id, nisn: siswa.nisn },
+            process.env.JWT_SECRET,
+            { expiresIn: '12h' }
+        );
 
         res.json({
             token,
@@ -728,13 +721,9 @@ app.post('/api/student/login', async (req, res) => {
 });
 
 // Student Profile (full detail)
-app.get('/api/student/profile', async (req, res) => {
+app.get('/api/student/profile', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
 
         const [rows] = await pool.query(`
             SELECT s.*, k.nama as kelas_nama, u.nama as unit_nama
@@ -758,13 +747,9 @@ app.get('/api/student/profile', async (req, res) => {
 });
 
 // Student Bills
-app.get('/api/student/bills', async (req, res) => {
+app.get('/api/student/bills', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
 
         const [rows] = await pool.query(`
             SELECT t.*, kt.nama as kategori_nama, ta.tahun as tahun_ajaran
@@ -779,13 +764,9 @@ app.get('/api/student/bills', async (req, res) => {
 });
 
 // Student Transactions
-app.get('/api/student/transactions', async (req, res) => {
+app.get('/api/student/transactions', studentAuthMiddleware, async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) return res.status(401).json({ error: 'Token diperlukan' });
-        const token = authHeader.replace('Bearer ', '');
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const [, studentId] = decoded.split(':');
+        const studentId = req.studentId;
 
         const [rows] = await pool.query(`
             SELECT tr.*, s.nama as siswa_nama

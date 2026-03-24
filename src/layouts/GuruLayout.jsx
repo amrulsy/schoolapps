@@ -1,7 +1,7 @@
 import { Outlet, Navigate, Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useApp } from '../context/AppContext'
-import { LogOut, BookOpen, Calendar, LayoutDashboard, Sun, Moon } from 'lucide-react'
+import { LogOut, BookOpen, Sun, Moon } from 'lucide-react'
 import { useUi } from '../context/UiContext'
 
 export default function GuruLayout() {

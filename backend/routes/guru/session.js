@@ -36,7 +36,6 @@ router.get('/today', async (req, res) => {
         const currentDay = days[now.getDay()];
         const currentDate = now.toLocaleDateString('en-CA'); // YYYY-MM-DD local WIB
 
-        console.log(`[DEBUG Dashboard] Guru ID: ${req.guru_id}, Day: ${currentDay}, Date: ${currentDate}`);
 
         // Fetch jadwal for today
         const [jadwal] = await pool.query(`
@@ -119,10 +118,8 @@ router.get('/history', async (req, res) => {
             LIMIT 50
         `, [req.guru_id]);
 
-        console.log(`[DEBUG History] Guru ID: ${req.guru_id}, Found: ${history.length} entries`);
         res.json(history);
     } catch (err) {
-        console.error("[DEBUG History Error]", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -135,7 +132,6 @@ router.post('/start', async (req, res) => {
         const currentDate = nowWib.toLocaleDateString('en-CA');
         const currentTime = nowWib.toLocaleTimeString('en-GB', { hour12: false });
 
-        console.log(`[DEBUG Start] Guru ID: ${req.guru_id}, Jadwal: ${jadwal_id}, WIB Time: ${currentTime}`);
 
         const [existing] = await pool.query('SELECT id FROM jurnal_mengajar WHERE jadwal_id = ? AND tanggal = ?', [jadwal_id, currentDate]);
         if (existing.length > 0) return res.status(400).json({ error: 'Sesi untuk jadwal ini sudah dimulai atau selesai hari ini' });
@@ -172,10 +168,8 @@ router.post('/start', async (req, res) => {
             jadwalInfo[0].jam_mulai, jadwalInfo[0].jam_selesai_end || jadwalInfo[0].jam_selesai
         ]);
 
-        console.log(`[DEBUG Start] Inserted Jurnal ID: ${result.insertId}`);
         res.status(201).json({ id: result.insertId, success: true });
     } catch (err) {
-        console.error("[DEBUG Start Error]", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -216,7 +210,6 @@ router.get('/:id/students', async (req, res) => {
         // Ensure we handle the date string from DB correctly without UTC skew
         const dateStr = new Date(tanggal).toLocaleDateString('en-CA');
 
-        console.log(`[DEBUG Students] Jurnal: ${jurnalId}, Date: ${dateStr}, Kelas: ${kelas_id}`);
 
         // 1. Get ALL students currently in presensi_sesi for this journal (Resilient list)
         // This ensures even if a student is deleted from master table, they still show up if they have attendance data.
@@ -305,10 +298,8 @@ router.put('/:id/finish', async (req, res) => {
             WHERE id = ? AND status_jurnal = 'Running'
         `, [materi, currentTime, req.params.id]);
 
-        console.log(`[DEBUG Finish] Jurnal ID: ${req.params.id}, Materi: ${materi?.substring(0, 20)}...`);
         res.json({ success: true });
     } catch (err) {
-        console.error("[DEBUG Finish Error]", err);
         res.status(500).json({ error: err.message });
     }
 });

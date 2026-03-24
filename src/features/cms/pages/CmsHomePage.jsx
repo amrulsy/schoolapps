@@ -729,6 +729,56 @@ export default function CmsHomePage() {
         )
     }
 
+    function renderCtaTab() {
+        const ctaKeys = ['cta_title', 'cta_subtitle', 'cta_button_text', 'cta_button_url']
+        return (
+            <div className="cms-section-card">
+                <h3 className="cms-section-title">📣 Pengaturan CTA Section</h3>
+                <p className="cms-section-desc">
+                    Kelola teks ajakan bertindak (Call-To-Action) yang tampil di bagian bawah halaman portal.
+                </p>
+
+                <div className="form-group mb-4">
+                    <label>Judul CTA</label>
+                    <input type="text" className="form-control"
+                        value={settings.cta_title || ''}
+                        onChange={e => handleSettingChange('cta_title', e.target.value)}
+                        placeholder="Contoh: Daftarkan Diri Sekarang!"
+                    />
+                </div>
+                <div className="form-group mb-4">
+                    <label>Subtitle CTA</label>
+                    <textarea className="form-control" rows={2}
+                        value={settings.cta_subtitle || ''}
+                        onChange={e => handleSettingChange('cta_subtitle', e.target.value)}
+                        placeholder="Deskripsi singkat pendukung CTA..."
+                    />
+                </div>
+                <div className="grid-2 gap-4 mb-4">
+                    <div className="form-group">
+                        <label>Teks Tombol</label>
+                        <input type="text" className="form-control"
+                            value={settings.cta_button_text || ''}
+                            onChange={e => handleSettingChange('cta_button_text', e.target.value)}
+                            placeholder="Daftar PPDB"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>URL Tombol</label>
+                        <input type="url" className="form-control"
+                            value={settings.cta_button_url || ''}
+                            onChange={e => handleSettingChange('cta_button_url', e.target.value)}
+                            placeholder="/ppdb"
+                        />
+                    </div>
+                </div>
+                <button className="btn btn-primary" onClick={() => saveSettings(ctaKeys)} disabled={savingSettings}>
+                    <Save size={16} /> {savingSettings ? 'Menyimpan...' : 'Simpan CTA Section'}
+                </button>
+            </div>
+        )
+    }
+
     function renderSiteTab() {
         const siteKeys = ['site_title', 'site_description', 'school_name', 'school_tagline', 'footer_description']
         return (

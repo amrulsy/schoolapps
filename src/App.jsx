@@ -11,43 +11,44 @@ const PortalApp = lazy(() => import('./portal/PortalApp'))
 // Student Portal (separate chunk — student auth)
 const StudentApp = lazy(() => import('./student/StudentApp'))
 
-// Guru Pages
-import GuruDashboard from './pages/guru/GuruDashboard'
-import ClassSession from './pages/guru/ClassSession'
-import GuruHistory from './pages/guru/GuruHistory'
+// Guru Pages (lazy — only load when user navigates to /guru)
+const GuruDashboard = lazy(() => import('./pages/guru/GuruDashboard'))
+const ClassSession = lazy(() => import('./pages/guru/ClassSession'))
+const GuruHistory = lazy(() => import('./pages/guru/GuruHistory'))
 
-// Admin Pages
-import DashboardPage from './pages/admin/DashboardPage'
-import SiswaPage from './pages/admin/SiswaPage'
-import UnitKelasPage from './pages/admin/UnitKelasPage'
-import TahunAjaranPage from './pages/admin/TahunAjaranPage'
-import DataGuruPage from './pages/admin/DataGuruPage'
-import JadwalPelajaranPage from './pages/admin/JadwalPelajaranPage'
-import KategoriTagihanPage from './pages/admin/KategoriTagihanPage'
-import RekeningPage from './pages/admin/RekeningPage'
-import TagihanPage from './pages/admin/TagihanPage'
-import RiwayatGeneratePage from './pages/admin/RiwayatGeneratePage'
-import PembayaranPage from './pages/admin/PembayaranPage'
-import RiwayatTransaksiPage from './pages/admin/RiwayatTransaksiPage'
-import ArusKasPage from './pages/admin/ArusKasPage'
-import LaporanPage from './pages/admin/LaporanPage'
-import KartuSppPage from './pages/admin/KartuSppPage'
-import UsersPage from './pages/admin/UsersPage'
-import PengaturanPage from './pages/admin/PengaturanPage'
-import BackupPage from './pages/admin/BackupPage'
-import StudentMenuPage from './pages/admin/StudentMenuPage'
-import AttendancePage from './pages/admin/AttendancePage'
-import TabunganPage from './pages/admin/TabunganPage'
-import BimbinganKonselingPage from './pages/admin/BimbinganKonselingPage'
-import NilaiAkademikPage from './pages/admin/NilaiAkademikPage'
-import ManajemenPesanPage from './pages/admin/ManajemenPesanPage'
-// CMS Pages
-import CmsBannersPage from './features/cms/pages/CmsBannersPage'
-import CmsPostsPage from './features/cms/pages/CmsPostsPage'
-import CmsPagesPage from './features/cms/pages/CmsPagesPage'
-import CmsContactsPage from './features/cms/pages/CmsContactsPage'
-import CmsPpdbPage from './features/cms/pages/CmsPpdbPage'
-import CmsHomePage from './features/cms/pages/CmsHomePage'
+// Admin Pages (lazy — only load when user navigates to /admin/...)
+const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
+const SiswaPage = lazy(() => import('./pages/admin/SiswaPage'))
+const UnitKelasPage = lazy(() => import('./pages/admin/UnitKelasPage'))
+const TahunAjaranPage = lazy(() => import('./pages/admin/TahunAjaranPage'))
+const DataGuruPage = lazy(() => import('./pages/admin/DataGuruPage'))
+const JadwalPelajaranPage = lazy(() => import('./pages/admin/JadwalPelajaranPage'))
+const KategoriTagihanPage = lazy(() => import('./pages/admin/KategoriTagihanPage'))
+const RekeningPage = lazy(() => import('./pages/admin/RekeningPage'))
+const TagihanPage = lazy(() => import('./pages/admin/TagihanPage'))
+const RiwayatGeneratePage = lazy(() => import('./pages/admin/RiwayatGeneratePage'))
+const PembayaranPage = lazy(() => import('./pages/admin/PembayaranPage'))
+const RiwayatTransaksiPage = lazy(() => import('./pages/admin/RiwayatTransaksiPage'))
+const ArusKasPage = lazy(() => import('./pages/admin/ArusKasPage'))
+const LaporanPage = lazy(() => import('./pages/admin/LaporanPage'))
+const KartuSppPage = lazy(() => import('./pages/admin/KartuSppPage'))
+const UsersPage = lazy(() => import('./pages/admin/UsersPage'))
+const PengaturanPage = lazy(() => import('./pages/admin/PengaturanPage'))
+const BackupPage = lazy(() => import('./pages/admin/BackupPage'))
+const StudentMenuPage = lazy(() => import('./pages/admin/StudentMenuPage'))
+const AttendancePage = lazy(() => import('./pages/admin/AttendancePage'))
+const TabunganPage = lazy(() => import('./pages/admin/TabunganPage'))
+const BimbinganKonselingPage = lazy(() => import('./pages/admin/BimbinganKonselingPage'))
+const NilaiAkademikPage = lazy(() => import('./pages/admin/NilaiAkademikPage'))
+const ManajemenPesanPage = lazy(() => import('./pages/admin/ManajemenPesanPage'))
+// CMS Pages (lazy)
+const CmsBannersPage = lazy(() => import('./features/cms/pages/CmsBannersPage'))
+const CmsPostsPage = lazy(() => import('./features/cms/pages/CmsPostsPage'))
+const CmsPagesPage = lazy(() => import('./features/cms/pages/CmsPagesPage'))
+const CmsContactsPage = lazy(() => import('./features/cms/pages/CmsContactsPage'))
+const CmsPpdbPage = lazy(() => import('./features/cms/pages/CmsPpdbPage'))
+const CmsHomePage = lazy(() => import('./features/cms/pages/CmsHomePage'))
+
 
 import LoadingSpinner from './components/LoadingSpinner';
 import OfflineBanner from './components/OfflineBanner';

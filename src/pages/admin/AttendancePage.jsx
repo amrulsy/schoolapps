@@ -3,9 +3,9 @@ import { useApp } from '../../context/AppContext'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 import { API_BASE } from '../../services/api'
 import {
-    Calendar, Users, Save, CheckCircle, XCircle, AlertCircle,
+    Calendar, Users, Save, CheckCircle, AlertCircle,
     Clock, PieChart as PieChartIcon, Activity, UserCheck,
-    UserMinus, UserPlus, Info, Search, ChevronRight, Filter
+    UserMinus, Search, Filter
 } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { getAuthHeaders } from '../../services/api'
@@ -539,37 +539,7 @@ export default function AttendancePage() {
     )
 }
 
-function KPICard({ title, value, icon, color, percentage }) {
-    const colorMap = {
-        primary: 'var(--primary-600)',
-        success: 'var(--success-600)',
-        warning: 'var(--warning-600)',
-        danger: 'var(--danger-600)'
-    }
-    const bgMap = {
-        primary: 'var(--primary-50)',
-        success: 'var(--success-50)',
-        warning: 'var(--warning-50)',
-        danger: 'var(--danger-50)'
-    }
 
-    return (
-        <div className="col-6 col-md-3">
-            <div className="bento-card kpi-card">
-                <div className="kpi-icon" style={{ background: bgMap[color], color: colorMap[color] }}>
-                    {icon}
-                </div>
-                <div>
-                    <div className="text-secondary small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>{title}</div>
-                    <div className="d-flex align-items-baseline gap-1">
-                        <h3 className="fw-black mb-0" style={{ color: 'var(--text-primary)' }}>{value}</h3>
-                        {percentage !== undefined && <span className="text-success small fw-bold" style={{ fontSize: '0.7rem' }}>{percentage.toFixed(0)}%</span>}
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-}
 
 function AttendanceBtn({ active, type, onClick }) {
     const labels = { hadir: 'HDIR', sakit: 'SKIT', izin: 'IZIN', alpha: 'ALPH' }

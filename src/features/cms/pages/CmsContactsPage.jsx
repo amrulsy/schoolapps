@@ -204,7 +204,7 @@ export default function CmsContactsPage() {
                                     <Phone size={16} />
                                     <span>{viewMessage.phone || '-'}</span>
                                     {viewMessage.phone && (
-                                        <a href={`https://wa.me/${viewMessage.phone.replace(/\D/g, '')}`} target="_blank" className="btn-link text-success" title="Chat WA"><ExternalLink size={14} /></a>
+                                        <a href={`https://wa.me/${viewMessage.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="btn-link text-success" title="Chat WA"><ExternalLink size={14} /></a>
                                     )}
                                 </div>
                                 <div className="detail-item">
@@ -232,7 +232,7 @@ export default function CmsContactsPage() {
                                 {viewMessage.phone && (
                                     <a
                                         href={`https://wa.me/${viewMessage.phone.replace(/\D/g, '')}`}
-                                        target="_blank"
+                                        target="_blank" rel="noreferrer"
                                         className="btn btn-success"
                                     >
                                         <MessageSquare size={16} className="mr-2" /> Balas via WhatsApp

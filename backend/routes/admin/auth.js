@@ -5,7 +5,8 @@ const pool = require('../../db');
 require('dotenv').config();
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'R4h4s!a_SIAS_T0k3n_2026';
+const JWT_SECRET = process.env.JWT_SECRET; // Wajib dikonfigurasi via env (di-check saat middleware auth.js load)
+
 
 // LOGIN API
 router.post('/login', async (req, res) => {
