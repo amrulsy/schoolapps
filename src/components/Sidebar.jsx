@@ -15,8 +15,7 @@ const menuSections = [
             { to: '/admin/guru', icon: Users, text: 'Guru' },
             { to: '/admin/unit-kelas', icon: Building2, text: 'Unit & Kelas' },
             { to: '/admin/tahun-ajaran', icon: Calendar, text: 'Tahun Ajaran' },
-            { to: '/admin/waktu-pelajaran', icon: Clock, text: 'Waktu Pelajaran' },
-            { to: '/admin/jadwal', icon: Calendar, text: 'Jadwal Pelajaran' },
+            { to: '/admin/jadwal', icon: Calendar, text: 'Manajemen Pelajaran' },
             { to: '/admin/kategori-tagihan', icon: ClipboardList, text: 'Kategori Tagihan' },
             { to: '/admin/rekening', icon: Landmark, text: 'Rekening Bank' },
             { to: '/admin/presensi', icon: ClipboardList, text: 'Presensi Siswa' },
@@ -132,7 +131,7 @@ export default function Sidebar() {
                 <div className="avatar">{currentUser.nama.charAt(0)}</div>
                 <div className="user-info">
                     <div className="name">{currentUser.nama}</div>
-                    <div className="role">{currentUser.role === 'admin' ? '🟣 Admin' : '🟢 Kasir'}</div>
+                    <div className="role">{currentUser.role === 'admin' ? '🟣 Admin' : currentUser.role === 'guru' ? '🔵 Guru' : '🟢 Kasir'}</div>
                 </div>
                 <button
                     className="btn-icon"

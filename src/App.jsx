@@ -22,7 +22,6 @@ import UnitKelasPage from './pages/admin/UnitKelasPage'
 import TahunAjaranPage from './pages/admin/TahunAjaranPage'
 import DataGuruPage from './pages/admin/DataGuruPage'
 import JadwalPelajaranPage from './pages/admin/JadwalPelajaranPage'
-import WaktuPelajaranPage from './pages/admin/WaktuPelajaranPage'
 import KategoriTagihanPage from './pages/admin/KategoriTagihanPage'
 import RekeningPage from './pages/admin/RekeningPage'
 import TagihanPage from './pages/admin/TagihanPage'
@@ -63,7 +62,6 @@ export default function App() {
           <Route path="siswa" element={<SiswaPage />} />
           <Route path="guru" element={<DataGuruPage />} />
           <Route path="jadwal" element={<JadwalPelajaranPage />} />
-          <Route path="waktu-pelajaran" element={<WaktuPelajaranPage />} />
           <Route path="unit-kelas" element={<UnitKelasPage />} />
           <Route path="tahun-ajaran" element={<TahunAjaranPage />} />
           <Route path="kategori-tagihan" element={<KategoriTagihanPage />} />

@@ -474,7 +474,7 @@ export default function PortalProgramDetail() {
                                 lineHeight: 1.6,
                                 fontStyle: 'italic'
                             }}>
-                                "{program.quote || "Dengan bimbingan pengajar profesional dan praktisi dari dunia industri, siswa dipersiapkan untuk menghadapi tantangan di era Digital 4.0."}"
+                                {`"${program.quote || "Dengan bimbingan pengajar profesional dan praktisi dari dunia industri, siswa dipersiapkan untuk menghadapi tantangan di era Digital 4.0."}"`}
                             </div>
                         </div>
 

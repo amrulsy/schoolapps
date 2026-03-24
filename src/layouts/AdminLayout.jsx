@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useApp } from '../context/AppContext'
 import Sidebar from '../components/Sidebar'
@@ -33,6 +33,14 @@ export default function AdminLayout() {
 
     if (!currentUser) {
         return <LoginPage onLogin={(data) => login(data.token, data.user)} />
+    }
+
+    if (currentUser.role === 'guru') {
+        return <Navigate to="/guru" replace />
+    }
+
+    if (currentUser.role !== 'admin') {
+        return <Navigate to="/" replace />
     }
 
     const marginLeft = isMobile ? '0' : (sidebarCollapsed ? 'calc(var(--sidebar-collapsed) + 32px)' : 'calc(var(--sidebar-width) + 32px)')

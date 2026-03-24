@@ -1,10 +1,159 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useApp } from '../../context/AppContext'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 import { API_BASE } from '../../services/api'
-import { Calendar, Users, Save, CheckCircle, XCircle, AlertCircle, Clock, PieChart as PieChartIcon, Activity } from 'lucide-react'
+import {
+    Calendar, Users, Save, CheckCircle, XCircle, AlertCircle,
+    Clock, PieChart as PieChartIcon, Activity, UserCheck,
+    UserMinus, UserPlus, Info, Search, ChevronRight, Filter
+} from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { getAuthHeaders } from '../../services/api'
+
+// --- STYLES ---
+const styles = /*css*/`
+  .attendance-header {
+    background: var(--bg-card);
+    padding: 24px 32px;
+    border-radius: 32px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  .bento-card {
+    background: var(--bg-card);
+    border-radius: 28px;
+    padding: 32px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+  }
+  .bento-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-300);
+  }
+  .bento-main { grid-column: span 7; }
+  .bento-side { grid-column: span 5; display: flex; flex-direction: column; gap: 24px; }
+  
+  @media (max-width: 992px) {
+    .bento-main, .bento-side { grid-column: span 12; }
+  }
+
+  .icon-box-soft {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .bg-soft-blue { background: var(--primary-50); color: var(--primary-500); }
+  .bg-soft-green { background: var(--success-50); color: var(--success-500); }
+  .bg-soft-orange { background: var(--warning-50); color: var(--warning-500); }
+  .bg-soft-red { background: var(--danger-50); color: var(--danger-500); }
+
+  .stat-pill {
+    background: var(--bg-stripe);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  .stat-pill:hover {
+    border-color: var(--border-color);
+    background: var(--bg-hover);
+  }
+
+  .filter-pill {
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--border-color);
+    background: var(--bg-stripe);
+    color: var(--text-secondary);
+  }
+  .filter-pill.active {
+    background: var(--primary-600);
+    color: #fff;
+    border-color: var(--primary-600);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+
+  .pill-soft {
+    padding: 6px 12px; border-radius: 50px; font-weight: 700; font-size: 0.75rem; 
+    text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  
+  .attendance-btn-group {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%;
+  }
+
+  .attendance-btn {
+    border: none; padding: 10px 4px; border-radius: 10px; font-weight: 700; font-size: 0.7rem;
+    transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: var(--bg-stripe); color: var(--text-secondary);
+  }
+  
+  .attendance-btn:hover { background: var(--bg-hover); transform: scale(1.02); }
+  .attendance-btn.active.hadir { background: var(--success-600); color: white; }
+  .attendance-btn.active.sakit { background: var(--warning-600); color: white; }
+  .attendance-btn.active.izin { background: #3b82f6; color: white; }
+  .attendance-btn.active.alpha { background: var(--danger-600); color: white; }
+
+  .modern-input {
+    background: var(--bg-input); border: 1.5px solid var(--border-color);
+    border-radius: 12px; padding: 0.75rem 1rem; color: var(--text-primary);
+    font-weight: 600; transition: all 0.2s; width: 100%;
+  }
+  .modern-input:focus { border-color: var(--primary-500); box-shadow: 0 0 0 4px var(--primary-50); outline: none; background: var(--bg-card); }
+
+  .student-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    color: var(--primary-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+  }
+  
+  .activity-item:hover .student-avatar {
+    background: var(--primary-50);
+    color: var(--primary-600);
+    border-color: var(--primary-200);
+    transform: scale(1.05);
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+`;
 
 export default function AttendancePage() {
     const { units } = useApp()
@@ -15,27 +164,17 @@ export default function AttendancePage() {
     const [students, setStudents] = useState([])
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('')
     const isMounted = useRef(true)
 
     useEffect(() => {
         isMounted.current = true
-        return () => {
-            isMounted.current = false
-        }
+        return () => { isMounted.current = false }
     }, [])
 
-    // Flat list of classes for the dropdown
-    const allDetailKelas = (units || []).flatMap(u => (u.kelas || []).map(k => ({ ...k, unitNama: u.nama })))
-
-    // Calculate stats for chart
-    const statsData = [
-        { name: 'Hadir', value: students.filter(s => s.status === 'hadir').length, color: '#10b981' },
-        { name: 'Sakit', value: students.filter(s => s.status === 'sakit').length, color: '#f59e0b' },
-        { name: 'Izin', value: students.filter(s => s.status === 'izin').length, color: '#3b82f6' },
-        { name: 'Alpha', value: students.filter(s => s.status === 'alpha').length, color: '#ef4444' }
-    ].filter(d => d.value > 0);
-
-    const totalStudents = students.length;
+    const allDetailKelas = useMemo(() =>
+        (units || []).flatMap(u => (u.kelas || []).map(k => ({ ...k, unitNama: u.nama }))),
+        [units])
 
     const fetchAttendance = useCallback(async (signal) => {
         if (!selectedDate || !selectedKelasId) {
@@ -54,16 +193,13 @@ export default function AttendancePage() {
                 setStudents(data)
             }
         } catch (err) {
-            if (isMounted.current && err.name !== 'AbortError' && (!signal || !signal.aborted)) {
-                // Check if signal was aborted before showing error to avoid race conditions
-                if (!signal?.aborted) showError('Kesalahan', err.message)
+            if (isMounted.current && err.name !== 'AbortError' && !signal?.aborted) {
+                showError('Kesalahan', err.message)
             }
         } finally {
-            if (isMounted.current && (!signal || !signal.aborted)) {
-                setLoading(false)
-            }
+            if (isMounted.current && (!signal || !signal.aborted)) setLoading(false)
         }
-    }, [selectedDate, selectedKelasId, showError]) // Removed getAuthHeaders from dependency as it is a stable import
+    }, [selectedDate, selectedKelasId, showError])
 
     useEffect(() => {
         const controller = new AbortController()
@@ -108,238 +244,294 @@ export default function AttendancePage() {
         }
     }
 
+    // Stats calculations
+    const stats = useMemo(() => {
+        const total = students.length
+        const hadir = students.filter(s => s.status === 'hadir').length
+        const sakit = students.filter(s => s.status === 'sakit').length
+        const izin = students.filter(s => s.status === 'izin').length
+        const alpha = students.filter(s => s.status === 'alpha').length
+        return { total, hadir, absensi: sakit + izin + alpha, alpha, hadirPct: total ? (hadir / total) * 100 : 0 }
+    }, [students])
+
+    const chartData = useMemo(() => [
+        { name: 'Hadir', value: students.filter(s => s.status === 'hadir').length, color: '#10b981' },
+        { name: 'Sakit', value: students.filter(s => s.status === 'sakit').length, color: '#f59e0b' },
+        { name: 'Izin', value: students.filter(s => s.status === 'izin').length, color: '#3b82f6' },
+        { name: 'Alpha', value: students.filter(s => s.status === 'alpha').length, color: '#ef4444' }
+    ].filter(d => d.value > 0), [students])
+
+    const filteredStudents = students.filter(s =>
+        s.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.nisn.includes(searchQuery)
+    )
+
     return (
-        <div className="admin-page animate-fadeIn">
-            <div className="page-header mb-4">
+        <div className="admin-page animate-fadeIn pb-5">
+            <style dangerouslySetInnerHTML={{ __html: styles }} />
+
+            {/* STANDARDIZED HEADER (Adapted from Guru) */}
+            <div className="attendance-header">
                 <div>
-                    <h2 className="d-flex align-items-center gap-2">
-                        <div className="p-2 bg-primary bg-opacity-10 rounded-lg text-primary">
-                            <Activity size={28} />
+                    <div className="d-flex align-items-center gap-3 mb-1">
+                        <div style={{
+                            width: 52, height: 52,
+                            background: 'linear-gradient(135deg, #2563eb, #1e40af)',
+                            borderRadius: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            boxShadow: '0 8px 16px rgba(37, 99, 235, 0.2)'
+                        }}>
+                            <Calendar size={28} />
                         </div>
-                        Presensi Siswa
-                    </h2>
-                    <p className="text-secondary">Kelola kehadiran harian siswa per kelas dengan analitik statistik.</p>
+                        <div>
+                            <h2 className="fw-black mb-0" style={{ letterSpacing: '-1px', color: 'var(--text-primary)' }}>Presensi Siswa</h2>
+                            <p className="text-muted small fw-bold mb-0 text-uppercase letter-spacing-1">Kehadiran Harian & Rekapitulasi</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="actions">
+                <div className="d-flex gap-2">
                     <button
-                        className="btn btn-primary btn-lg shadow-sm"
+                        className="btn btn-primary shadow-sm"
+                        style={{ borderRadius: '14px', padding: '12px 24px', fontWeight: 700 }}
                         onClick={handleSave}
                         disabled={saving || students.length === 0}
                     >
-                        {saving ? 'Menyimpan...' : <><Save size={20} /> Simpan Presensi</>}
+                        {saving ? (
+                            <><span className="spinner-border spinner-border-sm me-2" />Menyimpan...</>
+                        ) : (
+                            <><Save size={18} className="me-2" /> Simpan Presensi</>
+                        )}
                     </button>
+                    {students.length > 0 && (
+                        <button className="btn btn-light shadow-sm fw-bold border" style={{ borderRadius: '14px', padding: '12px 24px' }} onClick={markAllHadir}>
+                            <CheckCircle size={18} className="me-2 text-success" /> Hadir Semua
+                        </button>
+                    )}
                 </div>
             </div>
 
-            <div className="row mb-4">
-                <div className="col-lg-8">
-                    <div className="card shadow-sm border-0 h-100">
-                        <div className="card-body p-4">
-                            <h5 className="mb-4 text-dark fw-bold">Filter Pencarian</h5>
-                            <div className="row g-3">
-                                <div className="col-md-6">
-                                    <label className="form-label text-muted fw-semibold mb-2">Tanggal Presensi</label>
-                                    <div className="input-group">
-                                        <span className="input-group-text bg-light border-0"><Calendar size={18} className="text-muted" /></span>
-                                        <input
-                                            type="date"
-                                            className="form-control border-0 bg-light"
-                                            value={selectedDate}
-                                            onChange={e => setSelectedDate(e.target.value)}
-                                        />
-                                    </div>
+            {/* BENTO GRID (7/5 Split) */}
+            <div className="bento-grid">
+                {/* Main Section */}
+                <div className="bento-main">
+                    <div className="bento-card">
+                        <div className="d-flex justify-content-between align-items-start mb-4">
+                            <div>
+                                <div className="icon-box-soft bg-soft-blue">
+                                    <Users size={24} />
                                 </div>
-                                <div className="col-md-6">
-                                    <label className="form-label text-muted fw-semibold mb-2">Pilih Kelas</label>
-                                    <div className="input-group">
-                                        <span className="input-group-text bg-light border-0"><Users size={18} className="text-muted" /></span>
-                                        <select
-                                            className="form-select border-0 bg-light"
-                                            value={selectedKelasId}
-                                            onChange={e => setSelectedKelasId(e.target.value)}
-                                        >
-                                            <option value="">-- Pilih Kelas --</option>
-                                            {allDetailKelas.map(k => (
-                                                <option key={k.id} value={k.id}>{k.unitNama} - {k.nama}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                <div className="text-muted small fw-bold text-uppercase letter-spacing-1 mb-1">Total Siswa Terdaftar</div>
+                                <h1 className="fw-black mb-0" style={{ fontSize: '3.5rem', letterSpacing: '-2px', color: 'var(--text-primary)' }}>{stats.total}</h1>
+                            </div>
+                            <div className="d-none d-md-block opacity-10">
+                                <Activity size={48} className="text-primary" />
+                            </div>
+                        </div>
+
+                        <div className="d-flex gap-3 mt-4">
+                            <div className="stat-pill">
+                                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }}></div>
+                                <div className="flex-grow-1">
+                                    <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Hadir</div>
+                                    <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.hadir}</div>
                                 </div>
                             </div>
-                            {students.length > 0 && (
-                                <div className="mt-4 pt-4 border-top">
-                                    <button className="btn btn-success" onClick={markAllHadir}>
-                                        <CheckCircle size={18} className="me-2" /> Centang Hadir Semua
-                                    </button>
+                            <div className="stat-pill">
+                                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }}></div>
+                                <div className="flex-grow-1">
+                                    <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Izin/Sakit</div>
+                                    <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.absensi - stats.alpha}</div>
                                 </div>
-                            )}
+                            </div>
+                            <div className="stat-pill">
+                                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div>
+                                <div className="flex-grow-1">
+                                    <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Alpha</div>
+                                    <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.alpha}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="col-lg-4 mt-4 mt-lg-0">
-                    <AttendanceStats statsData={statsData} totalStudents={totalStudents} />
-                </div>
-            </div>
-
-            <div className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-3 px-1">
-                    <h5 className="mb-0 fw-bold text-dark">Daftar Siswa</h5>
-                    <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 fw-semibold">
-                        {students.length} Siswa
-                    </span>
-                </div>
-
-                {loading ? (
-                    <div className="text-center py-5">
-                        <div className="spinner-border text-primary" role="status"></div>
-                        <p className="mt-3 fw-medium text-secondary">Memuat data siswa...</p>
-                    </div>
-                ) : students.length === 0 ? (
-                    <div className="card shadow-sm border-0 bg-light">
-                        <div className="card-body text-center py-5 text-secondary fw-medium d-flex flex-column align-items-center">
-                            <Users size={48} className="text-muted opacity-50 mb-3" />
-                            {selectedKelasId ? 'Tidak ada siswa aktif di kelas ini.' : 'Pilih kelas terlebih dahulu untuk melihat dan mengelola daftar siswa.'}
+                {/* Side Section */}
+                <div className="bento-side">
+                    <div className="bento-card">
+                        <div className="mb-4">
+                            <h5 className="fw-black mb-1 d-flex align-items-center gap-2">
+                                <Filter size={18} className="text-primary" /> Kontrol Data
+                            </h5>
+                            <p className="text-muted small fw-bold text-uppercase mb-0" style={{ fontSize: '0.65rem' }}>Pilih Parameter Presensi</p>
                         </div>
-                    </div>
-                ) : (
-                    <div className="row g-3">
-                        {students.map((s, i) => (
-                            <div key={s.id} className="col-12 col-md-6 col-xl-4">
-                                <StudentCard
-                                    student={s}
-                                    index={i}
-                                    onStatusChange={handleStatusChange}
-                                    onKeteranganChange={handleKeteranganChange}
+                        <div className="d-grid gap-3">
+                            <div className="position-relative">
+                                <Calendar size={18} className="position-absolute text-muted" style={{ left: '12px', top: '14px' }} />
+                                <input
+                                    type="date" className="modern-input" style={{ paddingLeft: '2.5rem' }}
+                                    value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
                                 />
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    )
-}
-
-/**
- * Component-based UI for Attendance Analytics
- */
-function AttendanceStats({ statsData, totalStudents }) {
-    return (
-        <div className="card shadow-sm border-0 h-100">
-            <div className="card-body p-4 d-flex flex-column align-items-center justify-content-center">
-                <h5 className="mb-3 text-dark fw-bold align-self-start w-100 text-center">Analitik Kehadiran</h5>
-                {totalStudents === 0 ? (
-                    <div className="text-center text-muted my-auto py-4">
-                        <PieChartIcon size={48} className="opacity-25 mb-2" />
-                        <p>Pilih kelas untuk melihat statistik.</p>
-                    </div>
-                ) : (
-                    <div style={{ width: '100%', height: 220 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={statsData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
+                            <div className="position-relative">
+                                <Users size={18} className="position-absolute text-muted" style={{ left: '12px', top: '14px' }} />
+                                <select
+                                    className="modern-input" style={{ paddingLeft: '2.5rem' }}
+                                    value={selectedKelasId} onChange={e => setSelectedKelasId(e.target.value)}
                                 >
-                                    {statsData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    <option value="">-- Pilih Kelas --</option>
+                                    {allDetailKelas.map(k => (
+                                        <option key={k.id} value={k.id}>{k.unitNama} - {k.nama}</option>
                                     ))}
-                                </Pie>
-                                <Tooltip borderRadius={8} />
-                                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '13px' }} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                )}
-            </div>
-        </div>
-    )
-}
-
-/**
- * Component-based Card layout for Student Item
- */
-function StudentCard({ student, index, onStatusChange, onKeteranganChange }) {
-    const s = student;
-    const statusColors = {
-        hadir: { bg: '#ecfdf5', text: '#059669' },
-        sakit: { bg: '#fffbeb', text: '#d97706' },
-        izin: { bg: '#eff6ff', text: '#2563eb' },
-        alpha: { bg: '#fef2f2', text: '#dc2626' }
-    };
-
-    const currentStyle = statusColors[s.status] || statusColors.hadir;
-
-    return (
-        <div className="card shadow-sm border-0 h-100 animate-fadeIn" style={{ overflow: 'hidden', borderRadius: '12px' }}>
-            <div className="card-body p-0">
-                {/* Status Header */}
-                <div className="p-3 d-flex justify-content-between align-items-center border-bottom" style={{ backgroundColor: currentStyle.bg }}>
-                    <div className="d-flex align-items-center gap-2">
-                        <div className="fw-bold px-2 py-1 rounded" style={{ fontSize: '0.8rem', backgroundColor: 'rgba(255,255,255,0.7)', color: '#4b5563' }}>
-                            No. {index + 1}
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div className="fw-bold" style={{ fontSize: '0.85rem', color: currentStyle.text }}>
-                        {(s.status || 'BELUM').toUpperCase()}
+                </div>
+            </div>
+
+            {/* LIST AREA WITH FILTERS (Standardized card) */}
+            <div className="card shadow-sm mb-4 border-0" style={{ borderRadius: 32, overflow: 'hidden' }}>
+                <div className="card-body p-4">
+                    <div className="d-flex align-items-center gap-3 flex-wrap">
+                        <div style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
+                            <Search size={18} style={{ position: 'absolute', left: '16px', top: '14px', color: 'var(--text-muted)' }} />
+                            <input
+                                type="text"
+                                placeholder="Cari nama atau NISN..."
+                                className="form-control border-0 shadow-none"
+                                style={{ paddingLeft: '48px', height: '48px', borderRadius: '14px', background: 'var(--bg-stripe)', color: 'var(--text-primary)', fontWeight: 600 }}
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="d-flex gap-2 ms-md-auto align-items-center">
+                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Quick Actions:</div>
+                            <div className="filter-pill active" onClick={markAllHadir}>PRESENSI SEMUA HADIR</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="row g-4">
+                {/* STUDENT LIST */}
+                <div className="col-lg-8">
+                    <div className="card shadow-sm border-0" style={{ borderRadius: 32, overflow: 'hidden' }}>
+                        <div className="card-body p-0">
+                            <div className="table-responsive text-nowrap">
+                                <table className="table table-hover align-middle mb-0">
+                                    <thead style={{ background: 'var(--bg-stripe)' }}>
+                                        <tr>
+                                            <th className="ps-4 py-3" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>Siswa</th>
+                                            <th className="py-3 text-center" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>Status Kehadiran</th>
+                                            <th className="py-3 pe-4" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>Keterangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {loading ? (
+                                            <tr><td colSpan="3" className="text-center py-5">
+                                                <div className="spinner-border text-primary me-2" role="status" />
+                                                <span className="fw-bold">Menarik data kehadiran...</span>
+                                            </td></tr>
+                                        ) : filteredStudents.length === 0 ? (
+                                            <tr><td colSpan="3" className="text-center py-5">
+                                                <Activity size={48} className="text-muted opacity-20 mb-3" />
+                                                <p className="text-muted fw-bold">Tidak ada data siswa. Pilih kelas & tanggal di atas.</p>
+                                            </td></tr>
+                                        ) : (
+                                            filteredStudents.map((s, idx) => (
+                                                <tr key={s.id} className="activity-item animate-fadeIn" style={{ animationDelay: `${idx * 0.05}s` }}>
+                                                    <td className="ps-4">
+                                                        <div className="d-flex align-items-center gap-3">
+                                                            <div className="student-avatar">
+                                                                {s.nama.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <div className="fw-bold" style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{s.nama}</div>
+                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', opacity: 0.8, marginTop: 2 }}>NISN: {s.nisn}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="text-center">
+                                                        <div className="attendance-btn-group mx-auto" style={{ maxWidth: '280px' }}>
+                                                            <AttendanceBtn active={s.status === 'hadir'} type="hadir" onClick={() => handleStatusChange(s.id, 'hadir')} />
+                                                            <AttendanceBtn active={s.status === 'sakit'} type="sakit" onClick={() => handleStatusChange(s.id, 'sakit')} />
+                                                            <AttendanceBtn active={s.status === 'izin'} type="izin" onClick={() => handleStatusChange(s.id, 'izin')} />
+                                                            <AttendanceBtn active={s.status === 'alpha'} type="alpha" onClick={() => handleStatusChange(s.id, 'alpha')} />
+                                                        </div>
+                                                    </td>
+                                                    <td className="pe-4">
+                                                        <input
+                                                            type="text" className="modern-input py-2 text-center" style={{ fontSize: '0.8rem' }} placeholder="Catatan..."
+                                                            value={s.keterangan || ''} onChange={e => handleKeteranganChange(s.id, e.target.value)}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Content */}
-                <div className="p-3">
-                    <div className="d-flex flex-column mb-3">
-                        <span className="fw-bold text-dark fs-6 text-truncate" title={s.nama}>{s.nama}</span>
-                        <span className="text-muted small mono" style={{ fontSize: '0.8rem' }}>NISN: {s.nisn}</span>
-                    </div>
+                {/* SIDE STATS */}
+                <div className="col-lg-4">
+                    <div className="bento-card">
+                        <div className="mb-4">
+                            <h5 className="fw-black mb-1 d-flex align-items-center gap-2">
+                                <PieChartIcon size={20} className="text-primary" /> Visualisasi
+                            </h5>
+                            <p className="text-muted small fw-bold text-uppercase mb-0" style={{ fontSize: '0.65rem' }}>Tingkat Partisipasi Harian</p>
+                        </div>
 
-                    {/* Status Options */}
-                    <div className="d-flex justify-content-between gap-2 mb-3">
-                        <AttendanceButton
-                            active={s.status === 'hadir'}
-                            variant="success"
-                            icon={<CheckCircle size={14} />}
-                            label="Hadir"
-                            onClick={() => onStatusChange(s.id, 'hadir')}
-                        />
-                        <AttendanceButton
-                            active={s.status === 'sakit'}
-                            variant="warning"
-                            icon={<Clock size={14} />}
-                            label="Sakit"
-                            onClick={() => onStatusChange(s.id, 'sakit')}
-                        />
-                        <AttendanceButton
-                            active={s.status === 'izin'}
-                            variant="info"
-                            icon={<AlertCircle size={14} />}
-                            label="Izin"
-                            onClick={() => onStatusChange(s.id, 'izin')}
-                        />
-                        <AttendanceButton
-                            active={s.status === 'alpha'}
-                            variant="danger"
-                            icon={<XCircle size={14} />}
-                            label="Alpha"
-                            onClick={() => onStatusChange(s.id, 'alpha')}
-                        />
-                    </div>
-
-                    {/* Note Input */}
-                    <div className="position-relative">
-                        <input
-                            type="text"
-                            className="form-control form-control-sm border-0 bg-light px-3"
-                            placeholder="Tulis catatan opsional..."
-                            value={s.keterangan || ''}
-                            onChange={e => onKeteranganChange(s.id, e.target.value)}
-                            style={{ height: '36px', borderRadius: '8px', fontSize: '0.85rem' }}
-                        />
+                        {students.length > 0 ? (
+                            <>
+                                <div style={{ width: '100%', height: 260 }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={chartData} cx="50%" cy="50%"
+                                                innerRadius={65} outerRadius={85} paddingAngle={8}
+                                                dataKey="value" stroke="none"
+                                            >
+                                                {chartData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                                            </Pie>
+                                            <Tooltip
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                            />
+                                            <Legend verticalAlign="bottom" height={36} formatter={(val) => <span className="fw-bold text-dark">{val}</span>} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="mt-4 p-4 rounded-xl" style={{ background: 'var(--bg-stripe)' }}>
+                                    <div className="d-flex justify-content-between mb-2">
+                                        <span className="text-secondary small fw-bold">PROGRESS KEHADIRAN</span>
+                                        <span className="text-primary fw-black">{stats.hadirPct.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="progress" style={{ height: '10px', borderRadius: '10px', background: 'var(--border-color)' }}>
+                                        <div className="progress-bar bg-primary" style={{ width: `${stats.hadirPct}%`, boxShadow: '0 0 10px rgba(37, 99, 235, 0.4)' }} />
+                                    </div>
+                                    <div className="mt-4 border-top pt-3 d-flex flex-column gap-2">
+                                        <div className="d-flex justify-content-between align-items-center fw-bold small">
+                                            <span className="text-muted">Total Kehadiran</span>
+                                            <span className="text-success">{stats.hadir} Siswa</span>
+                                        </div>
+                                        <div className="d-flex justify-content-between align-items-center fw-bold small">
+                                            <span className="text-muted">Total Tidak Hadir</span>
+                                            <span className="text-danger">{stats.absensi} Siswa</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center py-5 text-muted opacity-30 fw-bold">
+                                Statistik akan muncul di sini.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -347,28 +539,51 @@ function StudentCard({ student, index, onStatusChange, onKeteranganChange }) {
     )
 }
 
-function AttendanceButton({ active, variant, icon, label, onClick }) {
-    const baseClass = "btn btn-sm d-flex align-items-center gap-1"
-    const activeClasses = {
-        success: "btn-success shadow-sm",
-        warning: "btn-warning text-dark shadow-sm",
-        info: "btn-info text-white shadow-sm",
-        danger: "btn-danger shadow-sm"
+function KPICard({ title, value, icon, color, percentage }) {
+    const colorMap = {
+        primary: 'var(--primary-600)',
+        success: 'var(--success-600)',
+        warning: 'var(--warning-600)',
+        danger: 'var(--danger-600)'
     }
-    const inactiveClass = "btn-light text-muted border"
+    const bgMap = {
+        primary: 'var(--primary-50)',
+        success: 'var(--success-50)',
+        warning: 'var(--warning-50)',
+        danger: 'var(--danger-50)'
+    }
 
     return (
-        <button
-            type="button"
-            className={`${baseClass} ${active ? activeClasses[variant] : inactiveClass}`}
-            onClick={onClick}
-            title={label}
-            style={{ flex: 1, minWidth: '0', justifyContent: 'center', padding: '6px 4px', borderRadius: '8px' }}
-        >
-            <div className="d-flex align-items-center gap-1 flex-wrap justify-content-center">
-                {icon}
-                <span style={{ fontSize: '0.75rem', fontWeight: active ? '600' : '500' }}>{label}</span>
+        <div className="col-6 col-md-3">
+            <div className="bento-card kpi-card">
+                <div className="kpi-icon" style={{ background: bgMap[color], color: colorMap[color] }}>
+                    {icon}
+                </div>
+                <div>
+                    <div className="text-secondary small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>{title}</div>
+                    <div className="d-flex align-items-baseline gap-1">
+                        <h3 className="fw-black mb-0" style={{ color: 'var(--text-primary)' }}>{value}</h3>
+                        {percentage !== undefined && <span className="text-success small fw-bold" style={{ fontSize: '0.7rem' }}>{percentage.toFixed(0)}%</span>}
+                    </div>
+                </div>
             </div>
+        </div>
+    )
+}
+
+function AttendanceBtn({ active, type, onClick }) {
+    const labels = { hadir: 'HDIR', sakit: 'SKIT', izin: 'IZIN', alpha: 'ALPH' }
+    const icons = {
+        hadir: <UserCheck size={14} />,
+        sakit: <Clock size={14} />,
+        izin: <AlertCircle size={14} />,
+        alpha: <UserMinus size={14} />
+    }
+
+    return (
+        <button className={`attendance-btn ${active ? `active ${type}` : ''}`} onClick={onClick}>
+            {icons[type]}
+            <span style={{ fontSize: '0.65rem' }}>{labels[type]}</span>
         </button>
     )
 }

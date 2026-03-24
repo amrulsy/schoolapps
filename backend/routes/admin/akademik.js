@@ -18,6 +18,14 @@ router.post('/mapel', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.put('/mapel/:id', async (req, res) => {
+    try {
+        const { nama, tingkat } = req.body;
+        await pool.query('UPDATE mata_pelajaran SET nama = ?, tingkat = ? WHERE id = ?', [nama, tingkat || null, req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.delete('/mapel/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM mata_pelajaran WHERE id = ?', [req.params.id]);

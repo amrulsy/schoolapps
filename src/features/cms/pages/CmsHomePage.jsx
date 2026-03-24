@@ -887,7 +887,11 @@ export default function CmsHomePage() {
         }
 
         return (
-            <div className="modal-backdrop">
+            <div className="modal-backdrop" style={{
+                position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)', zIndex: 9999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+            }}>
                 <div className="modal" style={{ maxWidth: 800, width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
                     <div className="modal-header">
                         <h3>{editProgram ? 'Edit Detail Jurusan' : 'Tambah Detail Jurusan'}</h3>
@@ -1242,7 +1246,11 @@ export default function CmsHomePage() {
 
     function renderPartnerModal() {
         return (
-            <div className="modal-backdrop">
+            <div className="modal-backdrop" style={{
+                position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)', zIndex: 9999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+            }}>
                 <div className="modal" style={{ maxWidth: 500 }}>
                     <div className="modal-header">
                         <h3>{editPartner ? 'Edit Partner' : 'Tambah Partner'}</h3>
@@ -1305,7 +1313,11 @@ export default function CmsHomePage() {
 
     function renderSchoolModal() {
         return (
-            <div className="modal-backdrop">
+            <div className="modal-backdrop" style={{
+                position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)', zIndex: 9999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+            }}>
                 <div className="modal" style={{ maxWidth: 400 }}>
                     <div className="modal-header">
                         <h3>{editSchool ? 'Edit Data Sekolah' : 'Tambah Sekolah'}</h3>
