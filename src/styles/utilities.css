@@ -392,7 +392,7 @@
 }
 
 .text-primary {
-    color: #0d6efd !important;
+    color: var(--brand-primary) !important;
 }
 
 .text-success {
@@ -442,7 +442,7 @@
 
 /* Colors & Backgrounds */
 .bg-light {
-    background-color: #f8f9fa !important;
+    background-color: var(--bg-hover) !important;
 }
 
 .bg-white {
@@ -450,7 +450,7 @@
 }
 
 .bg-primary {
-    background-color: #0d6efd !important;
+    background-color: var(--brand-primary) !important;
 }
 
 .bg-success {
@@ -510,7 +510,7 @@
 }
 
 .border-light {
-    border-color: #f8f9fa !important;
+    border-color: var(--border-color) !important;
 }
 
 .border-dashed {

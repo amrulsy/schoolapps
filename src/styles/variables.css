@@ -89,6 +89,10 @@
     --bg-input: #FFFFFF;
     --bg-hover: var(--gray-50);
     --bg-stripe: var(--gray-50);
+
+    /* Branding (Theme-aware) */
+    --brand-primary: var(--primary-600);
+    --brand-primary-light: var(--primary-50);
 }
 
 /* --- Dark Mode --- */
@@ -104,6 +108,8 @@
     --bg-input: #0F172A;
     --bg-hover: #334155;
     --bg-stripe: rgba(255, 255, 255, 0.03);
+    --brand-primary: var(--primary-300);
+    --brand-primary-light: rgba(59, 130, 246, 0.15);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.35);

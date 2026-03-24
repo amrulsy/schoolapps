@@ -92,12 +92,15 @@ export default function GuruLayout() {
                     __html: `
                     .user-avatar-sm {
                         width: 38px; height: 38px; border-radius: 12px;
-                        background: var(--primary-50); color: var(--primary-600);
+                        background: var(--brand-primary-light); color: var(--brand-primary);
                         display: flex; align-items: center; justify-content: center;
-                        font-weight: 800; font-size: 0.9rem; border: 1px solid var(--primary-100);
+                        font-weight: 800; font-size: 0.9rem; border: 1px solid var(--brand-primary-light);
                     }
                     .btn-glass-danger {
                         background: var(--danger-50); color: var(--danger-500); transition: all 0.2s;
+                    }
+                    [data-theme="dark"] .btn-glass-danger {
+                        background: rgba(239, 68, 68, 0.1); color: #f87171;
                     }
                     .btn-glass-danger:hover {
                         background: var(--danger-500); color: #fff; transform: translateY(-1px);

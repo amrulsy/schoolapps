@@ -29,7 +29,7 @@ const styles = /*css*/`
     position: absolute;
     top: -50%; right: -10%;
     width: 300px; height: 300px;
-    background: radial-gradient(circle, var(--primary-50) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--brand-primary-light) 0%, transparent 70%);
     z-index: 0;
     pointer-events: none;
   }
@@ -86,8 +86,8 @@ const styles = /*css*/`
     margin-bottom: 16px;
   }
   .schedule-card.running {
-    border: 1px solid var(--primary-500);
-    background: linear-gradient(to right, var(--bg-card), var(--primary-50));
+    border: 1px solid var(--brand-primary);
+    background: linear-gradient(to right, var(--bg-card), var(--brand-primary-light));
   }
 
   .btn-play-session {
@@ -110,10 +110,10 @@ const styles = /*css*/`
   }
 
   .btn-glass-sidebar {
-    background: var(--primary-50);
+    background: var(--brand-primary-light);
     backdrop-filter: blur(8px);
-    color: var(--primary-600);
-    border: 1px solid var(--primary-100);
+    color: var(--brand-primary);
+    border: 1px solid var(--brand-primary-light);
     padding: 12px;
     border-radius: 14px;
     width: 100%;
@@ -125,7 +125,8 @@ const styles = /*css*/`
     gap: 8px;
   }
   .btn-glass-sidebar:hover {
-    background: var(--primary-100);
+    background: var(--brand-primary);
+    color: #fff;
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.15);
   }
@@ -261,7 +262,7 @@ export default function GuruDashboard() {
                         <Calendar size={28} />
                     </div>
                     <div>
-                        <h2 className="fw-black mb-1 text-primary tracking-tight">Selamat Datang, {currentUser?.nama?.split(' ')[0]}!</h2>
+                        <h2 className="fw-black mb-1 tracking-tight" style={{ color: 'var(--text-primary)' }}>Selamat Datang, {currentUser?.nama?.split(' ')[0]}!</h2>
                         <div className="d-flex align-items-center gap-3">
                             <span className="text-secondary fw-bold" style={{ fontSize: '0.85rem' }}>
                                 {data.day}, {data.date}
@@ -299,8 +300,8 @@ export default function GuruDashboard() {
 
                         {data.schedules.length === 0 ? (
                             <div className="bento-card text-center d-flex flex-column align-items-center justify-content-center py-5 border-light shadow-sm">
-                                <div className="bg-light rounded-2xl p-4 mb-4" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <BookOpen size={40} className="text-primary opacity-50" />
+                                <div className="bg-light rounded-2xl p-4 mb-4" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--brand-primary-light)' }}>
+                                    <BookOpen size={40} className="text-primary" />
                                 </div>
                                 <h4 className="fw-black text-primary mb-2">Tidak Ada Jadwal</h4>
                                 <p className="text-muted max-w-sm mx-auto fw-medium">Anda tidak memiliki jadwal mengajar hari ini. Gunakan waktu ini untuk persiapan materi atau istirahat! 🎉</p>
