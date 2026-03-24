@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import {
     LayoutDashboard, Users, Building2, Calendar, ClipboardList, Landmark,
     FileText, CreditCard, BookOpen, BarChart3, UserCog, Settings,
-    ChevronLeft, ChevronDown, History, Zap, Layout, Database, LayoutTemplate, Clock
+    ChevronLeft, ChevronDown, History, Zap, Layout, Database, LayoutTemplate, Clock,
+    Package, Wallet, ShieldCheck, Globe
 } from 'lucide-react'
 
 const menuSections = [
     {
         label: 'DATA MASTER',
+        icon: Package,
+        color: 'var(--primary-500)',
         items: [
             { to: '/admin/siswa', icon: Users, text: 'Siswa' },
             { to: '/admin/guru', icon: Users, text: 'Guru' },
@@ -26,7 +29,10 @@ const menuSections = [
     },
     {
         label: 'KEUANGAN',
+        icon: Wallet,
+        color: '#10b981', // green
         items: [
+            { to: '/admin/keuangan-dashboard', icon: LayoutDashboard, text: 'Dashboard Keuangan' },
             { to: '/admin/tagihan', icon: FileText, text: 'Tagihan' },
             { to: '/admin/riwayat-generate', icon: Zap, text: 'Riwayat Generate' },
             { to: '/admin/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
@@ -38,12 +44,16 @@ const menuSections = [
     },
     {
         label: 'LAPORAN',
+        icon: BarChart3,
+        color: '#f59e0b', // amber
         items: [
             { to: '/admin/laporan', icon: BarChart3, text: 'Laporan Keuangan' },
         ]
     },
     {
         label: 'SISTEM',
+        icon: ShieldCheck,
+        color: '#8b5cf6', // purple
         items: [
             { to: '/admin/users', icon: UserCog, text: 'Manajemen User' },
             { to: '/admin/student-menus', icon: LayoutTemplate, text: 'Menu Siswa' },
@@ -53,6 +63,8 @@ const menuSections = [
     },
     {
         label: 'KONTEN PORTAL (CMS)',
+        icon: Globe,
+        color: '#f43f5e', // rose
         items: [
             { to: '/admin/cms/home', icon: Layout, text: 'Konten Halaman Utama' },
             { to: '/admin/cms/ppdb', icon: ClipboardList, text: 'Manajemen PPDB' },
@@ -64,7 +76,9 @@ const menuSections = [
 export default function Sidebar() {
     const { sidebarCollapsed, setSidebarCollapsed, currentUser } = useApp()
     const location = useLocation()
+    const [searchTerm, setSearchTerm] = useState('')
     const [openSection, setOpenSection] = useState('')
+    const activeLinkRef = useRef(null)
 
     useEffect(() => {
         const currentSection = menuSections.find(sec =>
@@ -75,9 +89,24 @@ export default function Sidebar() {
         }
     }, [location.pathname])
 
+    // Auto-scroll to active link
+    useEffect(() => {
+        if (activeLinkRef.current) {
+            activeLinkRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+    }, [location.pathname])
+
     const toggleSection = (label) => {
         setOpenSection(prev => prev === label ? '' : label)
     }
+
+    const filteredSections = menuSections.map(section => ({
+        ...section,
+        items: section.items.filter(item =>
+            item.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            section.label.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    })).filter(section => section.items.length > 0)
 
     return (
         <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
@@ -89,33 +118,54 @@ export default function Sidebar() {
                 </div>
             </div>
 
+            {!sidebarCollapsed && (
+                <div className="sidebar-search">
+                    <input
+                        type="text"
+                        placeholder="Search menu..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            )}
+
             <nav className="sidebar-nav">
-                <NavLink to="/admin" end className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`} title={sidebarCollapsed ? 'Dashboard' : ''}>
+                <NavLink
+                    to="/admin"
+                    end
+                    className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}
+                    title={sidebarCollapsed ? 'Dashboard' : ''}
+                    ref={location.pathname === '/admin' ? activeLinkRef : null}
+                >
                     <span className="icon"><LayoutDashboard size={20} /></span>
                     <span>Dashboard</span>
                 </NavLink>
 
-                {menuSections.map(section => {
-                    const isOpen = openSection === section.label || sidebarCollapsed
+                {filteredSections.map(section => {
+                    const isOpen = openSection === section.label || sidebarCollapsed || searchTerm !== ''
                     return (
-                        <div key={section.label} className="menu-category">
+                        <div key={section.label} className={`menu-category ${isOpen ? 'is-open' : ''}`} style={{ '--cat-color': section.color }}>
                             <div
                                 className="menu-label d-flex justify-content-between align-items-center"
                                 onClick={() => !sidebarCollapsed && toggleSection(section.label)}
                                 style={{ cursor: sidebarCollapsed ? 'default' : 'pointer', userSelect: 'none' }}
                             >
-                                <span>{section.label}</span>
+                                <div className="label-content">
+                                    {section.icon && <section.icon size={16} className="cat-icon" />}
+                                    <span>{section.label}</span>
+                                </div>
                                 {!sidebarCollapsed && (
-                                    isOpen ? <ChevronDown size={14} /> : <ChevronLeft size={14} style={{ transform: 'rotate(-90deg)' }} />
+                                    <ChevronDown size={12} className="category-arrow" />
                                 )}
                             </div>
-                            <div className="menu-items-container" style={{ display: isOpen ? 'block' : 'none' }}>
+                            <div className="menu-items-container">
                                 {section.items.map(item => (
                                     <NavLink
                                         key={item.to}
                                         to={item.to}
                                         className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}
                                         title={sidebarCollapsed ? item.text : ''}
+                                        ref={location.pathname === item.to || location.pathname.startsWith(item.to + '/') ? activeLinkRef : null}
                                     >
                                         <span className="icon"><item.icon size={20} /></span>
                                         <span>{item.text}</span>
@@ -128,10 +178,15 @@ export default function Sidebar() {
             </nav>
 
             <div className="sidebar-footer">
+                {!sidebarCollapsed && (
+                    <div className="sidebar-hint" onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}>
+                        <kbd>Ctrl + K</kbd> to search
+                    </div>
+                )}
                 <div className="avatar">{currentUser.nama.charAt(0)}</div>
                 <div className="user-info">
                     <div className="name">{currentUser.nama}</div>
-                    <div className="role">{currentUser.role === 'admin' ? '🟣 Admin' : currentUser.role === 'guru' ? '🔵 Guru' : '🟢 Kasir'}</div>
+                    <div className="role">{currentUser.role === 'admin' ? '🟣 Admin' : currentUser.role === 'guru' ? '🔵 Guru' : 'Kasir'}</div>
                 </div>
                 <button
                     className="btn-icon"

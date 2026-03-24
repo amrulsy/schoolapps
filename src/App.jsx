@@ -18,6 +18,7 @@ const GuruHistory = lazy(() => import('./pages/guru/GuruHistory'))
 
 // Admin Pages (lazy — only load when user navigates to /admin/...)
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
+const FinanceDashboardPage = lazy(() => import('./pages/admin/FinanceDashboardPage'))
 const SiswaPage = lazy(() => import('./pages/admin/SiswaPage'))
 const UnitKelasPage = lazy(() => import('./pages/admin/UnitKelasPage'))
 const TahunAjaranPage = lazy(() => import('./pages/admin/TahunAjaranPage'))
@@ -61,6 +62,7 @@ export default function App() {
         {/* ======= ADMIN BACK-OFFICE (/admin/...) ======= */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="keuangan-dashboard" element={<FinanceDashboardPage />} />
           <Route path="siswa" element={<SiswaPage />} />
           <Route path="guru" element={<DataGuruPage />} />
           <Route path="jadwal" element={<JadwalPelajaranPage />} />

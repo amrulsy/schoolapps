@@ -9,6 +9,7 @@ import BottomNav from '../components/BottomNav'
 import MobileDrawer from '../components/MobileDrawer'
 import LoginPage from '../pages/admin/LoginPage'
 import LoadingSpinner from '../components/LoadingSpinner'
+import CommandPalette from '../components/CommandPalette'
 
 const MOBILE_BREAKPOINT = 768
 
@@ -64,6 +65,7 @@ export default function AdminLayout() {
                 </>
             )}
             <Toast />
+            <CommandPalette />
         </div>
     )
 }
