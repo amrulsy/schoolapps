@@ -14,33 +14,24 @@ const styles = /*css*/`
   .guru-header {
     background: var(--bg-card);
     padding: 24px 32px;
-    border-radius: 28px;
+    border-radius: 32px;
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
     position: relative;
     overflow: hidden;
-  }
-  .guru-header::after {
-    content: '';
-    position: absolute;
-    top: -50%; right: -10%;
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, var(--brand-primary-light) 0%, transparent 70%);
-    z-index: 0;
-    pointer-events: none;
   }
   .bento-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: 20px;
+    gap: 24px;
     margin-bottom: 32px;
   }
   .bento-main { grid-column: span 7; }
-  .bento-side { grid-column: span 5; display: flex; flex-direction: column; gap: 20px; }
+  .bento-side { grid-column: span 5; display: flex; flex-direction: column; gap: 24px; }
   
   @media (max-width: 1200px) {
     .bento-main, .bento-side { grid-column: span 12; }
@@ -48,74 +39,98 @@ const styles = /*css*/`
 
   .bento-card {
     background: var(--bg-card);
-    border-radius: 24px;
-    padding: 24px;
+    border-radius: 28px;
+    padding: 32px;
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
     height: 100%;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
   }
   .bento-card:hover {
-    box-shadow: var(--shadow-md);
-    border-color: var(--primary-200);
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-300);
   }
 
-  .icon-box-gradient {
-    width: 52px;
-    height: 52px;
+  .icon-box-soft {
+    width: 48px;
+    height: 48px;
     border-radius: 16px;
-    background: linear-gradient(135deg, var(--primary-600), var(--primary-800));
-    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
-    flex-shrink: 0;
+    margin-bottom: 20px;
+  }
+  .bg-soft-blue { background: var(--primary-50); color: var(--primary-500); }
+  .bg-soft-green { background: var(--success-50); color: var(--success-500); }
+  .bg-soft-purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+
+  .stat-pill {
+    background: var(--bg-stripe);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  .stat-pill:hover {
+    border-color: var(--border-color);
+    background: var(--bg-hover);
   }
 
   .schedule-card {
     background: var(--bg-card);
-    border-radius: 20px;
-    padding: 20px;
+    border-radius: 24px;
+    padding: 24px;
     border: 1px solid var(--border-color);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     overflow: hidden;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+  }
+  .schedule-card:hover { 
+    background: var(--bg-hover); 
+    transform: translateX(4px); 
+    box-shadow: var(--shadow-sm);
   }
   .schedule-card.running {
-    border: 1px solid var(--brand-primary);
-    background: linear-gradient(to right, var(--bg-card), var(--brand-primary-light));
+    border: 1px solid var(--primary-400);
+    background: linear-gradient(to right, var(--bg-card), var(--primary-50));
   }
 
   .btn-play-session {
     background: var(--primary-600);
     color: #fff;
     border: none;
-    padding: 10px 20px;
-    border-radius: 12px;
+    padding: 12px 24px;
+    border-radius: 14px;
     font-weight: 700;
     font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     transition: all 0.2s;
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
   }
   .btn-play-session:hover {
     background: var(--primary-700);
     transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
   }
 
   .btn-glass-sidebar {
-    background: var(--brand-primary-light);
-    backdrop-filter: blur(8px);
-    color: var(--brand-primary);
-    border: 1px solid var(--brand-primary-light);
-    padding: 12px;
-    border-radius: 14px;
+    background: var(--primary-50);
+    color: var(--primary-600);
+    border: 1px solid var(--primary-100);
+    padding: 14px;
+    border-radius: 16px;
     width: 100%;
     font-weight: 700;
     transition: all 0.2s;
@@ -125,14 +140,14 @@ const styles = /*css*/`
     gap: 8px;
   }
   .btn-glass-sidebar:hover {
-    background: var(--brand-primary);
+    background: var(--primary-600);
     color: #fff;
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.15);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
   }
 
   .progress-premium {
-    height: 8px;
+    height: 10px;
     border-radius: 10px;
     background: var(--bg-stripe);
     overflow: hidden;
@@ -142,24 +157,71 @@ const styles = /*css*/`
   .progress-premium .progress-bar {
     background: linear-gradient(90deg, var(--primary-500), var(--primary-600));
     border-radius:20px;
-    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Modal Overhaul */
+  /* Portal Modal Styles (Aligned with Admin style) */
   .modal-backdrop {
     position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7);
     backdrop-filter: blur(12px); z-index: 10000;
     display: flex; align-items: center; justify-content: center; padding: 20px;
   }
   .modal-container {
-    background: var(--bg-card); width: 100%; max-width: 500px;
-    border-radius: 32px; overflow: hidden;
+    background: var(--bg-card); width: 100%; max-width: 600px;
+    max-height: 90vh; border-radius: 32px;
+    display: flex; flex-direction: column; overflow: hidden;
     box-shadow: 0 40px 80px -20px rgba(0,0,0,0.3);
     border: 1px solid var(--border-color);
-    animation: modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: fade-scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  @keyframes modal-in {
-    from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  .modal-header {
+    padding: 24px 28px; background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color); display: flex;
+    justify-content: space-between; align-items: center;
+  }
+  .header-content { display: flex; align-items: center; gap: 16px; }
+  .header-icon { 
+    width: 48px; height: 48px; border-radius: 14px;
+    background: var(--primary-100); color: var(--primary-600);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header-text h2 { margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; }
+  .header-text p { margin: 2px 0 0; font-size: 0.8125rem; color: var(--text-secondary); font-weight: 600; }
+
+  .btn-close-circle {
+    width: 36px; height: 36px; border-radius: 50%; border: none;
+    background: var(--bg-stripe); color: var(--text-secondary); font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-close-circle:hover { background: var(--danger-100); color: var(--danger-600); transform: rotate(90deg); }
+
+  .modal-body-scroll {
+    flex: 1; overflow-y: auto; padding: 28px; background: var(--bg-stripe);
+  }
+  .form-section-card {
+    background: var(--bg-card); padding: 24px; border-radius: 20px;
+    border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+  }
+  .section-title { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .section-title h3 { margin: 0; font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; }
+  .section-title svg { color: var(--primary-500); }
+
+  .modern-input {
+    width: 100%; padding: 12px 16px; border-radius: 12px;
+    border: 1.5px solid var(--border-color); background: var(--bg-input);
+    color: var(--text-primary); font-size: 0.9375rem; font-weight: 600;
+    transition: all 0.2s;
+  }
+  .modern-input:focus { border-color: var(--primary-500); background: var(--bg-card); outline: none; box-shadow: 0 0 0 4px var(--primary-50); }
+
+  .modal-footer-custom {
+    padding: 20px 28px; background: var(--bg-card); border-top: 1px solid var(--border-color);
+    display: flex; justify-content: flex-end; gap: 12px;
+  }
+  @keyframes fade-scale-in {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
   }
 `
@@ -256,30 +318,36 @@ export default function GuruDashboard() {
             <style dangerouslySetInnerHTML={{ __html: styles }} />
 
             {/* PREMIUM GURU HEADER */}
-            <div className="guru-header shadow-sm border-light">
-                <div className="d-flex align-items-center gap-4 position-relative" style={{ zIndex: 1 }}>
-                    <div className="icon-box-gradient">
-                        <Calendar size={28} />
+            <div className="guru-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <div style={{
+                        padding: 14,
+                        background: 'linear-gradient(135deg, var(--primary-600), var(--primary-800))',
+                        color: '#fbbf24',
+                        borderRadius: 18,
+                        boxShadow: '0 8px 16px rgba(37, 99, 235, 0.2)'
+                    }}>
+                        <Calendar size={32} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h2 className="fw-black mb-1 tracking-tight" style={{ color: 'var(--text-primary)' }}>Selamat Datang, {currentUser?.nama?.split(' ')[0]}!</h2>
-                        <div className="d-flex align-items-center gap-3">
-                            <span className="text-secondary fw-bold" style={{ fontSize: '0.85rem' }}>
-                                {data.day}, {data.date}
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.025em' }}>Selamat Datang, {currentUser?.nama?.split(' ')[0]}!</h2>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <div style={{ width: 8, height: 8, background: '#10b981', borderRadius: '50%' }}></div> {data.day}, {data.date}
                             </span>
-                            <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--border-color)' }}></div>
-                            <span className="text-primary fw-bold" style={{ fontSize: '0.85rem' }}>
+                            <span>•</span>
+                            <span className="text-primary fw-bold">
                                 {totalCount} Sesi Terjadwal
                             </span>
                         </div>
                     </div>
                 </div>
                 <button
-                    className="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 rounded-2xl border-0 shadow-md fw-bold"
-                    style={{ position: 'relative', zIndex: 1 }}
+                    className="btn btn-primary"
+                    style={{ borderRadius: 12, padding: '12px 24px', fontWeight: 700 }}
                     onClick={() => setShowAdhoc(true)}
                 >
-                    <PlusCircle size={20} />
+                    <PlusCircle size={20} className="me-2" />
                     Mulai Sesi Ad-Hoc
                 </button>
             </div>
@@ -289,19 +357,19 @@ export default function GuruDashboard() {
                     {/* MAIN CONTENT: SCHEDULES */}
                     <div className="bento-main">
                         <div className="d-flex align-items-center justify-content-between mb-4 px-1">
-                            <h5 className="fw-black mb-0 d-flex align-items-center gap-2 text-primary">
+                            <h5 className="fw-black mb-0 d-flex align-items-center gap-2 text-primary" style={{ fontSize: '1.1rem', letterSpacing: '-0.5px' }}>
                                 <Layout size={20} className="text-primary" />
                                 Jadwal Mengajar Hari Ini
                             </h5>
-                            <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold" style={{ fontSize: '0.75rem' }}>
+                            <span className="badge border-0 px-3 py-2" style={{ borderRadius: 20, fontSize: '0.75rem', background: 'var(--primary-100)', color: 'var(--primary-700)', fontWeight: 800 }}>
                                 {totalCount - completedCount} Sesi Tersisa
                             </span>
                         </div>
 
                         {data.schedules.length === 0 ? (
-                            <div className="bento-card text-center d-flex flex-column align-items-center justify-content-center py-5 border-light shadow-sm">
-                                <div className="bg-light rounded-2xl p-4 mb-4" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--brand-primary-light)' }}>
-                                    <BookOpen size={40} className="text-primary" />
+                            <div className="bento-card text-center d-flex flex-column align-items-center justify-content-center py-5">
+                                <div className="icon-box-soft bg-soft-blue mb-4" style={{ width: 80, height: 80 }}>
+                                    <BookOpen size={40} />
                                 </div>
                                 <h4 className="fw-black text-primary mb-2">Tidak Ada Jadwal</h4>
                                 <p className="text-muted max-w-sm mx-auto fw-medium">Anda tidak memiliki jadwal mengajar hari ini. Gunakan waktu ini untuk persiapan materi atau istirahat! 🎉</p>
@@ -318,7 +386,7 @@ export default function GuruDashboard() {
 
                         {data.activeJournals.length > 0 && (
                             <div className="mt-5">
-                                <h5 className="fw-black mb-4 d-flex align-items-center gap-2 text-primary px-1">
+                                <h5 className="fw-black mb-4 d-flex align-items-center gap-2 text-primary px-1" style={{ fontSize: '1.1rem', letterSpacing: '-0.5px' }}>
                                     <Clock size={20} className="text-warning" />
                                     Sesi Tambahan / Ad-Hoc
                                 </h5>
@@ -344,16 +412,16 @@ export default function GuruDashboard() {
                     <div className="bento-side">
                         <div className="bento-card">
                             <div className="d-flex align-items-center gap-3 mb-4">
-                                <div className="bg-success bg-opacity-10 p-2 rounded-xl text-success" style={{ width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <UserCheck size={22} />
+                                <div className="icon-box-soft bg-soft-green mb-0" style={{ width: 42, height: 42 }}>
+                                    <UserCheck size={20} />
                                 </div>
                                 <h6 className="fw-bold mb-0 text-primary">Progress Hari Ini</h6>
                             </div>
 
                             <div className="mb-4">
                                 <div className="d-flex justify-content-between align-items-end mb-2">
-                                    <span className="text-muted small fw-bold">Sesi Terselesaikan</span>
-                                    <span className="text-primary fw-black">{completedCount} / {totalCount}</span>
+                                    <span className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.7rem' }}>Sesi Terselesaikan</span>
+                                    <span className="text-primary fw-black" style={{ fontSize: '1.25rem' }}>{completedCount} <span className="text-muted fw-normal" style={{ fontSize: '0.9rem' }}>/ {totalCount}</span></span>
                                 </div>
                                 <div className="progress-premium">
                                     <div
@@ -363,7 +431,7 @@ export default function GuruDashboard() {
                                 </div>
                             </div>
 
-                            <div className="p-3 rounded-2xl bg-light border border-light">
+                            <div className="p-3 rounded-2xl" style={{ background: 'var(--bg-stripe)', border: '1px solid var(--border-color)' }}>
                                 <p className="small text-muted mb-0 fw-medium">
                                     <Info size={14} className="me-2 text-primary" />
                                     Waktu kehadiran otomatis terekam saat Anda menekan tombol <strong>Mulai Mengajar</strong>.
@@ -371,16 +439,20 @@ export default function GuruDashboard() {
                             </div>
                         </div>
 
-                        <div className="bento-card bg-primary text-white border-0 shadow-lg" style={{ background: 'linear-gradient(135deg, var(--primary-600), var(--primary-800))' }}>
+                        <div className="bento-card" style={{ background: 'linear-gradient(135deg, var(--primary-600), var(--primary-800))', color: '#fff', border: 'none' }}>
                             <div className="d-flex align-items-center gap-3 mb-4">
-                                <div className="bg-white bg-opacity-20 p-2 rounded-xl text-white">
-                                    <HelpCircle size={24} />
+                                <div style={{
+                                    width: 42, height: 42, borderRadius: 12,
+                                    background: 'rgba(255,255,255,0.1)', color: '#fbbf24',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}>
+                                    <HelpCircle size={20} />
                                 </div>
-                                <h6 className="fw-bold mb-0">Bantuan Mengajar</h6>
+                                <h6 className="fw-bold mb-0" style={{ color: '#fff' }}>Bantuan Mengajar</h6>
                             </div>
-                            <p className="small opacity-90 mb-4 fw-medium">Butuh panduan teknis menggunakan Portal Guru atau mencetak jurnal kelas?</p>
-                            <button className="btn-glass-sidebar">
-                                Lihat Panduan <ArrowRight size={18} />
+                            <p className="small opacity-80 mb-4 fw-medium">Butuh panduan teknis menggunakan Portal Guru atau mencetak jurnal kelas?</p>
+                            <button className="btn-glass-sidebar" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+                                Lihat Panduan <ArrowRight size={18} className="ms-auto" />
                             </button>
                         </div>
                     </div>
@@ -391,61 +463,69 @@ export default function GuruDashboard() {
             {showAdhoc && (
                 <div className="modal-backdrop">
                     <div className="modal-container">
-                        <div className="modal-header border-bottom p-4">
-                            <div className="d-flex align-items-center gap-3">
-                                <div className="bg-primary bg-opacity-10 p-2 rounded-xl text-primary">
-                                    <BookOpen size={20} />
+                        <div className="modal-header">
+                            <div className="header-content">
+                                <div className="header-icon">
+                                    <BookOpen size={24} />
                                 </div>
-                                <div>
-                                    <h5 className="fw-black mb-0">Sesi Ad-Hoc</h5>
-                                    <p className="text-muted small mb-0 fw-bold">Mulai sesi di luar jadwal master</p>
+                                <div className="header-text">
+                                    <h2>Mulai Sesi Ad-Hoc</h2>
+                                    <p>Mulai sesi pengajaran di luar jadwal master</p>
                                 </div>
                             </div>
-                            <button className="btn-close-circle" style={{
-                                width: '36px', height: '36px', borderRadius: '50%', border: 'none',
-                                background: 'var(--bg-stripe)', color: '#64748b', fontSize: '20px',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                transition: 'all 0.2s'
-                            }} onClick={() => setShowAdhoc(false)}>
+                            <button className="btn-close-circle" onClick={() => setShowAdhoc(false)}>
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="modal-body p-4">
-                            <form onSubmit={handleAdhocSubmit}>
-                                <div className="mb-3">
-                                    <label className="form-label fw-bold small text-muted">KELAS</label>
-                                    <select className="form-select modern-input" required value={adhocForm.kelas_id} onChange={e => setAdhocForm({ ...adhocForm, kelas_id: e.target.value })}>
-                                        <option value="">-- Pilih Kelas --</option>
-                                        {classes.map(k => <option key={k.id} value={k.id}>{k.nama}</option>)}
-                                    </select>
-                                </div>
-                                <div className="mb-3">
-                                    <label className="form-label fw-bold small text-muted">MATA PELAJARAN</label>
-                                    <select className="form-select modern-input" required value={adhocForm.mapel_id} onChange={e => setAdhocForm({ ...adhocForm, mapel_id: e.target.value })}>
-                                        <option value="">-- Pilih Mapel --</option>
-                                        {mapels.map(m => <option key={m.id} value={m.id}>{m.nama}</option>)}
-                                    </select>
-                                </div>
-                                <div className="mb-4">
-                                    <label className="form-label fw-bold small text-muted">MATERI AJAR (OPSIONAL)</label>
-                                    <input type="text" className="form-control modern-input" value={adhocForm.materi} onChange={e => setAdhocForm({ ...adhocForm, materi: e.target.value })} placeholder="Topik yang akan diajarkan..." />
-                                </div>
-                                <div className="d-grid shadow-sm">
-                                    <button type="submit" className="btn btn-primary py-3 rounded-2xl fw-bold d-flex align-items-center justify-content-center gap-2" disabled={submitting}>
-                                        {submitting ? (
-                                            <>
-                                                <span className="spinner-border spinner-border-sm" />
-                                                Memproses...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <PlayCircle size={18} />
-                                                Mulai Sesi Sekarang
-                                            </>
-                                        )}
-                                    </button>
+
+                        <div className="modal-body-scroll">
+                            <form id="adhocForm" onSubmit={handleAdhocSubmit}>
+                                <div className="form-section-card">
+                                    <div className="section-title">
+                                        <Info size={18} />
+                                        <h3>Detail Pengajaran</h3>
+                                    </div>
+                                    <div className="row g-3">
+                                        <div className="col-md-6">
+                                            <div className="form-group mb-3">
+                                                <label className="form-label small fw-bold text-uppercase text-muted mb-2">Pilih Kelas <span className="text-danger">*</span></label>
+                                                <select className="modern-input" required value={adhocForm.kelas_id} onChange={e => setAdhocForm({ ...adhocForm, kelas_id: e.target.value })}>
+                                                    <option value="">-- Pilih Kelas --</option>
+                                                    {classes.map(k => <option key={k.id} value={k.id}>{k.nama}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <div className="form-group mb-3">
+                                                <label className="form-label small fw-bold text-uppercase text-muted mb-2">Mata Pelajaran <span className="text-danger">*</span></label>
+                                                <select className="modern-input" required value={adhocForm.mapel_id} onChange={e => setAdhocForm({ ...adhocForm, mapel_id: e.target.value })}>
+                                                    <option value="">-- Pilih Mapel --</option>
+                                                    {mapels.map(m => <option key={m.id} value={m.id}>{m.nama}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label small fw-bold text-uppercase text-muted mb-2">Materi Ajar (Opsional)</label>
+                                        <input type="text" className="modern-input" value={adhocForm.materi} onChange={e => setAdhocForm({ ...adhocForm, materi: e.target.value })} placeholder="Topik yang akan diajarkan..." />
+                                    </div>
                                 </div>
                             </form>
+                        </div>
+
+                        <div className="modal-footer-custom">
+                            <button type="button" className="btn-glass-secondary" onClick={() => setShowAdhoc(false)}>Batal</button>
+                            <button type="submit" form="adhocForm" className="btn-modern-primary" disabled={submitting} style={{ background: 'var(--primary-600)', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+                                {submitting ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm" /> Memproses...
+                                    </>
+                                ) : (
+                                    <>
+                                        <PlayCircle size={18} /> Mulai Sesi Sekarang
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -475,16 +555,16 @@ function ScheduleCard({ schedule, onAction, isAdhoc }) {
 
                     <div>
                         <div className="d-flex align-items-center gap-2 mb-1">
-                            <span className="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded-lg fw-bold" style={{ fontSize: '0.7rem' }}>
+                            <span className="badge border-0 px-2 py-1" style={{ borderRadius: 8, fontSize: '0.7rem', background: 'var(--primary-100)', color: 'var(--primary-700)', fontWeight: 800 }}>
                                 {schedule.kelas_nama}
                             </span>
                             {isAdhoc && (
-                                <span className="badge bg-warning bg-opacity-10 text-warning px-2 py-1 rounded-lg fw-bold" style={{ fontSize: '0.7rem' }}>
+                                <span className="badge border-0 px-2 py-1" style={{ borderRadius: 8, fontSize: '0.7rem', background: 'var(--warning-100)', color: 'var(--warning-700)', fontWeight: 800 }}>
                                     AD-HOC
                                 </span>
                             )}
                             {isDone && (
-                                <span className="badge bg-success bg-opacity-10 text-success px-2 py-1 rounded-lg fw-bold" style={{ fontSize: '0.7rem' }}>
+                                <span className="badge border-0 px-2 py-1" style={{ borderRadius: 8, fontSize: '0.7rem', background: 'var(--success-100)', color: 'var(--success-700)', fontWeight: 800 }}>
                                     SELESAI
                                 </span>
                             )}

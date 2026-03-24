@@ -191,16 +191,26 @@ export default function ClassSession() {
                                     const isBolos = s.status === 'bolos'
 
                                     let statusUI = {
-                                        color: 'text-success',
-                                        bg: 'bg-success',
+                                        color: 'var(--success-700)',
+                                        bg: 'var(--success-100)',
                                         icon: <UserCheck size={20} />,
                                         label: 'Hadir'
                                     }
 
                                     if (s.is_locked) {
-                                        statusUI = { color: 'text-secondary', bg: 'bg-secondary', icon: <UserX size={20} />, label: `Terkunci Admin: ${s.daily_status?.toUpperCase()}` }
+                                        statusUI = {
+                                            color: 'var(--text-secondary)',
+                                            bg: 'var(--bg-stripe)',
+                                            icon: <UserX size={20} />,
+                                            label: `Terkunci Admin: ${s.daily_status?.toUpperCase()}`
+                                        }
                                     } else if (isBolos) {
-                                        statusUI = { color: 'text-danger', bg: 'bg-danger', icon: <UserX size={20} />, label: 'Tidak di Kelas (Bolos)' }
+                                        statusUI = {
+                                            color: 'var(--danger-700)',
+                                            bg: 'var(--danger-100)',
+                                            icon: <UserX size={20} />,
+                                            label: 'Tidak di Kelas (Bolos)'
+                                        }
                                     }
 
                                     return (
@@ -220,9 +230,9 @@ export default function ClassSession() {
                                                 </div>
                                             </div>
 
-                                            <div className={`d-flex align-items-center gap-2 ${statusUI.color}`}>
+                                            <div className="d-flex align-items-center gap-2" style={{ color: statusUI.color }}>
                                                 {statusUI.icon}
-                                                <span className={`badge ${statusUI.bg} bg-opacity-10 border border-opacity-25 py-2 px-3 fw-bold`}>
+                                                <span className="badge border-0 py-2 px-3 fw-bold" style={{ background: statusUI.bg, color: statusUI.color, borderRadius: '8px' }}>
                                                     {statusUI.label}
                                                 </span>
                                             </div>
