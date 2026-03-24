@@ -47,41 +47,40 @@ export default function GuruLayout() {
                         </div>
                     </div>
 
-                    <div className="d-flex align-items-center gap-2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         {/* Theme Toggle Button */}
-                        <button
+                        <div
                             onClick={toggleTheme}
-                            className="btn-glass-sidebar p-2 rounded-xl border-0 shadow-sm"
                             style={{
-                                width: '40px', height: '40px',
+                                width: 38, height: 38, borderRadius: 12, cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                                color: theme === 'dark' ? '#fbbf24' : '#64748b'
+                                background: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'var(--bg-stripe)',
+                                color: theme === 'dark' ? '#fbbf24' : 'var(--text-secondary)'
                             }}
-                            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
                         >
-                            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                        </button>
-
-                        <div className="d-flex align-items-center gap-4 ms-2">
-                            <div className="d-none d-md-flex align-items-center gap-3 pe-3 border-end border-light">
-                                <div className="text-end">
-                                    <div className="fw-bold text-primary lh-1 mb-1">{currentUser.nama}</div>
-                                    <div className="text-primary fw-bold" style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.8 }}>Guru Pengajar</div>
-                                </div>
-                                <div className="user-avatar-sm">
-                                    {currentUser.nama?.charAt(0)}
-                                </div>
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="btn-glass-danger d-flex align-items-center gap-2 px-3 py-2 rounded-xl border-0"
-                                title="Keluar Aplikasi"
-                            >
-                                <LogOut size={18} />
-                                <span className="d-none d-md-inline fw-bold">Logout</span>
-                            </button>
+                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                         </div>
+
+                        {/* User Profile (Only Desktop) */}
+                        <div className="d-none d-md-flex" style={{ alignItems: 'center', gap: '16px', borderRight: '1px solid var(--border-color)', paddingRight: '20px' }}>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary-600)', lineHeight: '1' }}>{currentUser.nama}</div>
+                                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px' }}>Guru Pengajar</div>
+                            </div>
+                            <div className="user-avatar-sm shadow-sm">
+                                {currentUser.nama?.charAt(0)}
+                            </div>
+                        </div>
+
+                        {/* Logout Button */}
+                        <button
+                            onClick={handleLogout}
+                            className="btn-glass-danger border-0 d-flex align-items-center"
+                            style={{ gap: '8px', padding: '10px 18px', borderRadius: '14px', fontWeight: 800, fontSize: '0.8125rem' }}
+                        >
+                            <LogOut size={16} />
+                            <span className="d-none d-lg-inline">Logout</span>
+                        </button>
                     </div>
                 </div>
             </header>

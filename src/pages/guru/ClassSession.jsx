@@ -69,6 +69,41 @@ export default function ClassSession() {
         }
     }
 
+    const setStatus = async (studentId, nextStatus) => {
+        if (jurnal?.status_jurnal === 'Selesai') return
+
+        const newStudents = students.map(s => s.id === studentId ? { ...s, status: nextStatus } : s)
+        setStudents(newStudents)
+
+        try {
+            await fetch(`${API_BASE}/guru/session/attendance`, {
+                method: 'PUT',
+                headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jurnal_id: id,
+                    attendanceList: [{ siswa_id: studentId, status: nextStatus }]
+                })
+            })
+        } catch (err) { }
+    }
+
+    const handleMarkAllHadir = async () => {
+        const unLockedStudents = students.filter(s => !s.is_locked)
+        const newStudents = students.map(s => s.is_locked ? s : { ...s, status: 'hadir' })
+        setStudents(newStudents)
+
+        try {
+            await fetch(`${API_BASE}/guru/session/attendance`, {
+                method: 'PUT',
+                headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jurnal_id: id,
+                    attendanceList: unLockedStudents.map(s => ({ siswa_id: s.id, status: 'hadir' }))
+                })
+            })
+        } catch (err) { }
+    }
+
     const handleFinish = async () => {
         if (!window.confirm('Akhiri sesi mengajar dan simpan jurnal secara permanen?')) return
         setSaving(true)
@@ -178,11 +213,16 @@ export default function ClassSession() {
                 <div className="col-lg-8">
                     <div className="card shadow-sm border-0">
                         <div className="card-header bg-white border-bottom pb-3 pt-4 px-4 d-flex justify-content-between align-items-center">
-                            <h5 className="fw-bold m-0 text-dark">Presensi Kehadiran Kelas ({students.length} Siswa)</h5>
-                            <span className="badge bg-light text-dark border px-3 py-2 fw-medium">
-                                <Info size={14} className="me-2 text-primary" />
-                                Klik pada baris siswa untuk Absen Bolos
-                            </span>
+                            <div>
+                                <h5 className="fw-bold m-0 text-dark">Presensi Kehadiran Kelas</h5>
+                                <p className="text-muted small mb-0">{students.length} Siswa Terdaftar</p>
+                            </div>
+                            {!isDone && (
+                                <button className="btn btn-outline-success btn-sm fw-bold px-3 py-2 rounded-pill d-flex align-items-center gap-2" onClick={handleMarkAllHadir}>
+                                    <CheckCircle2 size={16} />
+                                    Tandai Semua Hadir
+                                </button>
+                            )}
                         </div>
                         <div className="card-body p-0">
                             <ul className="list-group list-group-flush">
@@ -216,25 +256,56 @@ export default function ClassSession() {
                                     return (
                                         <li
                                             key={s.id}
-                                            className={`list-group-item d-flex justify-content-between align-items-center p-3 px-4 ${s.is_locked ? 'bg-light' : ''}`}
-                                            onClick={() => toggleAttendance(s.id, s.status, s.is_locked)}
-                                            style={{ cursor: (s.is_locked || isDone) ? 'default' : 'pointer', transition: 'background-color 0.2s' }}
+                                            className={`list-group-item d-flex justify-content-between align-items-center p-3 px-4 ${s.is_locked ? 'bg-light bg-opacity-50' : ''}`}
+                                            style={{ transition: 'all 0.2s' }}
                                         >
                                             <div className="d-flex align-items-center gap-3">
-                                                <div className="avatar-circle bg-light text-secondary fw-bold" style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div className="avatar-circle shadow-sm" style={{
+                                                    width: '44px', height: '44px', borderRadius: '14px',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    background: 'var(--primary-50)', color: 'var(--primary-600)',
+                                                    fontWeight: 800, fontSize: '1.1rem'
+                                                }}>
                                                     {s.nama.charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <div className={`fw-bold ${s.is_locked ? 'text-muted' : 'text-dark'}`}>{s.nama}</div>
-                                                    <div className="text-muted small">NISN: {s.nisn}</div>
+                                                    <div className={`fw-bold mb-0 ${s.is_locked ? 'text-muted' : 'text-dark'}`} style={{ fontSize: '0.95rem' }}>{s.nama}</div>
+                                                    <div className="text-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>NISN: {s.nisn}</div>
                                                 </div>
                                             </div>
 
-                                            <div className="d-flex align-items-center gap-2" style={{ color: statusUI.color }}>
-                                                {statusUI.icon}
-                                                <span className="badge border-0 py-2 px-3 fw-bold" style={{ background: statusUI.bg, color: statusUI.color, borderRadius: '8px' }}>
-                                                    {statusUI.label}
-                                                </span>
+                                            <div className="d-flex align-items-center gap-2">
+                                                {s.is_locked ? (
+                                                    <div className="d-flex align-items-center gap-2 p-1 px-3 rounded-pill bg-light border">
+                                                        <Info size={16} className="text-secondary" />
+                                                        <span className="small fw-bold text-secondary" style={{ fontSize: '0.75rem' }}>
+                                                            {s.daily_status?.toUpperCase()} (ADMIN)
+                                                        </span>
+                                                    </div>
+                                                ) : isDone ? (
+                                                    <span className="badge border-0 py-2 px-3 fw-bold" style={{ background: statusUI.bg, color: statusUI.color, borderRadius: '8px' }}>
+                                                        {statusUI.label}
+                                                    </span>
+                                                ) : (
+                                                    <div className="d-flex bg-light p-1 rounded-pill border" style={{ gap: '4px' }}>
+                                                        <button
+                                                            className={`btn border-0 rounded-pill px-3 py-1 btn-sm fw-bold transition-all ${isHadir ? 'btn-success shadow-sm' : 'text-secondary'}`}
+                                                            style={{ fontSize: '0.75rem', minWidth: '80px' }}
+                                                            onClick={() => setStatus(s.id, 'hadir')}
+                                                        >
+                                                            {isHadir && <UserCheck size={14} className="me-1" />}
+                                                            HADIR
+                                                        </button>
+                                                        <button
+                                                            className={`btn border-0 rounded-pill px-3 py-1 btn-sm fw-bold transition-all ${isBolos ? 'btn-danger shadow-sm' : 'text-secondary'}`}
+                                                            style={{ fontSize: '0.75rem', minWidth: '80px' }}
+                                                            onClick={() => setStatus(s.id, 'bolos')}
+                                                        >
+                                                            {isBolos && <UserX size={14} className="me-1" />}
+                                                            BOLOS
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </li>
                                     )
