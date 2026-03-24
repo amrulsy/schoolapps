@@ -1,9 +1,11 @@
 import { useRef } from 'react'
 import { useApp } from '../../context/AppContext'
 import { useReactToPrint } from 'react-to-print'
-import { ArrowLeft, Printer } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, Printer, CreditCard } from 'lucide-react'
 
 export default function SiswaSppDetail({ data, onClose, year }) {
+    const navigate = useNavigate()
     const { bills, formatRupiah, MONTHS, tahunAjaran: activeTahunAjaran } = useApp()
     const targetTahun = year || activeTahunAjaran
     const kartuRef = useRef(null)
@@ -55,7 +57,10 @@ export default function SiswaSppDetail({ data, onClose, year }) {
                     <button className="btn-icon" onClick={onClose}><ArrowLeft size={24} /></button>
                     <h1>Detail Kartu SPP</h1>
                 </div>
-                <div className="actions">
+                <div className="actions" style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }} onClick={() => navigate(`/admin/pembayaran?siswaId=${data.id}`)}>
+                        <CreditCard size={20} /> Pembayaran POS
+                    </button>
                     <button className="btn-primary btn" onClick={handlePrintKartu}>
                         <Printer size={20} /> Cetak Kartu SPP
                     </button>

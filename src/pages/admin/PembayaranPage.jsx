@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import Modal from '../../components/Modal'
 import { useReactToPrint } from 'react-to-print'
@@ -10,8 +11,10 @@ import CartSidebar from '../../features/pembayaran/CartSidebar'
 import ReceiptModal from '../../features/pembayaran/ReceiptModal'
 
 export default function PembayaranPage() {
-    const { students, bills, formatRupiah, processPayment, currentUser, tahunAjaran: activeTahunAjaran } = useApp()
+    const [searchParams] = useSearchParams()
+    const { students, units, bills, formatRupiah, processPayment, currentUser, tahunAjaran: activeTahunAjaran } = useApp()
     const [search, setSearch] = useState('')
+    const [filterKelas, setFilterKelas] = useState('')
     const [selectedStudent, setSelectedStudent] = useState(null)
     const [selectedBills, setSelectedBills] = useState([])
     const [partialPay, setPartialPay] = useState({})
@@ -21,9 +24,16 @@ export default function PembayaranPage() {
     const amountRef = useRef(null)
     const payBtnRef = useRef(null)
 
+    const allKelas = units.flatMap(u => u.kelas)
+
     // Filtered suggestions
-    const suggestions = search.length >= 2
-        ? students.filter(s => s.status === 'aktif' && ((s.nama || '').toLowerCase().includes(search.toLowerCase()) || String(s.nisn || '').includes(search))).slice(0, 5)
+    const suggestions = (search.length >= 2 || filterKelas)
+        ? students.filter(s => {
+            const matchStatus = s.status === 'aktif'
+            const matchSearch = !search || (s.nama || '').toLowerCase().includes(search.toLowerCase()) || String(s.nisn || '').includes(search)
+            const matchKelas = !filterKelas || s.kelas === filterKelas
+            return matchStatus && matchSearch && matchKelas
+        }).slice(0, 10)
         : []
 
     // Get unpaid bills for selected student (for cart)
@@ -140,6 +150,17 @@ export default function PembayaranPage() {
         }
     }, [totalSelected])
 
+    // Handle deep link from SISWA ID
+    useEffect(() => {
+        const sid = searchParams.get('siswaId')
+        if (sid && students.length > 0) {
+            const student = students.find(s => s.id === Number(sid) || s.id === sid)
+            if (student) {
+                selectStudent(student)
+            }
+        }
+    }, [searchParams, students])
+
 
 
     return (
@@ -169,11 +190,11 @@ export default function PembayaranPage() {
                 </div>
             </div>
 
-            {/* Search bar */}
+            {/* Search bar & Filters */}
             <div style={{ position: 'relative', marginBottom: 24 }}>
-                <div className="filter-bar" style={{ marginBottom: 0 }}>
+                <div className="filter-bar" style={{ marginBottom: 0, paddingRight: '12px' }}>
                     <div className="search-input" style={{ flex: 1 }}>
-                        <Search size={16} className="search-icon" />
+                        <Search size={18} className="search-icon" />
                         <input
                             ref={searchRef}
                             className="form-control"
@@ -183,6 +204,19 @@ export default function PembayaranPage() {
                             onKeyDown={handleSearchKeyDown}
                             autoFocus
                         />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <select
+                            className="form-control"
+                            style={{ minWidth: '180px', height: '44px', borderRadius: '12px', background: 'var(--bg-card)' }}
+                            value={filterKelas}
+                            onChange={e => { setFilterKelas(e.target.value); setSelectedStudent(null) }}
+                        >
+                            <option value="">Semua Kelas</option>
+                            {allKelas.map(k => (
+                                <option key={k.id} value={k.nama}>{k.nama}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
                 {suggestions.length > 0 && !selectedStudent && (

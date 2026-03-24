@@ -33,21 +33,12 @@ const menuSections = [
         color: '#10b981', // green
         items: [
             { to: '/admin/keuangan-dashboard', icon: LayoutDashboard, text: 'Dashboard Keuangan' },
-            { to: '/admin/tagihan', icon: FileText, text: 'Tagihan' },
-            { to: '/admin/riwayat-generate', icon: Zap, text: 'Riwayat Generate' },
-            { to: '/admin/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
             { to: '/admin/pembayaran', icon: CreditCard, text: 'Pembayaran (POS)' },
-            { to: '/admin/tabungan', icon: Landmark, text: 'Kasir Tabungan' },
             { to: '/admin/riwayat', icon: History, text: 'Riwayat Transaksi' },
+            { to: '/admin/generate-tagihan', icon: Zap, text: 'Generate Tagihan' },
+            { to: '/admin/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
             { to: '/admin/arus-kas', icon: BookOpen, text: 'Arus Kas' },
-        ]
-    },
-    {
-        label: 'LAPORAN',
-        icon: BarChart3,
-        color: '#f59e0b', // amber
-        items: [
-            { to: '/admin/laporan', icon: BarChart3, text: 'Laporan Keuangan' },
+            { to: '/admin/tabungan', icon: Landmark, text: 'Kasir Tabungan' },
         ]
     },
     {

@@ -26,12 +26,10 @@ const DataGuruPage = lazy(() => import('./pages/admin/DataGuruPage'))
 const JadwalPelajaranPage = lazy(() => import('./pages/admin/JadwalPelajaranPage'))
 const KategoriTagihanPage = lazy(() => import('./pages/admin/KategoriTagihanPage'))
 const RekeningPage = lazy(() => import('./pages/admin/RekeningPage'))
-const TagihanPage = lazy(() => import('./pages/admin/TagihanPage'))
-const RiwayatGeneratePage = lazy(() => import('./pages/admin/RiwayatGeneratePage'))
+const GenerateTagihanPage = lazy(() => import('./pages/admin/GenerateTagihanPage'))
 const PembayaranPage = lazy(() => import('./pages/admin/PembayaranPage'))
 const RiwayatTransaksiPage = lazy(() => import('./pages/admin/RiwayatTransaksiPage'))
 const ArusKasPage = lazy(() => import('./pages/admin/ArusKasPage'))
-const LaporanPage = lazy(() => import('./pages/admin/LaporanPage'))
 const KartuSppPage = lazy(() => import('./pages/admin/KartuSppPage'))
 const UsersPage = lazy(() => import('./pages/admin/UsersPage'))
 const PengaturanPage = lazy(() => import('./pages/admin/PengaturanPage'))
@@ -70,12 +68,10 @@ export default function App() {
           <Route path="tahun-ajaran" element={<TahunAjaranPage />} />
           <Route path="kategori-tagihan" element={<KategoriTagihanPage />} />
           <Route path="rekening" element={<RekeningPage />} />
-          <Route path="tagihan" element={<TagihanPage />} />
-          <Route path="riwayat-generate" element={<RiwayatGeneratePage />} />
+          <Route path="generate-tagihan" element={<GenerateTagihanPage />} />
           <Route path="pembayaran" element={<PembayaranPage />} />
           <Route path="riwayat" element={<RiwayatTransaksiPage />} />
           <Route path="arus-kas" element={<ArusKasPage />} />
-          <Route path="laporan" element={<LaporanPage />} />
           <Route path="kartu-spp" element={<KartuSppPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="pengaturan" element={<PengaturanPage />} />

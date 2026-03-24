@@ -15,15 +15,34 @@ export default function RiwayatTransaksiPage() {
     const { confirmDelete } = useCustomAlert()
     const [search, setSearch] = useState('')
     const [receipt, setReceipt] = useState(null)
+    const [filterStatus, setFilterStatus] = useState('semua')
+    const [filterMonth, setFilterMonth] = useState('')
+    const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString())
 
     const filtered = transactions.filter(t => {
-        const snama = t.siswa_nama || t.siswaName || ''
-        const inv = t.invoice_no || t.invoiceNo || ''
-        return snama.toLowerCase().includes(search.toLowerCase()) ||
-            inv.toLowerCase().includes(search.toLowerCase())
+        const snama = (t.siswa_nama || t.siswaName || '').toLowerCase()
+        const inv = (t.invoice_no || t.invoiceNo || '').toLowerCase()
+        const matchSearch = snama.includes(search.toLowerCase()) || inv.includes(search.toLowerCase())
+
+        const tDate = new Date(t.tanggal)
+        const matchMonth = !filterMonth || (tDate.getMonth() + 1).toString() === filterMonth
+        const matchYear = !filterYear || tDate.getFullYear().toString() === filterYear
+
+        const status = (t.status === 'void' || t.status === 'voided') ? 'dibatalkan' : 'sukses'
+        const matchStatus = filterStatus === 'semua' || status === filterStatus
+
+        return matchSearch && matchMonth && matchYear && matchStatus
     })
 
     const { page, setPage, totalPages, paginated, perPage: PER_PAGE } = usePagination(filtered, 15)
+
+    const YEARS = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i).toString())
+    const MONTHS_LIST = [
+        { id: '1', nama: 'Januari' }, { id: '2', nama: 'Februari' }, { id: '3', nama: 'Maret' },
+        { id: '4', nama: 'April' }, { id: '5', nama: 'Mei' }, { id: '6', nama: 'Juni' },
+        { id: '7', nama: 'Juli' }, { id: '8', nama: 'Agustus' }, { id: '9', nama: 'September' },
+        { id: '10', nama: 'Oktober' }, { id: '11', nama: 'November' }, { id: '12', nama: 'Desember' }
+    ]
 
     const handleViewReceipt = async (tx) => {
         try {
@@ -61,14 +80,46 @@ export default function RiwayatTransaksiPage() {
             </div>
 
             <div className="filter-bar">
-                <div className="search-input" style={{ maxWidth: 400 }}>
-                    <Search size={16} className="search-icon" />
+                <div className="search-input">
+                    <Search size={18} className="search-icon" />
                     <input
                         className="form-control"
                         placeholder="Cari No. Invoice atau Nama Siswa..."
                         value={search}
                         onChange={e => { setSearch(e.target.value); setPage(1) }}
                     />
+                </div>
+
+                <div className="filter-group">
+                    <div className="status-filters">
+                        <button
+                            className={`status-pill ${filterStatus === 'semua' ? 'active' : ''}`}
+                            onClick={() => { setFilterStatus('semua'); setPage(1) }}
+                        >
+                            Semua
+                        </button>
+                        <button
+                            className={`status-pill active sukses ${filterStatus === 'sukses' ? 'active' : ''}`}
+                            onClick={() => { setFilterStatus('sukses'); setPage(1) }}
+                        >
+                            Sukses
+                        </button>
+                        <button
+                            className={`status-pill active menunggak ${filterStatus === 'dibatalkan' ? 'active' : ''}`}
+                            onClick={() => { setFilterStatus('dibatalkan'); setPage(1) }}
+                        >
+                            Dibatalkan
+                        </button>
+                    </div>
+
+                    <select className="form-control" value={filterMonth} onChange={e => { setFilterMonth(e.target.value); setPage(1) }}>
+                        <option value="">Semua Bulan</option>
+                        {MONTHS_LIST.map(m => <option key={m.id} value={m.id}>{m.nama}</option>)}
+                    </select>
+
+                    <select className="form-control" value={filterYear} onChange={e => { setFilterYear(e.target.value); setPage(1) }}>
+                        {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
                 </div>
             </div>
 

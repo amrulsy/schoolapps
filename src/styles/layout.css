@@ -665,40 +665,128 @@
     margin-right: 4px;
 }
 
-/* --- Filter Bar --- */
+/* --- Filter Bar (Premium Redesign) --- */
 .filter-bar {
     display: flex;
-    gap: 12px;
+    gap: 16px;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 16px;
-    padding: 14px 16px;
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: rgba(var(--bg-card-rgb, 255, 255, 255), 0.7);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.05),
+        0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='dark'] .filter-bar {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+}
+
+.filter-bar:hover {
+    box-shadow:
+        0 8px 12px -1px rgba(0, 0, 0, 0.08),
+        0 20px 25px -5px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.6);
 }
 
 .filter-bar .search-input {
-    flex: 1;
-    min-width: 200px;
+    flex: 1.5;
+    min-width: 250px;
     position: relative;
+    transition: transform 0.2s;
+}
+
+.filter-bar .search-input:focus-within {
+    transform: translateY(-1px);
 }
 
 .filter-bar .search-input input {
-    padding-left: 36px;
+    padding: 12px 14px 12px 42px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 500;
 }
 
 .filter-bar .search-input .search-icon {
     position: absolute;
-    left: 12px;
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-muted);
+    color: var(--primary-500);
+    transition: all 0.2s;
+}
+
+.filter-bar .search-input input:focus+.search-icon {
+    color: var(--primary-600);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.filter-bar .filter-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .filter-bar select {
-    min-width: 140px;
+    min-width: 160px;
+    border-radius: 14px;
+    font-weight: 500;
+}
+
+/* Status Pill Buttons */
+.status-filters {
+    display: flex;
+    background: var(--bg-stripe);
+    padding: 4px;
+    border-radius: 12px;
+    gap: 2px;
+}
+
+.status-pill {
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-secondary);
+    border: none;
+    background: transparent;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.status-pill:hover {
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.status-pill.active {
+    background: #fff;
+    color: var(--primary-600);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='dark'] .status-pill.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--primary-400);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.status-pill.active.lunas {
+    color: var(--success-600);
+}
+
+.status-pill.active.menunggak {
+    color: var(--danger-600);
 }
 
 /* --- Grid Layouts --- */

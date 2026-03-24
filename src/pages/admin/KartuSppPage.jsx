@@ -345,27 +345,46 @@ export default function KartuSppPage() {
             {/* Filters */}
             <div className="filter-bar">
                 <div className="search-input">
-                    <Search size={16} className="search-icon" />
+                    <Search size={18} className="search-icon" />
                     <input
                         className="form-control"
-                        placeholder="Cari nama atau NISN..."
+                        placeholder="Cari nama siswa atau nomor NISN..."
                         value={search}
                         onChange={e => { setSearch(e.target.value); setPage(1) }}
                     />
                 </div>
-                <select className="form-control" value={filterTahun} onChange={e => { setFilterTahun(e.target.value); setPage(1) }}>
-                    {tahunAjaranList.map(t => <option key={t.id} value={t.tahun}>{t.tahun} {t.status === 'aktif' ? '(Aktif)' : ''}</option>)}
-                </select>
-                <select className="form-control" value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1) }}>
-                    <option value="">Semua Kelas</option>
-                    {allKelas.map(k => <option key={k.id} value={k.nama}>{k.nama}</option>)}
-                </select>
-                <select className="form-control" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}>
-                    <option value="semua">Semua Status</option>
-                    <option value="lunas">Lunas</option>
-                    <option value="lunas_sementara">Lunas Sementara</option>
-                    <option value="menunggak">Menunggak</option>
-                </select>
+
+                <div className="filter-group">
+                    <div className="status-filters">
+                        <button
+                            className={`status-pill ${filterStatus === 'semua' ? 'active' : ''}`}
+                            onClick={() => { setFilterStatus('semua'); setPage(1) }}
+                        >
+                            Semua
+                        </button>
+                        <button
+                            className={`status-pill lunas ${filterStatus === 'lunas' ? 'active' : ''}`}
+                            onClick={() => { setFilterStatus('lunas'); setPage(1) }}
+                        >
+                            Lunas
+                        </button>
+                        <button
+                            className={`status-pill menunggak ${filterStatus === 'menunggak' ? 'active' : ''}`}
+                            onClick={() => { setFilterStatus('menunggak'); setPage(1) }}
+                        >
+                            Menunggak
+                        </button>
+                    </div>
+
+                    <select className="form-control" value={filterTahun} onChange={e => { setFilterTahun(e.target.value); setPage(1) }}>
+                        {tahunAjaranList.map(t => <option key={t.id} value={t.tahun}>{t.tahun} {t.status === 'aktif' ? '(Aktif)' : ''}</option>)}
+                    </select>
+
+                    <select className="form-control" value={filterKelas} onChange={e => { setFilterKelas(e.target.value); setPage(1) }}>
+                        <option value="">Semua Kelas</option>
+                        {allKelas.map(k => <option key={k.id} value={k.nama}>{k.nama}</option>)}
+                    </select>
+                </div>
             </div>
 
             {/* Data Grid */}
