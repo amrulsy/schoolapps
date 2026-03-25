@@ -153,6 +153,55 @@ const styles = /*css*/`
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+
+  @media (max-width: 767px) {
+    .attendance-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 16px 20px;
+      gap: 16px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .attendance-header .d-flex.gap-2 {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    .attendance-header .d-flex.gap-2 button {
+      flex: 1;
+      min-width: 0;
+      justify-content: center;
+    }
+    .bento-grid {
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .bento-card {
+      padding: 20px;
+      border-radius: 20px;
+    }
+    .bento-card h1 {
+      font-size: 2.5rem !important;
+    }
+    .d-flex.gap-3.mt-4 {
+      flex-direction: column;
+      gap: 10px !important;
+    }
+    .attendance-btn-group {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .attendance-btn {
+      padding: 8px 2px;
+      font-size: 0.65rem;
+    }
+    .card-body.p-4 {
+      padding: 16px !important;
+    }
+    .card.shadow-sm {
+      border-radius: 20px !important;
+    }
+  }
 `;
 
 export default function AttendancePage() {

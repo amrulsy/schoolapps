@@ -226,6 +226,79 @@ const styles = /*css*/`
     from { opacity: 0; transform: scale(0.95) translateY(10px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
   }
+
+  @media (max-width: 767px) {
+    .guru-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 16px 20px;
+      gap: 16px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .guru-header button {
+      width: 100%;
+      justify-content: center;
+    }
+    .guru-header h2 {
+      font-size: 1.2rem !important;
+    }
+    .bento-grid {
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .bento-card {
+      padding: 20px;
+      border-radius: 20px;
+    }
+    .bento-card:hover {
+      transform: none;
+    }
+    .schedule-card {
+      padding: 16px;
+      border-radius: 18px;
+      margin-bottom: 14px;
+    }
+    .schedule-card .d-flex.align-items-center.justify-content-between {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 14px;
+    }
+    .schedule-card .d-flex.align-items-center.gap-4 {
+      gap: 12px !important;
+    }
+    .schedule-card .d-flex.align-items-center.gap-4 > .text-center {
+      min-width: 70px !important;
+    }
+    .schedule-card .d-flex.flex-column.align-items-center.gap-1 {
+      display: none !important;
+    }
+    .btn-play-session {
+      width: 100%;
+      justify-content: center;
+      padding: 12px 16px;
+    }
+    .btn-glass-sidebar {
+      font-size: 0.85rem;
+    }
+    .modal-container {
+      max-width: calc(100vw - 32px);
+      border-radius: 20px;
+    }
+    .modal-body-scroll {
+      padding: 16px;
+    }
+    .modal-header {
+      padding: 16px 20px;
+    }
+    .modal-footer-custom {
+      padding: 16px 20px;
+      flex-direction: column-reverse;
+    }
+    .modal-footer-custom button {
+      width: 100%;
+    }
+  }
 `
 
 export default function GuruDashboard() {

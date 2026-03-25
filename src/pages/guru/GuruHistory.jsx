@@ -188,8 +188,17 @@ const styles = /*css*/`
     margin-top: 20px;
   }
   @media (max-width: 768px) {
-    .history-header { flex-direction: column; align-items: stretch; }
+    .history-header { flex-direction: column; align-items: stretch; padding: 16px 20px; border-radius: 20px; }
     .search-container { max-width: none; }
+    .filter-panel { padding: 16px; border-radius: 18px; }
+    .filter-grid { grid-template-columns: 1fr; }
+    .history-table th { padding: 12px 14px; font-size: 0.7rem; }
+    .history-table td { padding: 12px 14px; }
+    .cell-subject { gap: 10px; }
+    .subject-icon { width: 36px; height: 36px; border-radius: 10px; }
+    .materi-preview { max-width: 120px; }
+    .empty-state { padding: 50px 20px; border-radius: 20px; }
+    .history-table-container { border-radius: 18px; }
   }
 `
 

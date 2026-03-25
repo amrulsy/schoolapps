@@ -879,3 +879,85 @@
         font-size: 2rem;
     }
 }
+
+@media (max-width: 767px) {
+    .cms-section-card {
+        padding: 16px;
+    }
+
+    .cms-stat-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .cms-tab-nav {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .cms-tab-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .cms-tab-btn {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+    }
+
+    .cms-section-title {
+        font-size: 0.95rem;
+    }
+
+    .cms-cta-preview {
+        padding: 24px;
+    }
+
+    .cms-hero-title {
+        font-size: 1.4rem;
+        gap: 8px;
+    }
+
+    .cms-hero-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .cms-hero-live-card {
+        padding: 20px;
+    }
+
+    .cms-preview-title {
+        font-size: 1.3rem;
+    }
+
+    /* Message inbox mobile: card layout */
+    .cms-message-row {
+        flex-wrap: wrap;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .col-status {
+        width: auto;
+        order: -1;
+    }
+
+    .col-sender {
+        width: calc(100% - 80px);
+    }
+
+    .col-subject {
+        width: 100%;
+        padding: 0;
+    }
+
+    /* Contact details grid */
+    .cms-contact-details {
+        gap: 12px;
+    }
+
+    .detail-item {
+        width: 100%;
+    }
+}

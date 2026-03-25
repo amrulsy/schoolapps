@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext'
 import Modal from '../../components/Modal'
 import { useReactToPrint } from 'react-to-print'
 import { downloadFile } from '../../utils/downloadHelper'
-import { Search, CreditCard } from 'lucide-react'
+import { Search, CreditCard, AlertCircle } from 'lucide-react'
 
 // Features
 import CartSidebar from '../../features/pembayaran/CartSidebar'
@@ -12,9 +12,10 @@ import ReceiptModal from '../../features/pembayaran/ReceiptModal'
 
 export default function PembayaranPage() {
     const [searchParams] = useSearchParams()
-    const { students, units, bills, formatRupiah, processPayment, currentUser, tahunAjaran: activeTahunAjaran } = useApp()
+    const { students, units, bills, formatRupiah, processPayment, currentUser, tahunAjaran: activeTahunAjaran, tahunAjaranList } = useApp()
     const [search, setSearch] = useState('')
     const [filterKelas, setFilterKelas] = useState('')
+    const [filterTA, setFilterTA] = useState(activeTahunAjaran || '')
     const [selectedStudent, setSelectedStudent] = useState(null)
     const [selectedBills, setSelectedBills] = useState([])
     const [partialPay, setPartialPay] = useState({})
@@ -36,15 +37,23 @@ export default function PembayaranPage() {
         }).slice(0, 10)
         : []
 
-    // Get unpaid bills for selected student (for cart)
+    // Get unpaid bills for selected student (filtered by period for cart)
     const studentBills = selectedStudent
-        ? bills.filter(b => (b.siswa_id === selectedStudent.id || b.siswaId === selectedStudent.id) && b.status === 'belum')
+        ? bills.filter(b => (b.siswa_id === selectedStudent.id || b.siswaId === selectedStudent.id) && b.status === 'belum' && (b.tahun_ajaran === filterTA || b.tahunAjaran === filterTA))
         : []
 
-    // Agrupasi by Category for Summary Table (all bills in active TA)
+    // Agrupasi by Category for Summary Table (specific period)
     const activeBillsForSummary = selectedStudent
-        ? bills.filter(b => (b.siswa_id === selectedStudent.id || b.siswaId === selectedStudent.id) && (b.tahun_ajaran === activeTahunAjaran || b.tahunAjaran === activeTahunAjaran))
+        ? bills.filter(b => (b.siswa_id === selectedStudent.id || b.siswaId === selectedStudent.id) && (b.tahun_ajaran === filterTA || b.tahunAjaran === filterTA))
         : []
+
+    // CROSS-PERIOD DEBT CALCULATION
+    const unpaidBillsAllTime = selectedStudent
+        ? bills.filter(b => (b.siswa_id === selectedStudent.id || b.siswaId === selectedStudent.id) && b.status === 'belum')
+        : []
+    const otherPeriodsUnpaid = unpaidBillsAllTime.filter(b => (b.tahun_ajaran || b.tahunAjaran) !== filterTA)
+    const totalOtherDebt = otherPeriodsUnpaid.reduce((s, b) => s + Number(b.nominal), 0)
+    const yearsWithOtherDebt = [...new Set(otherPeriodsUnpaid.map(b => b.tahun_ajaran || b.tahunAjaran))].sort()
 
     const categoriesMap = {}
     activeBillsForSummary.forEach(b => {
@@ -167,13 +176,13 @@ export default function PembayaranPage() {
         <div className="fade-in">
             {/* POS Header */}
             <div className="pos-header-info mb-4">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                     <div style={{ padding: 10, background: 'rgba(99, 102, 241, 0.1)', color: 'var(--pos-primary)', borderRadius: 12 }}>
                         <CreditCard size={24} />
                     </div>
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                         <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>Terminal Pembayaran</h2>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <div style={{ width: 8, height: 8, background: 'var(--pos-success)', borderRadius: '50%' }}></div>
                                 {currentUser?.nama || 'Operator'}
@@ -208,7 +217,7 @@ export default function PembayaranPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <select
                             className="form-control"
-                            style={{ minWidth: '180px', height: '44px', borderRadius: '12px', background: 'var(--bg-card)' }}
+                            style={{ height: '44px', borderRadius: '12px', background: 'var(--bg-card)' }}
                             value={filterKelas}
                             onChange={e => { setFilterKelas(e.target.value); setSelectedStudent(null) }}
                         >
@@ -252,55 +261,132 @@ export default function PembayaranPage() {
 
             {/* POS Layout */}
             {selectedStudent ? (
-                <div className="pos-layout">
-                    {/* Left: Student Info */}
-                    <div className="pos-student">
-                        <div className="card" style={{ marginBottom: 16, border: '1px solid var(--pos-border)', borderRadius: 24, padding: 24, position: 'relative', overflow: 'hidden' }}>
+                <div className="responsive-split">
+                    {/* Left: Student Info & Summary */}
+                    <div style={{ minWidth: 0 }}>
+                        <div className="card" style={{ marginBottom: 16, border: '1px solid var(--pos-border)', borderRadius: '24px', padding: '24px', position: 'relative', overflow: 'hidden' }}>
                             {/* Decorative Background */}
                             <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, background: 'rgba(99, 102, 241, 0.05)', borderRadius: '50%', zIndex: 0 }}></div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20, position: 'relative', zIndex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 24, position: 'relative', zIndex: 1 }}>
+                                {/* Student Initial Avatar */}
                                 <div style={{
-                                    width: 64, height: 64, borderRadius: 20,
-                                    background: 'linear-gradient(135deg, var(--pos-primary), var(--pos-primary-light))',
+                                    width: 72, height: 72, borderRadius: 22,
+                                    background: 'linear-gradient(135deg, var(--pos-primary), #4f46e5)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: '#fff', fontWeight: 800, fontSize: '1.5rem',
-                                    boxShadow: '0 8px 16px rgba(99, 102, 241, 0.25)'
+                                    color: '#fff', fontWeight: 800, fontSize: '1.6rem',
+                                    boxShadow: '0 8px 24px rgba(79, 70, 229, 0.25)'
                                 }}>
-                                    {(selectedStudent.nama || '?').charAt(0)}
+                                    {(selectedStudent.nama || 'S').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                                 </div>
+
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>{selectedStudent.nama || 'Tanpa Nama'}</h2>
-                                        <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--pos-success)', fontWeight: 700, borderRadius: 8 }}>AKTIF</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                        <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                                            {selectedStudent.nama || 'Tanpa Nama'}
+                                        </h2>
+                                        <span className="status-pill" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--pos-success)', fontSize: '0.75rem', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+                                            STUDENT • AKTIF
+                                        </span>
                                     </div>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '4px 0 0' }}>
-                                        NISN: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedStudent.nisn}</span>
-                                    </p>
+                                    <div style={{ display: 'flex', gap: 20, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--pos-primary)' }}></div>
+                                            NISN: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedStudent.nisn}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8b5cf6' }}></div>
+                                            KELAS: <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedStudent.kelas}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', position: 'relative', zIndex: 1 }}>
-                                <div style={{ padding: '12px', background: 'var(--pos-bg-soft)', borderRadius: 12, border: '1px solid var(--pos-border)' }}>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Kelas</div>
-                                    <div style={{ fontWeight: 800 }}>{selectedStudent.kelas}</div>
+                            {/* Redesigned Cross-period Debt Notice */}
+                            {totalOtherDebt > 0 && (
+                                <div style={{
+                                    marginTop: 20, padding: '16px 20px',
+                                    background: 'rgba(239, 68, 68, 0.04)',
+                                    borderRadius: '20px', border: '1px solid rgba(239, 68, 68, 0.12)',
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    backdropFilter: 'blur(10px)',
+                                    position: 'relative', zIndex: 1,
+                                    flexWrap: 'wrap', gap: 12
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                        <div style={{
+                                            width: 44, height: 44, borderRadius: '14px', background: 'rgba(239, 68, 68, 0.1)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--pos-danger)'
+                                        }}>
+                                            <AlertCircle size={22} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--pos-danger)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
+                                                Tunggakan Periode Lain
+                                            </div>
+                                            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                                {formatRupiah(totalOtherDebt)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 10 }}>
+                                        {yearsWithOtherDebt.map(yr => (
+                                            <button
+                                                key={yr}
+                                                onClick={() => setFilterTA(yr)}
+                                                className="btn-pill"
+                                                style={{
+                                                    fontSize: '0.8rem', padding: '8px 16px', background: 'white',
+                                                    color: 'var(--pos-danger)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                    borderRadius: '12px', cursor: 'pointer', fontWeight: 700,
+                                                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.08)',
+                                                    transition: 'all 0.2s ease',
+                                                    display: 'flex', alignItems: 'center', gap: 6
+                                                }}
+                                            >
+                                                Bayar TA {yr}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div style={{ padding: '12px', background: 'var(--pos-bg-soft)', borderRadius: 12, border: '1px solid var(--pos-border)' }}>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Wali Kelas</div>
-                                    <div style={{ fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedStudent.wali || '-'}</div>
-                                </div>
-                                <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.1)' }}>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--pos-danger)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Tunggakan</div>
-                                    <div style={{ fontWeight: 800, color: 'var(--pos-danger)' }}>{formatRupiah(studentBills.reduce((s, b) => s + Number(b.nominal), 0))}</div>
-                                </div>
+                            )}
+                        </div>
+
+                        <div className="responsive-grid-3" style={{ position: 'relative', zIndex: 1, marginBottom: 16 }}>
+                            <div style={{ padding: '12px', background: 'var(--pos-bg-soft)', borderRadius: 12, border: '1px solid var(--pos-border)' }}>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Kelas</div>
+                                <div style={{ fontWeight: 800 }}>{selectedStudent.kelas}</div>
+                            </div>
+                            <div style={{ padding: '12px', background: 'var(--pos-bg-soft)', borderRadius: 12, border: '1px solid var(--pos-border)' }}>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Wali Kelas</div>
+                                <div style={{ fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedStudent.wali || '-'}</div>
+                            </div>
+                            <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--pos-danger)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Tunggakan</div>
+                                <div style={{ fontWeight: 800, color: 'var(--pos-danger)' }}>{formatRupiah(studentBills.reduce((s, b) => s + Number(b.nominal), 0))}</div>
                             </div>
                         </div>
 
-                        {/* Billing Summary Table (POS Enhancement) */}
+                        {/* Billing Summary Table */}
                         <div className="card" style={{ padding: '16px 20px' }}>
-                            <h4 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}>
-                                <CreditCard size={18} /> Rincian Tagihan ({activeTahunAjaran})
-                            </h4>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem' }}>
+                                    <CreditCard size={18} /> Rincian Tagihan
+                                </h4>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Periode:</span>
+                                    <select
+                                        className="form-control"
+                                        style={{ width: 'auto', height: '32px', fontSize: '0.8rem', padding: '0 12px', borderRadius: '8px' }}
+                                        value={filterTA}
+                                        onChange={e => setFilterTA(e.target.value)}
+                                    >
+                                        {(tahunAjaranList || []).map(t => (
+                                            <option key={t.id} value={t.tahun}>{t.tahun}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
                             <div style={{ maxHeight: '400px', overflowY: 'auto', overflowX: 'auto', margin: '0 -20px' }}>
                                 <table className="compact-table" style={{ width: '100%', fontSize: '0.8rem' }}>
                                     <thead>
@@ -355,25 +441,27 @@ export default function PembayaranPage() {
                         </div>
                     </div>
 
-                    {/* Right: Cart */}
-                    <CartSidebar
-                        studentBills={studentBills}
-                        selectedBills={selectedBills}
-                        toggleBill={toggleBill}
-                        toggleAll={toggleAll}
-                        partialPay={partialPay}
-                        setPartialPay={setPartialPay}
-                        formatRupiah={formatRupiah}
-                        totalSelected={totalSelected}
-                        amountPaid={amountPaid}
-                        setAmountPaid={setAmountPaid}
-                        handleAmountKeyDown={handleAmountKeyDown}
-                        change={change}
-                        canPay={canPay}
-                        handlePay={handlePay}
-                        amountRef={amountRef}
-                        payBtnRef={payBtnRef}
-                    />
+                    {/* Right: Cart Side */}
+                    <div>
+                        <CartSidebar
+                            studentBills={studentBills}
+                            selectedBills={selectedBills}
+                            toggleBill={toggleBill}
+                            toggleAll={toggleAll}
+                            partialPay={partialPay}
+                            setPartialPay={setPartialPay}
+                            formatRupiah={formatRupiah}
+                            totalSelected={totalSelected}
+                            amountPaid={amountPaid}
+                            setAmountPaid={setAmountPaid}
+                            handleAmountKeyDown={handleAmountKeyDown}
+                            change={change}
+                            canPay={canPay}
+                            handlePay={handlePay}
+                            amountRef={amountRef}
+                            payBtnRef={payBtnRef}
+                        />
+                    </div>
                 </div>
             ) : (
                 <div style={{

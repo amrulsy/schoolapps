@@ -99,7 +99,7 @@ export default function GenerateTagihanPage() {
             </div>
 
             {/* Tabs Navigation */}
-            <div style={{ display: 'flex', gap: '2px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)' }}>
+            <div className="mobile-scroll-x" style={{ gap: '2px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)' }}>
                 <button
                     onClick={() => setActiveTab('daftar')}
                     style={{

@@ -92,7 +92,7 @@ export default function ArusKasPage() {
 
             {/* Filter */}
             <div className="filter-bar">
-                <select className="form-control" value={filterTipe} onChange={e => { setFilterTipe(e.target.value); setPage(1) }} style={{ minWidth: 150 }}>
+                <select className="form-control" value={filterTipe} onChange={e => { setFilterTipe(e.target.value); setPage(1) }}>
                     <option value="semua">Semua Tipe</option>
                     <option value="masuk">Pemasukan</option>
                     <option value="keluar">Pengeluaran</option>

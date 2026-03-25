@@ -157,6 +157,64 @@ const styles = /*css*/`
     position: relative;
     animation: shimmer 1s linear infinite forwards;
   }
+
+  @media (max-width: 767px) {
+    .siswa-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 16px 20px;
+      gap: 16px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .siswa-header .d-flex.gap-2 {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    .siswa-header .d-flex.gap-2 button {
+      flex: 1;
+      min-width: 0;
+      justify-content: center;
+    }
+    .bento-grid {
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .bento-card {
+      padding: 20px;
+      border-radius: 20px;
+    }
+    .bento-card h1 {
+      font-size: 2.5rem !important;
+    }
+    .d-flex.gap-3.mt-4 {
+      flex-direction: column;
+      gap: 10px !important;
+    }
+    .filter-pill {
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+    .d-flex.gap-2.ms-md-auto {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      flex-wrap: nowrap;
+      padding-bottom: 4px;
+    }
+    .d-flex.gap-2.flex-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      flex-wrap: nowrap !important;
+      padding-bottom: 4px;
+    }
+    .card.shadow-sm {
+      border-radius: 20px !important;
+    }
+    .card-body.p-4 {
+      padding: 16px !important;
+    }
+  }
 `;
 
 export default function SiswaPage() {

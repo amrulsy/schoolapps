@@ -817,6 +817,221 @@
     animation: slideUp 0.3s ease;
 }
 
+/* =========================================
+   Responsive Utility Classes
+   ========================================= */
+
+/* Responsive Grid Helpers — collapse on mobile */
+.responsive-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.responsive-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.responsive-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+/* Main + Sidebar layout */
+.responsive-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 24px;
+    align-items: start;
+}
+
+/* Flex row that stacks vertically on mobile */
+.mobile-stack {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Horizontal scroll container for tabs/pills on mobile */
+.mobile-scroll-x {
+    display: flex;
+}
+
+/* =========================================
+   Dashboard Bento Grid System
+   ========================================= */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.bento-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.bento-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.bento-card.glass {
+    background: rgba(var(--bg-card-rgb, 255, 255, 255), 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.bento-card.glass::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 80%;
+    height: 80%;
+    background: var(--accent-light, rgba(59, 130, 246, 0.1));
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+}
+
+.bento-card .stat-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    line-height: 1;
+    color: var(--text-primary);
+}
+
+.bento-card.span-2 {
+    grid-column: span 2;
+}
+
+.bento-card.row-2 {
+    grid-row: span 2;
+}
+
+.pulse-live {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.wave-emoji {
+    display: inline-block;
+    animation: wave 2.5s ease-in-out infinite;
+    transform-origin: 70% 70%;
+}
+
+@keyframes wave {
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    10% {
+        transform: rotate(14deg);
+    }
+
+    20% {
+        transform: rotate(-8deg);
+    }
+
+    30% {
+        transform: rotate(14deg);
+    }
+
+    40% {
+        transform: rotate(-4deg);
+    }
+
+    50% {
+        transform: rotate(10deg);
+    }
+
+    60% {
+        transform: rotate(0deg);
+    }
+}
+
+.activity-item-premium {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+}
+
+.activity-icon-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.hover-up {
+    transition: all 0.2s ease;
+}
+
+.hover-up:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+[data-theme="dark"] .bento-card {
+    background: var(--bg-card);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .bento-card.glass {
+    background: rgba(30, 41, 59, 0.6);
+}
+
+/* Row/Col Bootstrap-like helpers for dashboard */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: -6px;
+}
+
+.row>* {
+    padding: 6px;
+    box-sizing: border-box;
+}
+
+.col-6 {
+    width: 50%;
+}
+
+.col-md-4 {
+    width: 33.333%;
+}
+
+.col-md-8 {
+    width: 66.666%;
+}
+
+.g-2 {
+    gap: 8px;
+}
+
 /* --- Responsive --- */
 @media (max-width: 1279px) {
     .sidebar {
@@ -878,6 +1093,23 @@
     .cashflow-cards {
         grid-template-columns: 1fr;
     }
+
+    .responsive-split {
+        grid-template-columns: 1fr;
+    }
+
+    .bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .bento-card.span-2 {
+        grid-column: span 2;
+    }
+
+    .col-md-4,
+    .col-md-8 {
+        width: 100%;
+    }
 }
 
 @media (max-width: 767px) {
@@ -901,6 +1133,113 @@
 
     .grid-3 {
         grid-template-columns: 1fr;
+    }
+
+    /* Responsive grid helpers collapse on mobile */
+    .responsive-grid-2 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .responsive-grid-3 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .responsive-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .responsive-split {
+        grid-template-columns: 1fr;
+    }
+
+    /* Flex stacking */
+    .mobile-stack {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    /* Horizontal scroll for tabs/pills */
+    .mobile-scroll-x {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        white-space: nowrap;
+        padding-bottom: 4px;
+    }
+
+    .mobile-scroll-x::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Dashboard bento grid */
+    .bento-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .bento-card.span-2,
+    .bento-card.row-2 {
+        grid-column: span 1 !important;
+        grid-row: span 1 !important;
+    }
+
+    .bento-card .stat-value {
+        font-size: 2rem;
+    }
+
+    .dashboard-ultimate h1 {
+        font-size: 1.5rem !important;
+    }
+
+    .dashboard-ultimate .d-none.d-md-block {
+        display: none !important;
+    }
+
+    /* Chat / Messaging layout */
+    .messaging-layout,
+    .chat-layout {
+        grid-template-columns: 1fr !important;
+    }
+
+    .messaging-layout .contact-list,
+    .chat-layout .contact-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    /* Quick search trigger hidden on mobile */
+    .quick-search-trigger kbd {
+        display: none;
+    }
+
+    .quick-search-trigger {
+        padding: 6px 10px;
+        font-size: 0;
+        min-width: 36px;
+    }
+
+    .quick-search-trigger svg {
+        font-size: 1rem;
+    }
+
+    /* Header breadcrumb truncation */
+    .header-breadcrumb {
+        max-width: 60vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Theme toggle compact on mobile */
+    .theme-toggle span {
+        display: none;
+    }
+
+    .theme-toggle {
+        padding: 6px 8px;
     }
 }
 

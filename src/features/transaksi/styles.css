@@ -39,3 +39,18 @@
 .cashflow-card.balance .cf-value {
     color: var(--primary-600);
 }
+
+@media (max-width: 767px) {
+    .cashflow-cards {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .cashflow-card {
+        padding: 16px;
+    }
+
+    .cashflow-card .cf-value {
+        font-size: 1.2rem;
+    }
+}

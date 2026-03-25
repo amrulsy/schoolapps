@@ -148,7 +148,7 @@ export default function GenerateModal({ allKelas, categories, MONTHS, formatRupi
             ) : (
                 <div className="form-group">
                     <label>Pilih Bulan Tagihan (Generate di bulan apa saja?) *</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', padding: '12px', background: 'var(--bg-light)', borderRadius: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px', padding: '12px', background: 'var(--bg-light)', borderRadius: '8px' }}>
                         {MONTHS.map((m, i) => (
                             <label key={i} className="checkbox-wrapper" style={{ fontSize: '0.85rem' }}>
                                 <input type="checkbox" checked={selectedMonths.includes(i)} onChange={() => toggleMonth(i)} />

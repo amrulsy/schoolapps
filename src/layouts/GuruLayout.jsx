@@ -117,6 +117,14 @@ export default function GuruLayout() {
                         box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
                     }
                     .max-w-7xl { max-width: 1280px; }
+                    @media (max-width: 767px) {
+                        .guru-layout header { padding: 12px 16px !important; }
+                        .guru-layout header .container-fluid { gap: 12px; }
+                        .guru-layout header h5 { font-size: 0.9rem; }
+                        .guru-layout header .d-flex[style*="gap: '24px'"],
+                        .guru-layout header > .container-fluid > .d-flex:last-child { gap: 10px !important; }
+                        .guru-layout main .container-fluid { padding-left: 12px !important; padding-right: 12px !important; }
+                    }
                 ` }} />
                 <div className="container-fluid max-w-7xl mx-auto px-4">
                     <Outlet />

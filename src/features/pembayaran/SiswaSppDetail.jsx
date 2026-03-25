@@ -57,7 +57,7 @@ export default function SiswaSppDetail({ data, onClose, year }) {
                     <button className="btn-icon" onClick={onClose}><ArrowLeft size={24} /></button>
                     <h1>Detail Kartu SPP</h1>
                 </div>
-                <div className="actions" style={{ display: 'flex', gap: '8px' }}>
+                <div className="actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }} onClick={() => navigate(`/admin/pembayaran?siswaId=${data.id}`)}>
                         <CreditCard size={20} /> Pembayaran POS
                     </button>
@@ -69,8 +69,8 @@ export default function SiswaSppDetail({ data, onClose, year }) {
 
             <div className="profile-card no-print" style={{ padding: 0, overflow: 'hidden', marginBottom: '20px' }}>
                 <div className="profile-banner" style={{ height: '100px', background: 'linear-gradient(135deg, var(--primary-600), var(--primary-800))' }} />
-                <div style={{ padding: '0 32px 32px 32px', marginTop: '-40px' }}>
-                    <div className="profile-header" style={{ marginBottom: '24px', position: 'relative' }}>
+                <div style={{ padding: '0 20px 24px 20px', marginTop: '-40px' }}>
+                    <div className="profile-header" style={{ marginBottom: '24px', position: 'relative', flexWrap: 'wrap' }}>
                         <div className="profile-avatar" style={{
                             width: '80px', height: '80px', fontSize: '2rem',
                             background: 'white', color: 'var(--primary-600)',
@@ -85,7 +85,7 @@ export default function SiswaSppDetail({ data, onClose, year }) {
                             </h2>
                             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>NISN: {data.nisn}</p>
                         </div>
-                        <div className="profile-tunggakan" style={{ marginLeft: 'auto', textAlign: 'right', background: 'var(--bg-card)', padding: '12px 20px', borderRadius: ' var(--radius-lg)', border: '1px solid var(--border-color)' }}>
+                        <div className="profile-tunggakan" style={{ marginLeft: 'auto', textAlign: 'right', background: 'var(--bg-card)', padding: '12px 20px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', flex: '1 1 auto', minWidth: '200px' }}>
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                 Tunggakan ({targetTahun})
                             </span>
@@ -198,7 +198,7 @@ export default function SiswaSppDetail({ data, onClose, year }) {
                     </div>
                 ))}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', padding: '0 5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', padding: '0 5px', flexWrap: 'wrap', gap: '20px' }}>
                     <div style={{ textAlign: 'center', width: '160px' }}>
                         <p style={{ margin: 0, fontSize: '11px', color: '#475569' }}>Orang Tua / Wali</p>
                         <div style={{ height: '50px' }}></div>

@@ -394,7 +394,7 @@ export default function CmsPpdbPage() {
                     {/* Registration List Card */}
                     <div className="card cms-section-card" style={{ padding: 0 }}>
                         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ flex: 1, minWidth: '300px', position: 'relative' }}>
+                            <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
                                 <Search style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
                                 <input
                                     type="text"

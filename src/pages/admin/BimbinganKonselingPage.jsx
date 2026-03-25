@@ -126,7 +126,7 @@ export default function BimbinganKonselingPage() {
 
             <div className="card shadow-sm border-0">
                 <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                    <div style={{ position: 'relative', minWidth: '300px' }}>
+                    <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
                         <Search size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
                         <input
                             type="text"

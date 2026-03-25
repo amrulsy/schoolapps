@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { TrendingUp, TrendingDown, Wallet, Target } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import StatCards from '../../features/dashboard/StatCards'
-import TransactionChart from '../../features/dashboard/TransactionChart'
+import RevenueDistributionChart from '../../features/dashboard/RevenueDistributionChart'
 import RecentActivity from '../../features/dashboard/RecentActivity'
 import TopDebtors from '../../features/dashboard/TopDebtors'
 
@@ -95,32 +95,17 @@ export default function DashboardPage() {
         paidCount: paidBills.length
     }
 
-    // Dynamic Chart Data: Last 6 Months
-    const chartData = useMemo(() => {
-        const result = []
-        const now = new Date()
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-        const indonesianMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-            const mIdx = d.getMonth()
-            const mLabel = monthNames[mIdx]
-            const fullMonthName = indonesianMonths[mIdx]
-            const year = d.getFullYear()
-
-            // Filter by month name (Indonesian) and year
-            const paid = bills.filter(b => b.status === 'lunas' && b.bulan === fullMonthName && Number(b.tahun) === year)
-            const unpaid = bills.filter(b => b.status === 'belum' && b.bulan === fullMonthName && Number(b.tahun) === year)
-
-            result.push({
-                bulan: `${mLabel} ${year.toString().slice(-2)}`,
-                terbayar: paid.reduce((s, b) => s + Number(b.nominal || 0), 0),
-                tunggakan: unpaid.reduce((s, b) => s + Number(b.nominal || 0), 0),
-            })
-        }
-        return result
-    }, [bills])
+    // Revenue Distribution by Category (for Donut Chart)
+    const revenueDistributionData = useMemo(() => {
+        return collectionRatioData
+            .filter(item => item.paid > 0)
+            .map((item, idx) => ({
+                name: item.nama,
+                value: item.paid,
+                color: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][idx % 6]
+            }))
+    }, [collectionRatioData])
 
     // Consolidate Real Activity Logs
     const realActivityLog = useMemo(() => {
@@ -184,7 +169,7 @@ export default function DashboardPage() {
             <StatCards stats={stats} formatRupiah={formatRupiah} />
 
             <div className="grid-60-40" style={{ marginBottom: 24 }}>
-                <TransactionChart chartData={chartData} formatRupiah={formatRupiah} />
+                <RevenueDistributionChart data={revenueDistributionData} formatRupiah={formatRupiah} />
                 <RecentActivity activityLog={realActivityLog} />
             </div>
 

@@ -62,7 +62,7 @@ function SectionCard({ icon, title, children, columns = 2 }) {
     return (
         <div className="parent-card">
             <h5 className="section-card-title">{icon}{title}</h5>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: '18px 28px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${columns >= 3 ? '140px' : '200px'}, 1fr))`, gap: '18px 28px' }}>
                 {children}
             </div>
         </div>
