@@ -6,7 +6,7 @@ import {
     FileText, CreditCard, BookOpen, History, Zap,
     UserCog, Settings, Database, Layout, X, LogOut,
     ChevronDown, ChevronRight, LayoutDashboard, Search, LayoutTemplate,
-    Package, Wallet, ShieldCheck, Globe, BarChart3
+    Package, Wallet, ShieldCheck, Globe, BarChart3, MessageCircle
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 
@@ -52,6 +52,7 @@ const drawerSections = [
             { to: '/admin/users', icon: UserCog, text: 'Manajemen User' },
             { to: '/admin/student-menus', icon: LayoutTemplate, text: 'Menu Siswa' },
             { to: '/admin/pengaturan', icon: Settings, text: 'Pengaturan' },
+            { to: '/admin/whatsapp', icon: MessageCircle, text: 'WhatsApp Gateway' },
             { to: '/admin/backup', icon: Database, text: 'Backup & Restore' },
         ]
     },

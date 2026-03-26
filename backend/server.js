@@ -1,8 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
 const pool = require('./db');
 require('dotenv').config();
+const waService = require('./services/whatsappService');
+const socketService = require('./services/socket');
 
 // Routes
 const publicPortalRoutes = require('./routes/public/portal');
@@ -21,6 +24,8 @@ const guruRaporRoutes = require('./routes/guru/rapor');
 const guruWaliKelasRoutes = require('./routes/guru/waliKelas');
 const adminAkademikRoutes = require('./routes/admin/akademik');
 const adminPesanRoutes = require('./routes/admin/pesan');
+const adminInfaqRoutes = require('./routes/admin/infaq');
+const AttendanceController = require('./controllers/AttendanceController');
 
 // Middleware
 const { authMiddleware } = require('./middleware/auth');
@@ -30,9 +35,17 @@ const { cacheMiddleware } = require('./middleware/cache');
 const jwt = require('jsonwebtoken');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketService.init(server);
 
 app.use(express.json());
 app.use(cors({ origin: true, credentials: true }));
+
+// Request Logger
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
 
 app.get('/test-ping', (req, res) => res.send('pong'));
 
@@ -99,6 +112,7 @@ app.use('/api/admin/guru', authMiddleware, adminGuruRoutes);
 app.use('/api/admin/jadwal', authMiddleware, adminJadwalRoutes);
 app.use('/api/admin/jam-pelajaran', authMiddleware, adminJamPelajaranRoutes);
 app.use('/api/admin/bk', authMiddleware, adminBKRoutes);
+app.use('/api/admin/infaq', authMiddleware, adminInfaqRoutes);
 
 // --- GURU ROUTES (auth required, guru role inner validation) ---
 app.use('/api/guru/session', authMiddleware, guruSessionRoutes);
@@ -106,6 +120,11 @@ app.use('/api/guru/rapor', authMiddleware, guruRaporRoutes);
 app.use('/api/guru/wali-kelas', authMiddleware, guruWaliKelasRoutes);
 app.use('/api/admin/akademik', authMiddleware, adminAkademikRoutes);
 app.use('/api/admin/pesan', authMiddleware, adminPesanRoutes);
+
+// --- RFID ATTENDANCE ROUTES ---
+app.put('/api/students/:id/rfid', authMiddleware, AttendanceController.registerRfid);
+app.post('/api/attendance/scan', AttendanceController.scanRfid); // Public/Gate access
+
 
 // --- STUDENT PORTAL API ROUTES ---
 app.get('/api/student/menus', async (req, res) => {
@@ -638,7 +657,7 @@ app.post('/api/pembayaran', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        const { siswaId, selectedBillIds, amountPaid, total, change, partialPayMap, kasir } = req.body;
+        const { siswaId, selectedBillIds, amountPaid, total, change, partialPayMap, kasir, sendWA } = req.body;
         const now = new Date().toISOString().slice(0, 10);
         const invoiceNo = `INV-${now.replace(/-/g, '')}-${String(Date.now()).slice(-4)}`;
 
@@ -651,6 +670,7 @@ app.post('/api/pembayaran', async (req, res) => {
         const txnId = txResult.insertId;
 
         // 2. Update Tagihan & Handle Partial
+        const paidItems = [];
         for (const billId of selectedBillIds) {
             const [billRows] = await connection.query('SELECT * FROM tagihan WHERE id = ?', [billId]);
             if (billRows.length === 0) continue;
@@ -658,15 +678,17 @@ app.post('/api/pembayaran', async (req, res) => {
             let payAmount = Number(partialPayMap[billId] ?? b.nominal);
             if (payAmount > b.nominal) payAmount = b.nominal;
 
+            // Ambil nama kategori untuk pesan WA
+            const [katRows] = await connection.query('SELECT nama FROM kategori_tagihan WHERE id = ?', [b.kategori_id]);
+            paidItems.push({ bulan: b.bulan, tahun: b.tahun, kategori: katRows[0]?.nama || 'Tagihan', nominal: payAmount });
+
             if (payAmount < b.nominal && payAmount > 0) {
-                // Partial: Lunas untuk bagian ini, buat tagihan baru untuk sisanya
                 await connection.query('UPDATE tagihan SET nominal = ?, status = "lunas", paid_at = CURDATE(), transaksi_id = ? WHERE id = ?', [payAmount, txnId, billId]);
                 await connection.query(`
                     INSERT INTO tagihan (siswa_id, kategori_id, tahun_ajaran_id, bulan, tahun, nominal_asli, nominal, is_diskon, diskon_notes, status, kelas_id, log_generate_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'belum', ?, ?)
                 `, [b.siswa_id, b.kategori_id, b.tahun_ajaran_id, b.bulan, b.tahun, b.nominal_asli, b.nominal - payAmount, b.is_diskon, b.diskon_notes, b.kelas_id, b.log_generate_id]);
             } else {
-                // Full pay
                 await connection.query('UPDATE tagihan SET status = "lunas", paid_at = CURDATE(), transaksi_id = ? WHERE id = ?', [txnId, billId]);
             }
         }
@@ -678,6 +700,37 @@ app.post('/api/pembayaran', async (req, res) => {
         `, [`Pembayaran SPP - ${invoiceNo}`, total, invoiceNo]);
 
         await connection.commit();
+
+        // 4. Kirim Notifikasi WhatsApp (async, tidak memblokir response)
+        if (sendWA) {
+            (async () => {
+                try {
+                    // Ambil data siswa & nomor HP orang tua
+                    const [siswaRows] = await pool.query('SELECT nama, telp FROM siswa WHERE id = ?', [siswaId]);
+                    const [ortuRows] = await pool.query('SELECT hp, jenis FROM siswa_orangtua WHERE siswa_id = ?', [siswaId]);
+                    
+                    const siswa = siswaRows[0];
+                    const phoneTargets = [];
+                    if (siswa?.telp) phoneTargets.push(siswa.telp);
+                    ortuRows.forEach(o => { if (o.hp) phoneTargets.push(o.hp); });
+
+                    if (phoneTargets.length > 0) {
+                        const formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+                        const itemList = paidItems.map(i => `• ${i.kategori} (${i.bulan} ${i.tahun}): ${formatRp(i.nominal)}`).join('\n');
+                        const message = `*📋 NOTA PEMBAYARAN*\n*SMK PPRQ - SIAS*\n\nNo. Invoice: *${invoiceNo}*\nNama Siswa: *${siswa?.nama || '-'}*\n\n*Rincian Pembayaran:*\n${itemList}\n\n*Total: ${formatRp(total)}*\nDibayar: ${formatRp(amountPaid)}\nKembali: ${formatRp(change)}\n\nTerima kasih atas pembayarannya. 🙏`;
+
+                        // Kirim ke semua nomor (siswa + orang tua)
+                        const uniquePhones = [...new Set(phoneTargets)];
+                        for (const phone of uniquePhones) {
+                            await waService.sendMessage(phone, message);
+                        }
+                    }
+                } catch (waErr) {
+                    console.error('[Pembayaran WA] Gagal kirim notifikasi:', waErr.message);
+                }
+            })();
+        }
+
         res.json({ success: true, invoiceNo, id: txnId });
     } catch (err) {
         await connection.rollback();
@@ -876,7 +929,46 @@ app.put('/api/tagihan/discount', async (req, res) => {
 });
 
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Server SIAS berjalan di http://0.0.0.0:${PORT}`);
+// --- WHATSAPP API ROUTES ---
+app.get('/api/admin/whatsapp/status', authMiddleware, (req, res) => {
+    res.json(waService.getStatus());
+});
+
+app.post('/api/admin/whatsapp/logout', authMiddleware, async (req, res) => {
+    const result = await waService.logout();
+    res.json(result);
+});
+
+app.post('/api/admin/whatsapp/restart', authMiddleware, async (req, res) => {
+    const result = await waService.restart();
+    res.json(result);
+});
+
+app.post('/api/admin/whatsapp/clear-history', authMiddleware, (req, res) => {
+    const result = waService.clearHistory();
+    res.json(result);
+});
+
+app.post('/api/admin/whatsapp/update-config', authMiddleware, (req, res) => {
+    const { hourlyLimit } = req.body;
+    const result = waService.updateConfig({ hourlyLimit });
+    res.json(result);
+});
+
+app.post('/api/admin/whatsapp/test', authMiddleware, async (req, res) => {
+    const { phone, message } = req.body;
+    if (!phone || !message) return res.status(400).json({ error: 'Phone dan message wajib diisi' });
+    const result = await waService.sendMessage(phone, message);
+    res.json(result);
+});
+
+const PORT = process.env.PORT || 3005;
+server.listen(PORT, '0.0.0.0', async () => {
+    console.log(`✅ Server SIAS (with Socket.io) berjalan di http://0.0.0.0:${PORT}`);
+    // Inisialisasi WhatsApp Service saat server startup
+    try {
+        await waService.initialize();
+    } catch (err) {
+        console.error('[WA Service] Gagal inisialisasi saat startup:', err.message);
+    }
 });

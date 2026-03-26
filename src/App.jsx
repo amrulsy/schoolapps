@@ -42,6 +42,10 @@ const TabunganPage = lazy(() => import('./pages/admin/TabunganPage'))
 const BimbinganKonselingPage = lazy(() => import('./pages/admin/BimbinganKonselingPage'))
 const NilaiAkademikPage = lazy(() => import('./pages/admin/NilaiAkademikPage'))
 const ManajemenPesanPage = lazy(() => import('./pages/admin/ManajemenPesanPage'))
+const WhatsAppConfigPage = lazy(() => import('./pages/admin/WhatsAppConfigPage'))
+const GateMonitorPage = lazy(() => import('./pages/admin/GateMonitor'))
+const InfaqHarianPage = lazy(() => import('./pages/admin/InfaqHarianPage'))
+const HolidaySettingsPage = lazy(() => import('./pages/admin/HolidaySettingsPage'))
 // CMS Pages (lazy)
 const CmsBannersPage = lazy(() => import('./features/cms/pages/CmsBannersPage'))
 const CmsPostsPage = lazy(() => import('./features/cms/pages/CmsPostsPage'))
@@ -83,6 +87,10 @@ export default function App() {
           <Route path="bk" element={<BimbinganKonselingPage />} />
           <Route path="akademik" element={<NilaiAkademikPage />} />
           <Route path="pesan" element={<ManajemenPesanPage />} />
+          <Route path="whatsapp" element={<WhatsAppConfigPage />} />
+          <Route path="gate-monitor" element={<GateMonitorPage />} />
+          <Route path="infaq" element={<InfaqHarianPage />} />
+          <Route path="infaq-libur" element={<HolidaySettingsPage />} />
           <Route path="backup" element={<BackupPage />} />
 
           {/* CMS Routes */}

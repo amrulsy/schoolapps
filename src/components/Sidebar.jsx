@@ -4,8 +4,9 @@ import { useApp } from '../context/AppContext'
 import {
     LayoutDashboard, Users, Building2, Calendar, ClipboardList, Landmark,
     FileText, CreditCard, BookOpen, BarChart3, UserCog, Settings,
-    ChevronLeft, ChevronDown, History, Zap, Layout, Database, LayoutTemplate, Clock,
-    Package, Wallet, ShieldCheck, Globe
+    ChevronLeft, ChevronDown,    History, Zap, Layout, Database, LayoutTemplate, Clock,
+    Package, Wallet, ShieldCheck, Globe, MessageCircle, Monitor, CreditCard as Card,
+    HandHeart, CalendarOff
 } from 'lucide-react'
 
 const menuSections = [
@@ -25,6 +26,7 @@ const menuSections = [
             { to: '/admin/bk', icon: ClipboardList, text: 'Bimbingan Konseling' },
             { to: '/admin/akademik', icon: BookOpen, text: 'Nilai Akademik' },
             { to: '/admin/pesan', icon: BookOpen, text: 'Manajemen Pesan' },
+            { to: '/admin/gate-monitor', icon: Monitor, text: 'Gate Monitor' },
         ]
     },
     {
@@ -39,6 +41,8 @@ const menuSections = [
             { to: '/admin/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
             { to: '/admin/arus-kas', icon: BookOpen, text: 'Arus Kas' },
             { to: '/admin/tabungan', icon: Landmark, text: 'Kasir Tabungan' },
+            { to: '/admin/infaq', icon: HandHeart, text: 'Infaq Harian' },
+            { to: '/admin/infaq-libur', icon: CalendarOff, text: 'Pengaturan Libur' },
         ]
     },
     {
@@ -49,6 +53,7 @@ const menuSections = [
             { to: '/admin/users', icon: UserCog, text: 'Manajemen User' },
             { to: '/admin/student-menus', icon: LayoutTemplate, text: 'Menu Siswa' },
             { to: '/admin/pengaturan', icon: Settings, text: 'Pengaturan' },
+            { to: '/admin/whatsapp', icon: MessageCircle, text: 'WhatsApp Gateway' },
             { to: '/admin/backup', icon: Database, text: 'Backup & Restore' },
         ]
     },

@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext'
 import Modal from '../../components/Modal'
 import { useReactToPrint } from 'react-to-print'
 import { downloadFile } from '../../utils/downloadHelper'
-import { Search, CreditCard, AlertCircle } from 'lucide-react'
+import { Search, CreditCard, AlertCircle, MessageCircle } from 'lucide-react'
 
 // Features
 import CartSidebar from '../../features/pembayaran/CartSidebar'
@@ -21,6 +21,7 @@ export default function PembayaranPage() {
     const [partialPay, setPartialPay] = useState({})
     const [amountPaid, setAmountPaid] = useState('')
     const [receipt, setReceipt] = useState(null)
+    const [sendWA, setSendWA] = useState(false)
     const searchRef = useRef(null)
     const amountRef = useRef(null)
     const payBtnRef = useRef(null)
@@ -105,7 +106,7 @@ export default function PembayaranPage() {
     const handlePay = async () => {
         if (!canPay) return
         try {
-            const result = await processPayment(selectedBills, paidAmount, partialPay)
+            const result = await processPayment(selectedBills, paidAmount, partialPay, sendWA)
             if (result) {
                 // Ensure student data is attached for the receipt
                 const receiptData = {
@@ -120,6 +121,7 @@ export default function PembayaranPage() {
                 setPartialPay({})
                 setAmountPaid('')
                 setSearch('')
+                setSendWA(false)
             }
         } catch (err) {
             console.error("Payment submission error:", err)
@@ -461,6 +463,49 @@ export default function PembayaranPage() {
                             amountRef={amountRef}
                             payBtnRef={payBtnRef}
                         />
+
+                        {/* WhatsApp Notification Toggle */}
+                        {selectedBills.length > 0 && (
+                            <div style={{
+                                marginTop: 12, padding: '14px 20px',
+                                background: sendWA ? 'rgba(37, 211, 102, 0.08)' : 'var(--bg-card)',
+                                borderRadius: 16, border: `1.5px solid ${sendWA ? 'rgba(37, 211, 102, 0.3)' : 'var(--border-color)'}`,
+                                display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onClick={() => setSendWA(!sendWA)}
+                            >
+                                <div style={{
+                                    width: 40, height: 40, borderRadius: 12,
+                                    background: sendWA ? 'rgba(37, 211, 102, 0.15)' : 'var(--bg-stripe)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: sendWA ? '#25D366' : 'var(--text-muted)',
+                                    transition: 'all 0.2s'
+                                }}>
+                                    <MessageCircle size={20} />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: sendWA ? '#25D366' : 'var(--text-primary)' }}>
+                                        Kirim Nota via WhatsApp
+                                    </div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                        Kirim ke nomor siswa & orang tua
+                                    </div>
+                                </div>
+                                <div style={{
+                                    width: 44, height: 24, borderRadius: 12,
+                                    background: sendWA ? '#25D366' : 'var(--border-color)',
+                                    position: 'relative', transition: 'background 0.2s'
+                                }}>
+                                    <div style={{
+                                        width: 20, height: 20, borderRadius: '50%',
+                                        background: '#fff', position: 'absolute', top: 2,
+                                        left: sendWA ? 22 : 2,
+                                        transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                                    }} />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (

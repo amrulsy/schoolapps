@@ -22,6 +22,7 @@
     "react-router-dom": "^7.13.1",
     "react-to-print": "^3.3.0",
     "recharts": "^3.8.0",
+    "socket.io-client": "^4.8.3",
     "sweetalert2": "^11.26.23",
     "sweetalert2-react-content": "^5.1.2",
     "xlsx": "^0.18.5"

@@ -5,10 +5,12 @@ import { API_BASE } from '../../services/api'
 import {
     Calendar, Users, Save, CheckCircle, AlertCircle,
     Clock, PieChart as PieChartIcon, Activity, UserCheck,
-    UserMinus, Search, Filter
+    UserMinus, Search, Filter, MessageCircle
 } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { getAuthHeaders } from '../../services/api'
+import RfidEnrollment from './RfidEnrollment'
+import AttendanceSettings from './AttendanceSettings'
 
 // --- STYLES ---
 const styles = /*css*/`
@@ -214,6 +216,8 @@ export default function AttendancePage() {
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const [sendWA, setSendWA] = useState(false)
+    const [activeTab, setActiveTab] = useState('harian') // 'harian' | 'rfid' | 'pengaturan'
     const isMounted = useRef(true)
 
     useEffect(() => {
@@ -281,11 +285,15 @@ export default function AttendancePage() {
                         siswa_id: s.id,
                         status: s.status,
                         keterangan: s.keterangan
-                    }))
+                    })),
+                    sendWA
                 })
             })
             if (!res.ok) throw new Error('Gagal menyimpan data presensi')
-            if (isMounted.current) showSuccess('Berhasil', 'Data presensi berhasil disimpan.')
+            if (isMounted.current) {
+                showSuccess('Berhasil', sendWA ? 'Data presensi disimpan & notifikasi WA dikirim.' : 'Data presensi berhasil disimpan.')
+                setSendWA(false)
+            }
         } catch (err) {
             if (isMounted.current) showError('Gagal Menyimpan', err.message)
         } finally {
@@ -319,7 +327,7 @@ export default function AttendancePage() {
         <div className="admin-page animate-fadeIn pb-5">
             <style dangerouslySetInnerHTML={{ __html: styles }} />
 
-            {/* STANDARDIZED HEADER (Adapted from Guru) */}
+            {/* STANDARDIZED HEADER */}
             <div className="attendance-header">
                 <div>
                     <div className="d-flex align-items-center gap-3 mb-1">
@@ -341,249 +349,265 @@ export default function AttendancePage() {
                         </div>
                     </div>
                 </div>
-                <div className="d-flex gap-2">
-                    <button
-                        className="btn btn-primary shadow-sm"
-                        style={{ borderRadius: '14px', padding: '12px 24px', fontWeight: 700 }}
-                        onClick={handleSave}
-                        disabled={saving || students.length === 0}
-                    >
-                        {saving ? (
-                            <><span className="spinner-border spinner-border-sm me-2" />Menyimpan...</>
-                        ) : (
-                            <><Save size={18} className="me-2" /> Simpan Presensi</>
-                        )}
-                    </button>
-                    {students.length > 0 && (
-                        <button className="btn btn-light shadow-sm fw-bold border" style={{ borderRadius: '14px', padding: '12px 24px' }} onClick={markAllHadir}>
-                            <CheckCircle size={18} className="me-2 text-success" /> Hadir Semua
+                <div className="d-flex gap-2 flex-wrap">
+                    {/* WA Toggle */}
+                    {activeTab === 'harian' && students.length > 0 && (
+                        <div
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                padding: '8px 16px', borderRadius: '14px', cursor: 'pointer',
+                                background: sendWA ? 'rgba(37, 211, 102, 0.1)' : 'transparent',
+                                border: `1.5px solid ${sendWA ? 'rgba(37, 211, 102, 0.3)' : 'var(--border-color)'}`,
+                                transition: 'all 0.2s'
+                            }}
+                            onClick={() => setSendWA(!sendWA)}
+                        >
+                            <MessageCircle size={18} style={{ color: sendWA ? '#25D366' : 'var(--text-muted)' }} />
+                            <span style={{ fontWeight: 700, fontSize: '0.8rem', color: sendWA ? '#25D366' : 'var(--text-secondary)' }}>
+                                Kirim WA
+                            </span>
+                            <div style={{
+                                width: 36, height: 20, borderRadius: 10,
+                                background: sendWA ? '#25D366' : 'var(--border-color)',
+                                position: 'relative', transition: 'background 0.2s'
+                            }}>
+                                <div style={{
+                                    width: 16, height: 16, borderRadius: '50%',
+                                    background: '#fff', position: 'absolute', top: 2,
+                                    left: sendWA ? 18 : 2,
+                                    transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+                                }} />
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'harian' && (
+                        <button
+                            className="btn btn-primary shadow-sm"
+                            style={{ borderRadius: '14px', padding: '12px 24px', fontWeight: 700 }}
+                            onClick={handleSave}
+                            disabled={saving || students.length === 0}
+                        >
+                            {saving ? (
+                                <><span className="spinner-border spinner-border-sm me-2" />Menyimpan...</>
+                            ) : (
+                                <><Save size={18} className="me-2" /> Simpan Presensi</>
+                            )}
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* BENTO GRID (7/5 Split) */}
-            <div className="bento-grid">
-                {/* Main Section */}
-                <div className="bento-main">
-                    <div className="bento-card">
-                        <div className="d-flex justify-content-between align-items-start mb-4">
-                            <div>
-                                <div className="icon-box-soft bg-soft-blue">
-                                    <Users size={24} />
-                                </div>
-                                <div className="text-muted small fw-bold text-uppercase letter-spacing-1 mb-1">Total Siswa Terdaftar</div>
-                                <h1 className="fw-black mb-0" style={{ fontSize: '3.5rem', letterSpacing: '-2px', color: 'var(--text-primary)' }}>{stats.total}</h1>
-                            </div>
-                            <div className="d-none d-md-block opacity-10">
-                                <Activity size={48} className="text-primary" />
-                            </div>
-                        </div>
-
-                        <div className="d-flex gap-3 mt-4">
-                            <div className="stat-pill">
-                                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }}></div>
-                                <div className="flex-grow-1">
-                                    <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Hadir</div>
-                                    <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.hadir}</div>
-                                </div>
-                            </div>
-                            <div className="stat-pill">
-                                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }}></div>
-                                <div className="flex-grow-1">
-                                    <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Izin/Sakit</div>
-                                    <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.absensi - stats.alpha}</div>
-                                </div>
-                            </div>
-                            <div className="stat-pill">
-                                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div>
-                                <div className="flex-grow-1">
-                                    <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Alpha</div>
-                                    <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.alpha}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Side Section */}
-                <div className="bento-side">
-                    <div className="bento-card">
-                        <div className="mb-4">
-                            <h5 className="fw-black mb-1 d-flex align-items-center gap-2">
-                                <Filter size={18} className="text-primary" /> Kontrol Data
-                            </h5>
-                            <p className="text-muted small fw-bold text-uppercase mb-0" style={{ fontSize: '0.65rem' }}>Pilih Parameter Presensi</p>
-                        </div>
-                        <div className="d-grid gap-3">
-                            <div className="position-relative">
-                                <Calendar size={18} className="position-absolute text-muted" style={{ left: '12px', top: '14px' }} />
-                                <input
-                                    type="date" className="modern-input" style={{ paddingLeft: '2.5rem' }}
-                                    value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-                                />
-                            </div>
-                            <div className="position-relative">
-                                <Users size={18} className="position-absolute text-muted" style={{ left: '12px', top: '14px' }} />
-                                <select
-                                    className="modern-input" style={{ paddingLeft: '2.5rem' }}
-                                    value={selectedKelasId} onChange={e => setSelectedKelasId(e.target.value)}
-                                >
-                                    <option value="">-- Pilih Kelas --</option>
-                                    {allDetailKelas.map(k => (
-                                        <option key={k.id} value={k.id}>{k.unitNama} - {k.nama}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            {/* TABS NAVIGATION */}
+            <div className="d-flex gap-2 mb-4 p-1 bg-white rounded-4 border shadow-sm w-fit-content">
+                <button 
+                    className={`btn px-4 py-2 rounded-3 fw-bold transition-all ${activeTab === 'harian' ? 'btn-primary' : 'btn-link text-decoration-none text-muted'}`}
+                    onClick={() => setActiveTab('harian')}
+                >
+                    Presensi Harian
+                </button>
+                <button 
+                    className={`btn px-4 py-2 rounded-3 fw-bold transition-all ${activeTab === 'rfid' ? 'btn-primary' : 'btn-link text-decoration-none text-muted'}`}
+                    onClick={() => setActiveTab('rfid')}
+                >
+                    Registrasi RFID
+                </button>
+                <button 
+                    className={`btn px-4 py-2 rounded-3 fw-bold transition-all ${activeTab === 'pengaturan' ? 'btn-primary' : 'btn-link text-decoration-none text-muted'}`}
+                    onClick={() => setActiveTab('pengaturan')}
+                >
+                    Pengaturan
+                </button>
             </div>
 
-            {/* LIST AREA WITH FILTERS (Standardized card) */}
-            <div className="card shadow-sm mb-4 border-0" style={{ borderRadius: 32, overflow: 'hidden' }}>
-                <div className="card-body p-4">
-                    <div className="d-flex align-items-center gap-3 flex-wrap">
-                        <div style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
-                            <Search size={18} style={{ position: 'absolute', left: '16px', top: '14px', color: 'var(--text-muted)' }} />
-                            <input
-                                type="text"
-                                placeholder="Cari nama atau NISN..."
-                                className="form-control border-0 shadow-none"
-                                style={{ paddingLeft: '48px', height: '48px', borderRadius: '14px', background: 'var(--bg-stripe)', color: 'var(--text-primary)', fontWeight: 600 }}
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="d-flex gap-2 ms-md-auto align-items-center">
-                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Quick Actions:</div>
-                            <div className="filter-pill active" onClick={markAllHadir}>PRESENSI SEMUA HADIR</div>
+            {activeTab === 'rfid' ? (
+                <RfidEnrollment hideHeader={true} />
+            ) : activeTab === 'pengaturan' ? (
+                <AttendanceSettings />
+            ) : (
+                <>
+                {/* BENTO GRID (7/5 Split) for Stats & Controls */}
+                <div className="bento-grid">
+                    <div className="bento-main">
+                        <div className="bento-card">
+                            <div className="d-flex justify-content-between align-items-start mb-4">
+                                <div>
+                                    <div className="icon-box-soft bg-soft-blue">
+                                        <Users size={24} />
+                                    </div>
+                                    <div className="text-muted small fw-bold text-uppercase letter-spacing-1 mb-1">Total Siswa Terdaftar</div>
+                                    <h1 className="fw-black mb-0" style={{ fontSize: '3.5rem', letterSpacing: '-2px', color: 'var(--text-primary)' }}>{stats.total}</h1>
+                                </div>
+                                <div className="d-none d-md-block opacity-10">
+                                    <Activity size={48} className="text-primary" />
+                                </div>
+                            </div>
+                            <div className="d-flex gap-3 mt-4">
+                                <div className="stat-pill">
+                                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }}></div>
+                                    <div className="flex-grow-1">
+                                        <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Hadir</div>
+                                        <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.hadir}</div>
+                                    </div>
+                                </div>
+                                <div className="stat-pill">
+                                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }}></div>
+                                    <div className="flex-grow-1">
+                                        <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Izin/Sakit</div>
+                                        <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.absensi - stats.alpha}</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <div className="row g-4">
-                {/* STUDENT LIST */}
-                <div className="col-lg-8">
-                    <div className="card shadow-sm border-0" style={{ borderRadius: 32, overflow: 'hidden' }}>
-                        <div className="card-body p-0">
-                            <div className="table-responsive text-nowrap">
-                                <table className="table table-hover align-middle mb-0">
-                                    <thead style={{ background: 'var(--bg-stripe)' }}>
-                                        <tr>
-                                            <th className="ps-4 py-3" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>Siswa</th>
-                                            <th className="py-3 text-center" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>Status Kehadiran</th>
-                                            <th className="py-3 pe-4" style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>Keterangan</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {loading ? (
-                                            <tr><td colSpan="3" className="text-center py-5">
-                                                <div className="spinner-border text-primary me-2" role="status" />
-                                                <span className="fw-bold">Menarik data kehadiran...</span>
-                                            </td></tr>
-                                        ) : filteredStudents.length === 0 ? (
-                                            <tr><td colSpan="3" className="text-center py-5">
-                                                <Activity size={48} className="text-muted opacity-20 mb-3" />
-                                                <p className="text-muted fw-bold">Tidak ada data siswa. Pilih kelas & tanggal di atas.</p>
-                                            </td></tr>
-                                        ) : (
-                                            filteredStudents.map((s, idx) => (
-                                                <tr key={s.id} className="activity-item animate-fadeIn" style={{ animationDelay: `${idx * 0.05}s` }}>
-                                                    <td className="ps-4">
-                                                        <div className="d-flex align-items-center gap-3">
-                                                            <div className="student-avatar">
-                                                                {s.nama.charAt(0)}
-                                                            </div>
-                                                            <div>
-                                                                <div className="fw-bold" style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{s.nama}</div>
-                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', opacity: 0.8, marginTop: 2 }}>NISN: {s.nisn}</div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="text-center">
-                                                        <div className="attendance-btn-group mx-auto" style={{ maxWidth: '280px' }}>
-                                                            <AttendanceBtn active={s.status === 'hadir'} type="hadir" onClick={() => handleStatusChange(s.id, 'hadir')} />
-                                                            <AttendanceBtn active={s.status === 'sakit'} type="sakit" onClick={() => handleStatusChange(s.id, 'sakit')} />
-                                                            <AttendanceBtn active={s.status === 'izin'} type="izin" onClick={() => handleStatusChange(s.id, 'izin')} />
-                                                            <AttendanceBtn active={s.status === 'alpha'} type="alpha" onClick={() => handleStatusChange(s.id, 'alpha')} />
-                                                        </div>
-                                                    </td>
-                                                    <td className="pe-4">
-                                                        <input
-                                                            type="text" className="modern-input py-2 text-center" style={{ fontSize: '0.8rem' }} placeholder="Catatan..."
-                                                            value={s.keterangan || ''} onChange={e => handleKeteranganChange(s.id, e.target.value)}
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
+                    <div className="bento-side">
+                        <div className="bento-card">
+                            <div className="mb-4">
+                                <h5 className="fw-black mb-1 d-flex align-items-center gap-2">
+                                    <Filter size={18} className="text-primary" /> Filter
+                                </h5>
+                                <p className="text-muted small fw-bold text-uppercase mb-0" style={{ fontSize: '0.65rem' }}>Pilih Parameter</p>
+                            </div>
+                            <div className="d-grid gap-3">
+                                <div className="position-relative">
+                                    <Calendar size={18} className="position-absolute text-muted" style={{ left: '12px', top: '14px' }} />
+                                    <input
+                                        type="date" className="modern-input" style={{ paddingLeft: '2.5rem' }}
+                                        value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+                                    />
+                                </div>
+                                <div className="position-relative">
+                                    <Users size={18} className="position-absolute text-muted" style={{ left: '12px', top: '14px' }} />
+                                    <select
+                                        className="modern-input" style={{ paddingLeft: '2.5rem' }}
+                                        value={selectedKelasId} onChange={e => setSelectedKelasId(e.target.value)}
+                                    >
+                                        <option value="">-- Pilih Kelas --</option>
+                                        {allDetailKelas.map(k => (
+                                            <option key={k.id} value={k.id}>{k.unitNama} - {k.nama}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* SIDE STATS */}
-                <div className="col-lg-4">
-                    <div className="bento-card">
-                        <div className="mb-4">
-                            <h5 className="fw-black mb-1 d-flex align-items-center gap-2">
-                                <PieChartIcon size={20} className="text-primary" /> Visualisasi
-                            </h5>
-                            <p className="text-muted small fw-bold text-uppercase mb-0" style={{ fontSize: '0.65rem' }}>Tingkat Partisipasi Harian</p>
-                        </div>
-
-                        {students.length > 0 ? (
-                            <>
-                                <div style={{ width: '100%', height: 260 }}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={chartData} cx="50%" cy="50%"
-                                                innerRadius={65} outerRadius={85} paddingAngle={8}
-                                                dataKey="value" stroke="none"
-                                            >
-                                                {chartData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                                            </Pie>
-                                            <Tooltip
-                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                                            />
-                                            <Legend verticalAlign="bottom" height={36} formatter={(val) => <span className="fw-bold text-dark">{val}</span>} />
-                                        </PieChart>
-                                    </ResponsiveContainer>
+                <div className="row g-4 mt-1">
+                    {/* List Siswa */}
+                    <div className="col-lg-8">
+                        <div className="card shadow-sm border-0" style={{ borderRadius: 32, overflow: 'hidden' }}>
+                            <div className="card-header bg-white border-0 p-4 pb-0">
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 className="fw-black mb-0">Daftar Siswa</h5>
+                                    {students.length > 0 && (
+                                        <button className="btn btn-light btn-sm fw-bold border rounded-pill px-3" onClick={markAllHadir}>
+                                            <CheckCircle size={14} className="me-1 text-success" /> Hadirkan Semua
+                                        </button>
+                                    )}
                                 </div>
-                                <div className="mt-4 p-4 rounded-xl" style={{ background: 'var(--bg-stripe)' }}>
-                                    <div className="d-flex justify-content-between mb-2">
-                                        <span className="text-secondary small fw-bold">PROGRESS KEHADIRAN</span>
-                                        <span className="text-primary fw-black">{stats.hadirPct.toFixed(1)}%</span>
+                                <div style={{ position: 'relative' }}>
+                                    <Search size={18} style={{ position: 'absolute', left: '16px', top: '14px', color: 'var(--text-muted)' }} />
+                                    <input
+                                        type="text" placeholder="Cari nama..." className="form-control border-0 shadow-none ps-5"
+                                        style={{ height: '48px', borderRadius: '14px', background: 'var(--bg-stripe)' }}
+                                        value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="card-body p-0">
+                                <div className="table-responsive">
+                                    <table className="table table-hover align-middle mb-0">
+                                        <thead className="bg-light">
+                                            <tr>
+                                                <th className="ps-4 py-3 border-0 small fw-bold text-secondary">NAMA SISWA</th>
+                                                <th className="text-center py-3 border-0 small fw-bold text-secondary">STATUS</th>
+                                                <th className="pe-4 py-3 border-0 small fw-bold text-secondary">KETERANGAN</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {loading ? (
+                                                <tr><td colSpan="3" className="text-center py-5">
+                                                    <div className="spinner-border text-primary me-2" role="status" />
+                                                    <span className="fw-bold">Memuat...</span>
+                                                </td></tr>
+                                            ) : filteredStudents.length === 0 ? (
+                                                <tr><td colSpan="3" className="text-center py-5 text-muted fw-bold">Tidak ada data.</td></tr>
+                                            ) : (
+                                                filteredStudents.map((s, idx) => (
+                                                    <tr key={s.id} className="animate-fadeIn" style={{ animationDelay: `${idx * 0.05}s` }}>
+                                                        <td className="ps-4">
+                                                            <div className="d-flex align-items-center gap-3">
+                                                                <div className="student-avatar">{s.nama.charAt(0)}</div>
+                                                                <div>
+                                                                    <div className="fw-bold">{s.nama}</div>
+                                                                    <div className="small text-muted opacity-50">NISN: {s.nisn}</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="text-center">
+                                                            <div className="attendance-btn-group mx-auto" style={{ maxWidth: '240px' }}>
+                                                                {['hadir', 'sakit', 'izin', 'alpha'].map(type => (
+                                                                    <AttendanceBtn key={type} active={s.status === type} type={type} onClick={() => handleStatusChange(s.id, type)} />
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                        <td className="pe-4">
+                                                            <input
+                                                                type="text" className="modern-input py-2 text-center" style={{ fontSize: '0.8rem' }} placeholder="..."
+                                                                value={s.keterangan || ''} onChange={e => handleKeteranganChange(s.id, e.target.value)}
+                                                            />
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Visualisasi Side */}
+                    <div className="col-lg-4">
+                        <div className="bento-card">
+                            <h5 className="fw-black mb-3 d-flex align-items-center gap-2">
+                                <PieChartIcon size={20} className="text-primary" /> Statistik
+                            </h5>
+                            {students.length > 0 ? (
+                                <>
+                                    <div style={{ width: '100%', height: 260 }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={chartData} cx="50%" cy="50%"
+                                                    innerRadius={65} outerRadius={85} paddingAngle={8}
+                                                    dataKey="value" stroke="none"
+                                                >
+                                                    {chartData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                                                </Pie>
+                                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                                                <Legend verticalAlign="bottom" height={36} formatter={(val) => <span className="small fw-bold">{val}</span>} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
                                     </div>
-                                    <div className="progress" style={{ height: '10px', borderRadius: '10px', background: 'var(--border-color)' }}>
-                                        <div className="progress-bar bg-primary" style={{ width: `${stats.hadirPct}%`, boxShadow: '0 0 10px rgba(37, 99, 235, 0.4)' }} />
-                                    </div>
-                                    <div className="mt-4 border-top pt-3 d-flex flex-column gap-2">
-                                        <div className="d-flex justify-content-between align-items-center fw-bold small">
-                                            <span className="text-muted">Total Kehadiran</span>
-                                            <span className="text-success">{stats.hadir} Siswa</span>
+                                    <div className="mt-4 p-4 rounded-4" style={{ background: 'var(--bg-stripe)' }}>
+                                        <div className="d-flex justify-content-between mb-2">
+                                            <span className="text-secondary small fw-bold">PARTISIPASI</span>
+                                            <span className="text-primary fw-black">{stats.hadirPct.toFixed(1)}%</span>
                                         </div>
-                                        <div className="d-flex justify-content-between align-items-center fw-bold small">
-                                            <span className="text-muted">Total Tidak Hadir</span>
-                                            <span className="text-danger">{stats.absensi} Siswa</span>
+                                        <div className="progress" style={{ height: '8px', borderRadius: '10px', background: 'var(--border-color)' }}>
+                                            <div className="progress-bar bg-primary" style={{ width: `${stats.hadirPct}%` }} />
                                         </div>
                                     </div>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-center py-5 text-muted opacity-30 fw-bold">
-                                Statistik akan muncul di sini.
-                            </div>
-                        )}
+                                </>
+                            ) : (
+                                <div className="text-center py-5 text-muted opacity-30 fw-bold">Statistik belum tersedia.</div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
+                </>
+            )}
         </div>
     )
 }

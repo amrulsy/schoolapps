@@ -187,7 +187,7 @@ export function KeuanganProvider({ children }) {
         } catch (err) { addToast('danger', 'Error', 'Gagal menerapkan diskon'); }
     }, [addToast, fetchBills]);
 
-    const processPayment = useCallback(async (selectedBillIds, amountPaid, partialPayMap = {}) => {
+    const processPayment = useCallback(async (selectedBillIds, amountPaid, partialPayMap = {}, sendWA = false) => {
         const billsToPay = bills.filter(b => selectedBillIds.includes(b.id));
         if (billsToPay.length === 0) return null;
         const total = billsToPay.reduce((s, b) => s + (Number(partialPayMap[b.id] ?? b.nominal) || 0), 0);
@@ -205,7 +205,8 @@ export function KeuanganProvider({ children }) {
                     total,
                     change: amountPaid - total,
                     partialPayMap,
-                    kasir: currentUser.nama
+                    kasir: currentUser.nama,
+                    sendWA
                 })
             });
 
