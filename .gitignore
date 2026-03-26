@@ -37,3 +37,11 @@ backend/temp_uploads/*
 
 # Database file (tidak perlu di-commit, bisa di-regenerate)
 backend/database.sqlite
+
+# Environment files
+backend/.env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
