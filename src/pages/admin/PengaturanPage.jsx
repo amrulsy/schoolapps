@@ -9,9 +9,13 @@ export default function PengaturanPage() {
         alamat: 'Jl. Pesantren No.1, Kota',
         telepon: '(021) 123-4567',
         email: 'admin@smkpprq.sch.id',
+        kepala_sekolah: 'H. Ahmad Syukron, S.Pd.I',
+        nip_kepsek: '19750812 200501 1 002'
     })
 
     const handleSave = () => {
+        // In a real app, this would save to DB
+        localStorage.setItem('school_settings', JSON.stringify(school))
         addToast('success', 'Berhasil', 'Pengaturan sekolah berhasil diperbarui')
     }
 
@@ -52,6 +56,17 @@ export default function PengaturanPage() {
                         <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
                             <Upload size={16} /> Upload Logo
                         </button>
+                    </div>
+                </div>
+
+                <div className="form-row">
+                    <div className="form-group">
+                        <label>Kepala Sekolah</label>
+                        <input className="form-control" value={school.kepala_sekolah} onChange={e => setSchool(prev => ({ ...prev, kepala_sekolah: e.target.value }))} />
+                    </div>
+                    <div className="form-group">
+                        <label>NIP Kepala Sekolah</label>
+                        <input className="form-control" value={school.nip_kepsek} onChange={e => setSchool(prev => ({ ...prev, nip_kepsek: e.target.value }))} />
                     </div>
                 </div>
 

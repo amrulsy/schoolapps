@@ -17,6 +17,8 @@ const adminGuruRoutes = require('./routes/admin/guru');
 const adminJadwalRoutes = require('./routes/admin/jadwal');
 const adminJamPelajaranRoutes = require('./routes/admin/jamPelajaran');
 const guruSessionRoutes = require('./routes/guru/session');
+const guruRaporRoutes = require('./routes/guru/rapor');
+const guruWaliKelasRoutes = require('./routes/guru/waliKelas');
 const adminAkademikRoutes = require('./routes/admin/akademik');
 const adminPesanRoutes = require('./routes/admin/pesan');
 
@@ -29,19 +31,49 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
-// Batasi CORS ke origin yang diizinkan
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [];
-app.use(cors({
-    origin: (origin, callback) => {
-        // Di development: Jika ALLOWED_ORIGINS kosong, izinkan semua (penting untuk --host / IP lokal)
-        if (allowedOrigins.length === 0) return callback(null, true);
-        // Di production: Validasi strict
-        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-        callback(new Error('CORS: Origin tidak diizinkan'));
-    },
-    credentials: true
-}));
 app.use(express.json());
+app.use(cors({ origin: true, credentials: true }));
+
+app.get('/test-ping', (req, res) => res.send('pong'));
+
+// --- WALI KELAS ROUTES (ADMIN) ---
+app.get('/api/wali-kelas', async (req, res) => {
+    try {
+        const { tahun_ajaran_id } = req.query;
+        let query = `
+            SELECT wk.*, g.nama as guru_nama, g.nip, k.nama as kelas_nama
+            FROM wali_kelas wk
+            JOIN guru g ON wk.guru_id = g.id
+            JOIN kelas k ON wk.kelas_id = k.id
+        `;
+        const params = [];
+        if (tahun_ajaran_id) { query += ' WHERE wk.tahun_ajaran_id = ?'; params.push(tahun_ajaran_id); }
+        query += ' ORDER BY k.nama ASC';
+        const [rows] = await pool.query(query, params);
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/wali-kelas', async (req, res) => {
+    try {
+        const { guru_id, kelas_id, tahun_ajaran_id } = req.body;
+        if (!guru_id || !kelas_id) return res.status(400).json({ error: 'guru_id and kelas_id are required' });
+        const [result] = await pool.query(
+            `INSERT INTO wali_kelas (guru_id, kelas_id, tahun_ajaran_id) VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE guru_id = VALUES(guru_id)`,
+            [guru_id, kelas_id, tahun_ajaran_id]
+        );
+        res.status(201).json({ success: true, id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/wali-kelas/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM wali_kelas WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 
 // Serve uploaded media files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -70,6 +102,8 @@ app.use('/api/admin/bk', authMiddleware, adminBKRoutes);
 
 // --- GURU ROUTES (auth required, guru role inner validation) ---
 app.use('/api/guru/session', authMiddleware, guruSessionRoutes);
+app.use('/api/guru/rapor', authMiddleware, guruRaporRoutes);
+app.use('/api/guru/wali-kelas', authMiddleware, guruWaliKelasRoutes);
 app.use('/api/admin/akademik', authMiddleware, adminAkademikRoutes);
 app.use('/api/admin/pesan', authMiddleware, adminPesanRoutes);
 
@@ -264,12 +298,27 @@ app.put('/api/tahun-ajaran/:id/status', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Set semester aktif for a tahun ajaran
+app.put('/api/tahun-ajaran/:id/semester', async (req, res) => {
+    try {
+        const { semester_aktif } = req.body;
+        if (!['Ganjil', 'Genap'].includes(semester_aktif)) {
+            return res.status(400).json({ error: 'Semester harus Ganjil atau Genap' });
+        }
+        await pool.query('UPDATE tahun_ajaran SET semester_aktif = ? WHERE id = ?', [semester_aktif, req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.delete('/api/tahun-ajaran/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM tahun_ajaran WHERE id = ?', [req.params.id]);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
+// --- Kategori Tagihan ---
+
 
 // Kategori Tagihan
 app.get('/api/categories', async (req, res) => {

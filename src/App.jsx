@@ -15,6 +15,8 @@ const StudentApp = lazy(() => import('./student/StudentApp'))
 const GuruDashboard = lazy(() => import('./pages/guru/GuruDashboard'))
 const ClassSession = lazy(() => import('./pages/guru/ClassSession'))
 const GuruHistory = lazy(() => import('./pages/guru/GuruHistory'))
+const GuruRaporPage = lazy(() => import('./pages/guru/GuruRaporPage'))
+const WaliKelasPage = lazy(() => import('./pages/guru/WaliKelasPage'))
 
 // Admin Pages (lazy — only load when user navigates to /admin/...)
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
@@ -97,6 +99,8 @@ export default function App() {
           <Route index element={<GuruDashboard />} />
           <Route path="session/:id" element={<ClassSession />} />
           <Route path="history" element={<GuruHistory />} />
+          <Route path="rapor" element={<GuruRaporPage />} />
+          <Route path="wali-kelas" element={<WaliKelasPage />} />
         </Route>
 
         {/* ======= STUDENT PORTAL (/siswa-portal/...) ======= */}

@@ -24,3 +24,40 @@ export const getAuthHeaders = () => ({
 export const getBearerHeader = () => ({
     'Authorization': `Bearer ${localStorage.getItem('token')}`
 })
+
+// Lightweight axios-like wrapper using fetch
+const api = {
+    async request(url, options = {}) {
+        const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+        const headers = { ...getAuthHeaders(), ...options.headers };
+
+        // If it's a GET, handle params
+        let finalUrl = fullUrl;
+        if (options.params) {
+            const searchParams = new URLSearchParams(options.params);
+            finalUrl += (finalUrl.includes('?') ? '&' : '?') + searchParams.toString();
+        }
+
+        const response = await fetch(finalUrl, {
+            ...options,
+            headers,
+            body: options.body ? JSON.stringify(options.body) : undefined
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            const error = new Error(data.error || 'API Request Failed');
+            error.response = { data };
+            throw error;
+        }
+        return { data };
+    },
+
+    get(url, config = {}) { return this.request(url, { ...config, method: 'GET' }); },
+    post(url, body, config = {}) { return this.request(url, { ...config, method: 'POST', body }); },
+    put(url, body, config = {}) { return this.request(url, { ...config, method: 'PUT', body }); },
+    delete(url, config = {}) { return this.request(url, { ...config, method: 'DELETE' }); }
+};
+
+export default api;
+
