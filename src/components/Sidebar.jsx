@@ -195,13 +195,17 @@ export default function Sidebar() {
                 {!sidebarCollapsed && (
                     <div className="developer-attribution" style={{ 
                         fontSize: '10px', 
-                        opacity: 0.5, 
-                        borderTop: '1px solid rgba(255,255,255,0.1)', 
-                        paddingTop: '8px',
+                        background: 'rgba(0, 0, 0, 0.4)',
+                        backdropFilter: 'blur(8px)',
+                        padding: '10px',
+                        borderRadius: '12px',
+                        marginTop: '12px',
                         width: '100%',
-                        textAlign: 'center'
+                        textAlign: 'center',
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
-                        Developed by <a href="https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Amrul Al Syaif'Fu</a>
+                        Developed by <a href="https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', textDecoration: 'none', fontWeight: '600' }}>Amrul Al Syaif'Fu</a>
                     </div>
                 )}
             </div>
