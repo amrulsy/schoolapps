@@ -176,25 +176,34 @@ export default function Sidebar() {
                 })}
             </nav>
 
-            <div className="sidebar-footer">
+            <div className="sidebar-footer" style={{ flexDirection: 'column', gap: '8px', padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px' }}>
+                    <div className="avatar">{currentUser.nama.charAt(0)}</div>
+                    <div className="user-info" style={{ flex: 1 }}>
+                        <div className="name">{currentUser.nama}</div>
+                        <div className="role">{getRoleDisplay(currentUser.role)}</div>
+                    </div>
+                    <button
+                        className="btn-icon"
+                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                        title={sidebarCollapsed ? 'Expand' : 'Collapse'}
+                        style={{ color: 'rgba(255,255,255,0.5)' }}
+                    >
+                        <ChevronLeft size={18} style={{ transform: sidebarCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }} />
+                    </button>
+                </div>
                 {!sidebarCollapsed && (
-                    <div className="sidebar-hint" onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}>
-                        <kbd>Ctrl + K</kbd> to search
+                    <div className="developer-attribution" style={{ 
+                        fontSize: '10px', 
+                        opacity: 0.5, 
+                        borderTop: '1px solid rgba(255,255,255,0.1)', 
+                        paddingTop: '8px',
+                        width: '100%',
+                        textAlign: 'center'
+                    }}>
+                        Developed by <a href="https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Amrul Al Syaif'Fu</a>
                     </div>
                 )}
-                <div className="avatar">{currentUser.nama.charAt(0)}</div>
-                <div className="user-info">
-                    <div className="name">{currentUser.nama}</div>
-                    <div className="role">{getRoleDisplay(currentUser.role)}</div>
-                </div>
-                <button
-                    className="btn-icon"
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    title={sidebarCollapsed ? 'Expand' : 'Collapse'}
-                    style={{ color: 'rgba(255,255,255,0.5)' }}
-                >
-                    <ChevronLeft size={18} style={{ transform: sidebarCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }} />
-                </button>
             </div>
         </aside>
     )

@@ -49,6 +49,8 @@ export default function PortalFooter() {
 
                 <div className="portal-footer-bottom">
                     &copy; {year} {settings.school_name || 'SMK PPRQ'} — Sistem Informasi Administrasi Sekolah. All rights reserved.
+                    <br />
+                    Developed with ❤️ by <a href="https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--portal-primary)', fontWeight: '600', textDecoration: 'none' }}>Amrul Al Syaif'Fu</a>
                 </div>
             </div>
         </footer>
