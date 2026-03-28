@@ -139,8 +139,8 @@ export default function PortalBilling() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {result.tagihan.map(tag => (
-                                                <tr key={tag.id}>
+                                            {result.tagihan.map((tag, idx) => (
+                                                <tr key={tag.id} className="stagger-item" style={{ animationDelay: `${idx * 0.2}s` }}>
                                                     <td style={{ fontWeight: '500' }}>
                                                         {tag.kategori_nama}
                                                         {tag.tahun_ajaran && (

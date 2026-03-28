@@ -5,7 +5,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import {
     Calendar, PlusCircle, Trash2, Edit, Save, X, Search, Clock,
     ChevronDown, ChevronRight, BookOpen, RefreshCw, Layout,
-    TrendingUp, CheckCircle, ShieldCheck, List, Info, Book, User, GraduationCap
+    TrendingUp, CheckCircle, ShieldCheck, List, Info, Book, Users, User, GraduationCap
 } from 'lucide-react'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 import '../../styles/cms.css'
@@ -495,32 +495,57 @@ export default function JadwalPelajaranPage() {
         .btn-modern-danger:hover { background: #ef4444; color: white; transform: translateY(-2px); box-shadow: 0 8px 16px rgba(239, 68, 68, 0.2); }
         .btn-modern-danger:active { transform: translateY(0); }
 
-        .kelas-btn {
-            width: 100%; text-align: left; padding: 1rem 1.25rem; border: none; 
-            display: flex; justify-content: space-between; align-items: center;
-            background: transparent; color: var(--text-secondary);
-            border-radius: 14px; font-weight: 600; transition: all 0.2s;
-            margin-bottom: 4px;
+        .kelas-navigator-modern {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 32px; padding: 1.5rem; height: 100%;
+            display: flex; flex-direction: column; gap: 1.5rem;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
         }
-        .kelas-btn:hover { background: var(--bg-hover); color: var(--text-primary); transform: translateX(4px); }
-        .kelas-btn.active { 
-            background: var(--primary-50); color: var(--primary-700); 
-            box-shadow: inset 4px 0 0 var(--primary-600);
-        }
-        [data-theme='dark'] .kelas-btn.active { background: rgba(37, 99, 235, 0.1); color: #60a5fa; }
 
-        .search-container-modern {
-            position: relative; margin-bottom: 1.5rem;
-        }
+        .search-container-modern { position: relative; margin-bottom: 0.5rem; }
         .search-input-glass {
-            width: 100%; padding: 0.875rem 1rem 0.875rem 3rem; border-radius: 16px;
-            border: 1px solid var(--border-color); background: var(--bg-card);
-            color: var(--text-primary); font-weight: 500; transition: all 0.2s;
+            background: var(--bg-hover) !important; border: 1.5px solid transparent !important;
+            border-radius: 20px !important; padding: 0.85rem 1rem 0.85rem 3.25rem !important;
+            font-weight: 700; transition: all 0.3s !important; width: 100%;
         }
-        .search-input-glass:focus { 
-            border-color: var(--primary-600); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-            background: var(--bg-card);
+        .search-input-glass:focus {
+            background: var(--bg-card) !important; border-color: var(--primary-300) !important;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
         }
+
+        .kelas-navigator-list {
+            display: flex; flex-direction: column; gap: 0.75rem;
+            overflow-y: auto; padding-right: 4px;
+        }
+        .kelas-navigator-list::-webkit-scrollbar { width: 5px; }
+        .kelas-navigator-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+
+        .kelas-btn {
+            width: 100%; padding: 1.15rem 1.5rem;
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(var(--primary-rgb), 0.03); backdrop-filter: blur(8px);
+            border: 1.5px solid var(--border-color); border-radius: 24px;
+            color: var(--text-secondary); font-weight: 800; cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; overflow: hidden;
+        }
+        .kelas-btn:hover {
+            background: var(--bg-hover); transform: translateX(8px);
+            border-color: var(--primary-400); color: var(--primary-600);
+        }
+        .kelas-btn.active {
+            background: linear-gradient(135deg, var(--primary-600), var(--primary-800));
+            color: white; border-color: transparent; scale: 1.02;
+            box-shadow: 0 15px 25px -5px rgba(37, 99, 235, 0.3);
+            transform: translateX(5px);
+        }
+        .kelas-btn.active .icon-box-soft {
+            background: rgba(255, 255, 255, 0.2) !important; color: white !important;
+        }
+        .kelas-btn .chevron-icon { transition: all 0.3s; }
+        .kelas-btn:hover .chevron-icon { transform: translateX(3px); opacity: 1 !important; color: var(--primary-600); }
+        .kelas-btn.active .chevron-icon { color: white !important; opacity: 1 !important; }
+        [data-theme='dark'] .kelas-btn.active { box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.2); }
 
         .accordion-item-modern {
             border-radius: 20px; border: 1px solid var(--border-color); 
@@ -566,6 +591,153 @@ export default function JadwalPelajaranPage() {
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+        @media (max-width: 768px) {
+            .pelajaran-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+                padding-bottom: 0;
+            }
+            .pelajaran-header .d-flex.gap-2 {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+            .pelajaran-header .d-flex.gap-2 button {
+                flex: 1;
+                justify-content: center;
+                white-space: nowrap;
+            }
+            .bento-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .bento-card {
+                padding: 1.5rem;
+                border-radius: 24px;
+            }
+            .bento-card h1 {
+                font-size: 2.5rem !important;
+            }
+            .tab-nav-modern {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 8px;
+            }
+            .tab-btn-modern {
+                padding: 0.6rem 1rem;
+                font-size: 0.8rem;
+                white-space: nowrap;
+            }
+            .jadwal-layout-container {
+                flex-direction: column !important;
+                gap: 1.5rem !important;
+            }
+            .kelas-sidebar-container {
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+            .kelas-navigator-list {
+                flex-direction: row !important;
+                overflow-x: auto !important;
+                max-height: none !important;
+                padding: 4px 4px 12px !important;
+                gap: 12px !important;
+                scrollbar-width: none;
+            }
+            .kelas-navigator-list::-webkit-scrollbar { display: none; }
+            .kelas-btn {
+                width: auto !important;
+                min-width: 140px;
+                margin-bottom: 0 !important;
+                padding: 1.15rem 1.75rem !important;
+                flex-shrink: 0;
+                justify-content: center !important;
+                font-size: 0.85rem;
+                border-radius: 20px !important;
+            }
+            .kelas-btn .chevron-icon { display: none; }
+            .kelas-btn:hover { transform: translateY(-4px); }
+            .kelas-btn.active { transform: scale(1.05) translateY(-4px) !important; }
+
+            .session-card {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 1.25rem;
+                padding: 1.5rem;
+            }
+            .session-info {
+                margin-left: 0 !important;
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 1rem !important;
+            }
+            .session-card .d-flex.gap-2 {
+                width: 100%;
+                justify-content: flex-end;
+                border-top: 1px solid var(--border-color);
+                padding-top: 1rem;
+            }
+            .table-modern thead {
+                display: none;
+            }
+            .table-modern tr td {
+                display: block;
+                width: 100%;
+                border: none;
+                padding: 10px 1.5rem;
+            }
+            .table-modern tr td:first-child {
+                border-top: 1px solid var(--border-color);
+                padding-top: 20px;
+            }
+            .table-modern tr td:last-child {
+                border-bottom: 1px solid var(--border-color);
+                padding-bottom: 20px;
+            }
+        }
+
+        /* NEW OVERHAUL STYLES */
+        .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .session-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-left: 6px solid var(--primary-600); border-radius: 22px;
+            padding: 1.25rem 1.75rem; display: flex; align-items: center;
+            justify-content: space-between; margin-bottom: 1rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            position: relative;
+        }
+        .session-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 15px 30px -10px rgba(0,0,0,0.1);
+            border-color: var(--primary-200);
+        }
+        
+        .guru-avatar-mini {
+            width: 42px; height: 42px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary-50), #eff6ff); 
+            color: var(--primary-700); display: flex; align-items: center; 
+            justify-content: center; font-weight: 800; font-size: 0.9rem;
+            border: 1px solid var(--primary-100);
+        }
+
+        .premium-empty-state {
+            padding: 5rem 2rem; display: flex; flex-direction: column;
+            align-items: center; text-align: center; background: var(--bg-hover);
+            border-radius: 32px; border: 2.5px dashed var(--border-color);
+            margin: 1rem 0; transition: all 0.3s;
+        }
+        .premium-empty-state:hover { border-color: var(--primary-300); background: var(--bg-card); }
+
+        .session-time-box { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+        .session-info { flex: 1; margin-left: 2rem; display: flex; align-items: center; gap: 3rem; }
+
+        .table-modern tr { transition: all 0.3s; }
+        .table-modern tr:hover td { transform: scale(1.002); }
     `;
 
     return (
@@ -680,15 +852,20 @@ export default function JadwalPelajaranPage() {
                 <div className="animate-fade-in">
                     {/* TAB JADWAL KELAS */}
                     {activeTab === 'jadwal' && (
-                        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                            {/* Left Panel: Kelas List */}
-                            <div style={{ flex: '1 1 300px', maxWidth: '350px' }}>
-                                <div className="bento-card" style={{ padding: '1.5rem', borderRadius: '24px' }}>
-                                    <h5 className="fw-bold mb-3 d-flex align-items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                                        <GraduationCap size={20} className="text-primary" /> Daftar Kelas
-                                    </h5>
-                                    <div className="search-container-modern">
-                                        <Search size={18} style={{ position: 'absolute', left: '16px', top: '14px', color: 'var(--text-secondary)', zIndex: 1 }} />
+                        <div className="jadwal-layout-container" style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                            {/* Left Panel: Kelas Navigator */}
+                            <div className="kelas-sidebar-container" style={{ flex: '1 1 300px', maxWidth: '350px' }}>
+                                <div className="kelas-navigator-modern">
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <h5 className="fw-black mb-0 d-flex align-items-center gap-2" style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+                                            <GraduationCap size={22} className="text-primary" /> Daftar Kelas
+                                        </h5>
+                                        <span className="badge rounded-pill bg-soft-blue px-3 py-2 text-primary fw-bold" style={{ fontSize: '0.7rem' }}>
+                                            {filteredKelas.length} KELAS
+                                        </span>
+                                    </div>
+                                    <div className="search-container-modern mb-0">
+                                        <Search size={18} style={{ position: 'absolute', left: '18px', top: '14px', color: 'var(--text-secondary)', zIndex: 1 }} />
                                         <input
                                             type="text"
                                             placeholder="Cari kelas..."
@@ -697,17 +874,29 @@ export default function JadwalPelajaranPage() {
                                             onChange={e => setSearch(e.target.value)}
                                         />
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' }}>
-                                        {kelasList.filter(k => (k.nama || '').toLowerCase().includes(search.toLowerCase())).map(k => (
+                                    <div className="kelas-navigator-list">
+                                        {filteredKelas.map((k, idx) => (
                                             <button
                                                 key={k.id}
-                                                className={`kelas-btn ${selectedKelasId === k.id ? 'active' : ''}`}
+                                                className={`kelas-btn animate-slide-up ${String(selectedKelasId) === String(k.id) ? 'active' : ''}`}
+                                                style={{ animationDelay: `${idx * 0.05}s`, animationDuration: '0.4s' }}
                                                 onClick={() => setSelectedKelasId(k.id)}
                                             >
-                                                {k.nama}
-                                                <ChevronRight size={18} style={{ opacity: selectedKelasId === k.id ? 1 : 0.3 }} />
+                                                <div className="d-flex align-items-center gap-3">
+                                                    <div className="icon-box-soft mb-0 shadow-sm" style={{ width: 38, height: 38, borderRadius: '12px' }}>
+                                                        <Users size={18} />
+                                                    </div>
+                                                    <div className="d-flex flex-column text-start">
+                                                        <span className="fw-black mb-0" style={{ fontSize: '0.95rem' }}>{k.nama}</span>
+                                                        <span className="text-muted small fw-bold opacity-60" style={{ fontSize: '0.65rem', display: String(selectedKelasId) === String(k.id) ? 'none' : 'block' }}>PILIH UNIT</span>
+                                                    </div>
+                                                </div>
+                                                <ChevronRight size={18} className="chevron-icon opacity-30" />
                                             </button>
                                         ))}
+                                        {filteredKelas.length === 0 && (
+                                            <div className="text-center py-4 text-muted small fw-bold">Kelas tidak ditemukan</div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -757,47 +946,47 @@ export default function JadwalPelajaranPage() {
                                                             </div>
                                                         </button>
                                                         {isExpanded && (
-                                                            <div className="day-body" style={{ borderTop: '1px solid var(--border-color)' }}>
+                                                            <div className="day-body" style={{ borderTop: '1px solid var(--border-color)', padding: '1.5rem' }}>
                                                                 {sessions.length === 0 ? (
-                                                                    <div className="empty-state-card">
-                                                                        <Calendar size={32} className="opacity-20 mb-3" />
-                                                                        <p className="mb-0 fw-bold">Belum ada jadwal untuk hari ini.</p>
+                                                                    <div className="premium-empty-state animate-slide-up">
+                                                                        <div className="icon-box-soft bg-soft-blue mb-4" style={{ width: 80, height: 80 }}>
+                                                                            <Calendar size={40} />
+                                                                        </div>
+                                                                        <h5 className="fw-black mb-2" style={{ color: 'var(--text-primary)' }}>Hari {hari} Kosong</h5>
+                                                                        <p className="text-muted small fw-bold px-4" style={{ maxWidth: '300px' }}>Belum ada jadwal yang diatur untuk hari ini. Tambahkan sesi untuk memulai.</p>
+                                                                        <button className="btn-modern-primary mt-2" onClick={() => openCreateModal(hari)}>
+                                                                            <PlusCircle size={18} /> Tambah Sesi Pertama
+                                                                        </button>
                                                                     </div>
                                                                 ) : (
                                                                     <div className="sessions-list">
-                                                                        <div className="session-row text-muted small fw-bold text-uppercase letter-spacing-1" style={{ backgroundColor: 'var(--bg-hover)', borderTop: 'none' }}>
-                                                                            <div>Waktu</div>
-                                                                            <div>Mata Pelajaran</div>
-                                                                            <div>Guru</div>
-                                                                            <div className="text-end">Aksi</div>
-                                                                        </div>
-                                                                        {sessions.sort((a, b) => a.jam_ke - b.jam_ke).map(s => (
-                                                                            <div key={s.id} className="session-row">
-                                                                                <div className="d-flex flex-column">
-                                                                                    <span className="fw-black" style={{ color: 'var(--text-primary)' }}>Jam ke-{s.jam_ke}</span>
+                                                                        {sessions.sort((a, b) => a.jam_ke - b.jam_ke).map((s, idx) => (
+                                                                            <div key={s.id} className="session-card animate-slide-up" style={{ animationDelay: `${idx * 0.05}s` }}>
+                                                                                <div className="session-time-box">
+                                                                                    <span className="fw-black text-primary" style={{ fontSize: '1rem' }}>Jam ke-{s.jam_ke}</span>
                                                                                     <span className="text-muted small fw-bold">
                                                                                         {s.jam_mulai?.substring(0, 5)} - {s.jam_selesai?.substring(0, 5)}
                                                                                     </span>
                                                                                 </div>
-                                                                                <div>
-                                                                                    <span className="pill-soft pill-soft-primary">
-                                                                                        {s.mapel_nama}
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div className="d-flex align-items-center gap-2">
-                                                                                    <div style={{
-                                                                                        width: 32, height: 32, borderRadius: '10px',
-                                                                                        background: 'var(--primary-50)', color: 'var(--primary-700)',
-                                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                                        fontSize: '0.75rem', fontWeight: 800
-                                                                                    }}>
-                                                                                        {s.guru_nama?.charAt(0)}
+                                                                                <div className="session-info">
+                                                                                    <div style={{ minWidth: '160px' }}>
+                                                                                        <span className="pill-soft pill-soft-primary" style={{ fontSize: '0.85rem', padding: '0.6rem 1.25rem' }}>
+                                                                                            {s.mapel_nama}
+                                                                                        </span>
                                                                                     </div>
-                                                                                    <span className="fw-bold small" style={{ color: 'var(--text-primary)' }}>{s.guru_nama}</span>
+                                                                                    <div className="d-flex align-items-center gap-3">
+                                                                                        <div className="guru-avatar-mini shadow-sm">
+                                                                                            {s.guru_nama?.charAt(0)}
+                                                                                        </div>
+                                                                                        <div className="d-flex flex-column">
+                                                                                            <span className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Pengajar</span>
+                                                                                            <span className="fw-bold" style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{s.guru_nama}</span>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </div>
                                                                                 <div className="d-flex justify-content-end gap-2">
-                                                                                    <button className="btn btn-glass-secondary btn-sm p-2 rounded-lg" onClick={() => openEditModal(s)}><Edit size={16} /></button>
-                                                                                    <button className="btn btn-glass-danger btn-sm p-2 rounded-lg" onClick={() => handleDelete(s.id)} style={{ color: '#ef4444' }}><Trash2 size={16} /></button>
+                                                                                    <button className="btn btn-glass-secondary btn-sm p-2 rounded-xl" title="Edit Sesi" onClick={() => openEditModal(s)}><Edit size={18} /></button>
+                                                                                    <button className="btn btn-glass-danger btn-sm p-2 rounded-xl" title="Hapus Sesi" onClick={() => handleDelete(s.id)} style={{ color: '#ef4444' }}><Trash2 size={18} /></button>
                                                                                 </div>
                                                                             </div>
                                                                         ))}
@@ -825,12 +1014,15 @@ export default function JadwalPelajaranPage() {
 
                     {/* TAB WAKTU PELAJARAN */}
                     {activeTab === 'waktu' && (
-                        <div className="bento-card animate-fade-in" style={{ padding: '2rem', borderRadius: '32px' }}>
-                            <div className="d-flex justify-content-between align-items-center mb-4">
+                        <div className="bento-card animate-slide-up" style={{ padding: '2.5rem', borderRadius: '32px' }}>
+                            <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom" style={{ borderColor: 'var(--border-color)' }}>
                                 <div>
-                                    <h4 className="fw-black mb-1" style={{ color: 'var(--text-primary)' }}>Master Waktu Pelajaran</h4>
+                                    <h4 className="fw-black mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>Master Waktu Pelajaran</h4>
                                     <p className="text-muted small fw-bold text-uppercase letter-spacing-1 mb-0">Konfigurasi rentang waktu per sesi pelajaran</p>
                                 </div>
+                                <button className="btn-modern-primary d-md-none" onClick={openCreateJamModal}>
+                                    <PlusCircle size={20} />
+                                </button>
                             </div>
                             <div className="table-responsive">
                                 <table className="table-modern">
@@ -845,26 +1037,29 @@ export default function JadwalPelajaranPage() {
                                     <tbody>
                                         {jamList.length === 0 ? (
                                             <tr><td colSpan="4" className="text-center py-5 text-muted fw-bold">Belum ada data waktu pelajaran.</td></tr>
-                                        ) : jamList.map(j => (
+                                        ) : jamList.sort((a,b) => a.jam_ke - b.jam_ke).map(j => (
                                             <tr key={j.id}>
-                                                <td className="fw-black" style={{ color: 'var(--text-primary)' }}>Jam ke-{j.jam_ke}</td>
                                                 <td>
-                                                    <div className="d-flex align-items-center gap-2 fw-bold small" style={{ color: 'var(--text-primary)' }}>
-                                                        <div className="icon-box-soft bg-soft-blue mb-0" style={{ width: 32, height: 32, borderRadius: '8px' }}>
-                                                            <Clock size={16} />
-                                                        </div>
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <div className="fw-black text-primary p-2 rounded-lg bg-soft-blue" style={{ fontSize: '1rem', minWidth: '45px', textAlign: 'center' }}>{j.jam_ke}</div>
+                                                        <span className="fw-bold" style={{ color: 'var(--text-primary)' }}>Jam Pelajaran</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="d-flex align-items-center gap-2 fw-bold" style={{ color: 'var(--text-primary)' }}>
+                                                        <Clock size={18} className="text-muted" />
                                                         {j.jam_mulai.substring(0, 5)} - {j.jam_selesai.substring(0, 5)}
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span className={`pill-soft ${j.tipe === 'Pelajaran' ? 'pill-soft-primary' : 'pill-soft-warning'}`}>
+                                                    <span className={`pill-soft ${j.tipe === 'Pelajaran' ? 'pill-soft-primary' : 'pill-soft-warning'}`} style={{ padding: '0.6rem 1.25rem' }}>
                                                         {j.tipe}
                                                     </span>
                                                 </td>
                                                 <td className="text-end">
                                                     <div className="d-flex justify-content-end gap-2">
-                                                        <button className="btn btn-glass-secondary btn-sm p-2 rounded-lg" onClick={() => openEditJamModal(j)}><Edit size={16} /></button>
-                                                        <button className="btn btn-glass-danger btn-sm p-2 rounded-lg" onClick={() => handleJamDelete(j.id)} style={{ color: '#ef4444' }}><Trash2 size={16} /></button>
+                                                        <button className="btn btn-glass-secondary btn-sm p-2 rounded-xl" onClick={() => openEditJamModal(j)}><Edit size={18} /></button>
+                                                        <button className="btn btn-glass-danger btn-sm p-2 rounded-xl" onClick={() => handleJamDelete(j.id)} style={{ color: '#ef4444' }}><Trash2 size={18} /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -877,22 +1072,24 @@ export default function JadwalPelajaranPage() {
 
                     {/* TAB MASTER MATA PELAJARAN */}
                     {activeTab === 'mapel' && (
-                        <div className="animate-fade-in">
-                            <div className="bento-card mb-4" style={{ padding: '1.25rem', borderRadius: '24px' }}>
+                        <div className="animate-slide-up">
+                            <div className="bento-card mb-4" style={{ padding: '1.5rem', borderRadius: '28px' }}>
                                 <div className="d-flex align-items-center gap-3 flex-wrap">
-                                    <div className="search-container-modern mb-0 flex-grow-1" style={{ maxWidth: '400px' }}>
-                                        <Search size={18} style={{ position: 'absolute', left: '16px', top: '14px', color: 'var(--text-secondary)', zIndex: 1 }} />
+                                    <div className="search-container-modern mb-0 flex-grow-1" style={{ maxWidth: '450px' }}>
+                                        <Search size={20} style={{ position: 'absolute', left: '18px', top: '15px', color: 'var(--text-secondary)', zIndex: 1 }} />
                                         <input
                                             type="text"
-                                            placeholder="Cari mata pelajaran..."
+                                            placeholder="Cari mata pelajaran, guru, atau kelas..."
                                             className="search-input-glass"
+                                            style={{ paddingLeft: '3.5rem' }}
                                             value={searchMapel}
                                             onChange={e => setSearchMapel(e.target.value)}
                                         />
                                     </div>
-                                    <div className="d-flex gap-2 ms-md-auto">
+                                    <div className="d-flex gap-2 ms-md-auto overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
                                         <div className="filter-pill active">SEMUA</div>
                                         <div className="filter-pill">NASIONAL</div>
+                                        <div className="filter-pill">KEWILAYAHAN</div>
                                         <div className="filter-pill">PEMINATAN</div>
                                     </div>
                                 </div>
@@ -903,32 +1100,44 @@ export default function JadwalPelajaranPage() {
                                     <table className="table-modern">
                                         <thead>
                                             <tr>
-                                                <th>Mata Pelajaran</th>
-                                                <th>Kelas & Guru</th>
+                                                <th style={{ width: '40%' }}>Mata Pelajaran</th>
+                                                <th>Unit & Pengajar</th>
                                                 <th className="text-end">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {mapelList.filter(m => (m.nama || '').toLowerCase().includes(searchMapel.toLowerCase())).length === 0 ? (
+                                            {mapelList.filter(m => (m.nama || '').toLowerCase().includes(searchMapel.toLowerCase()) || (m.guru_nama || '').toLowerCase().includes(searchMapel.toLowerCase())).length === 0 ? (
                                                 <tr><td colSpan="3" className="text-center py-5 text-muted fw-bold">Mata Pelajaran tidak ditemukan.</td></tr>
-                                            ) : mapelList.filter(m => (m.nama || '').toLowerCase().includes(searchMapel.toLowerCase())).map(m => (
+                                            ) : mapelList.filter(m => (m.nama || '').toLowerCase().includes(searchMapel.toLowerCase()) || (m.guru_nama || '').toLowerCase().includes(searchMapel.toLowerCase())).map(m => (
                                                 <tr key={m.id}>
-                                                    <td className="fw-black" style={{ color: 'var(--text-primary)' }}>
-                                                        <div className="d-flex align-items-center gap-3">
-                                                            <div className="icon-box-soft bg-soft-blue mb-0" style={{ width: 36, height: 36, borderRadius: '10px' }}>
-                                                                <BookOpen size={18} />
+                                                    <td>
+                                                        <div className="d-flex align-items-center gap-4">
+                                                            <div className="icon-box-soft bg-soft-blue mb-0 shadow-sm" style={{ width: 48, height: 48, borderRadius: '15px' }}>
+                                                                <BookOpen size={22} />
                                                             </div>
-                                                            {m.nama}
+                                                            <div>
+                                                                <div className="fw-black mb-1" style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>{m.nama}</div>
+                                                                <span className={`pill-soft ${m.tingkat === 'Nasional' ? 'pill-soft-primary' : m.tingkat === 'Peminatan' ? 'pill-soft-success' : 'pill-soft-warning'}`} style={{ fontSize: '0.65rem', padding: '0.25rem 0.75rem' }}>
+                                                                    {m.tingkat || 'Nasional'}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <div className="fw-bold mb-1" style={{ fontSize: '0.85rem' }}>{m.kelas_nama || '-'}</div>
-                                                        <div className="text-muted" style={{ fontSize: '0.75rem' }}><User size={12} className="me-1" />{m.guru_nama || 'Belum diatur'}</div>
+                                                        <div className="d-flex align-items-center gap-3">
+                                                            <div className="guru-avatar-mini shadow-sm" style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>
+                                                                <User size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <div className="fw-bold mb-0" style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{m.kelas_nama || 'Semua Kelas'}</div>
+                                                                <div className="text-muted small fw-bold"><span className="text-primary opacity-75">Oleh:</span> {m.guru_nama || 'Belum diatur'}</div>
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                     <td className="text-end">
                                                         <div className="d-flex justify-content-end gap-2">
-                                                            <button className="btn btn-glass-secondary btn-sm p-2 rounded-lg" onClick={() => openEditMapelModal(m)}><Edit size={16} /></button>
-                                                            <button className="btn btn-glass-danger btn-sm p-2 rounded-lg" onClick={() => handleMapelDelete(m.id, m.nama)} style={{ color: '#ef4444' }}><Trash2 size={16} /></button>
+                                                            <button className="btn btn-glass-secondary btn-sm p-3 rounded-xl" title="Edit Mapel" onClick={() => openEditMapelModal(m)}><Edit size={18} /></button>
+                                                            <button className="btn btn-glass-danger btn-sm p-3 rounded-xl" title="Hapus Mapel" onClick={() => handleMapelDelete(m.id, m.nama)} style={{ color: '#ef4444' }}><Trash2 size={18} /></button>
                                                         </div>
                                                     </td>
                                                 </tr>

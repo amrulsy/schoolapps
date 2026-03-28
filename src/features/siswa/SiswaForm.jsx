@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { UserPlus, Edit2, X, Info, BookOpen, User, MapPin, Activity, Save } from 'lucide-react'
+import { UserPlus, Edit2, X, Info, BookOpen, User, MapPin, Save } from 'lucide-react'
+import { useApp } from '../../context/AppContext'
 
 const styles = /*css*/`
   .siswa-modal-overlay {
@@ -102,8 +103,13 @@ const styles = /*css*/`
 `;
 
 export default function SiswaForm({ data, allKelas, onSave, onClose }) {
+    const { tahunAjaranList } = useApp()
+    const activeTa = tahunAjaranList?.find(t => t.status === 'aktif')
+    const defaultTglMulai = activeTa?.tanggal_mulai ? activeTa.tanggal_mulai.split('T')[0] : ''
+
     const [form, setForm] = useState({
         nisn: data?.nisn || '',
+        nis: data?.nis || '',
         nama: data?.nama || '',
         jk: data?.jk || 'L',
         kelasId: data?.kelasId || (allKelas[0]?.id || ''),
@@ -113,10 +119,25 @@ export default function SiswaForm({ data, allKelas, onSave, onClose }) {
         telp: data?.telp || '',
         alamat: data?.alamat || '',
         wali: data?.wali || '',
+        angkatan: data?.angkatan || '',
+        jenisPendaftaran: data?.jenisPendaftaran || 'Baru',
+        tanggalMulaiSekolah: data?.tanggalMulaiSekolah || defaultTglMulai,
     })
 
+    useEffect(() => {
+        if (!data?.id && form.jenisPendaftaran === 'Baru' && !form.tanggalMulaiSekolah && defaultTglMulai) {
+             setForm(prev => ({ ...prev, tanggalMulaiSekolah: defaultTglMulai }))
+        }
+    }, [data?.id, form.jenisPendaftaran, form.tanggalMulaiSekolah, defaultTglMulai])
+
     const handleChange = (field, value) => {
-        setForm(prev => ({ ...prev, [field]: value }))
+        setForm(prev => {
+            let next = { ...prev, [field]: value }
+            if (field === 'jenisPendaftaran' && value === 'Baru') {
+                next.tanggalMulaiSekolah = defaultTglMulai
+            }
+            return next
+        })
     }
 
     const handleSubmit = (e) => {
@@ -210,9 +231,54 @@ export default function SiswaForm({ data, allKelas, onSave, onClose }) {
                         <div className="form-section-card">
                             <div className="section-title">
                                 <BookOpen size={18} />
-                                <h3>Informasi Akademik</h3>
+                                <h3>Penerimaan & Akademik</h3>
                             </div>
                             <div className="form-row">
+                                <div className="form-group flex-1">
+                                    <label>TAHUN ANGKATAN <span className="text-danger">*</span></label>
+                                    <input
+                                        type="text"
+                                        className="modern-input"
+                                        placeholder="Contoh: 2025"
+                                        value={form.angkatan}
+                                        onChange={(e) => handleChange('angkatan', e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group flex-1">
+                                    <label>JENIS PENDAFTARAN</label>
+                                    <div className="gender-toggle">
+                                        <button
+                                            type="button"
+                                            className={`toggle-btn ${form.jenisPendaftaran === 'Baru' ? 'active' : ''}`}
+                                            style={{ padding: '10px' }}
+                                            onClick={() => handleChange('jenisPendaftaran', 'Baru')}
+                                        >
+                                            Baru
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`toggle-btn ${form.jenisPendaftaran === 'Pindahan' ? 'active' : ''}`}
+                                            style={{ padding: '10px' }}
+                                            onClick={() => handleChange('jenisPendaftaran', 'Pindahan')}
+                                        >
+                                            Pindahan
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group flex-1">
+                                    <label>TANGGAL MULAI SEKOLAH <span className="text-danger">*</span></label>
+                                    <input
+                                        type="date"
+                                        className="modern-input"
+                                        value={form.tanggalMulaiSekolah}
+                                        onChange={(e) => handleChange('tanggalMulaiSekolah', e.target.value)}
+                                        disabled={form.jenisPendaftaran === 'Baru'}
+                                        required
+                                    />
+                                </div>
                                 <div className="form-group flex-1">
                                     <label>KELAS <span className="text-danger">*</span></label>
                                     <select

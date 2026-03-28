@@ -1,11 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, ClipboardList, Receipt, Phone, Menu } from 'lucide-react'
+import { Home, ClipboardList, Megaphone, Layers, Menu } from 'lucide-react'
 
 const BOTTOM_NAV_LINKS = [
     { to: '/', label: 'Beranda', icon: Home, exact: true },
+    { to: '/jurusan', label: 'Jurusan', icon: Layers },
     { to: '/ppdb', label: 'PPDB', icon: ClipboardList },
-    { to: '/cek-tagihan', label: 'Tagihan', icon: Receipt },
-    { to: '/kontak', label: 'Kontak', icon: Phone },
+    { to: '/pengumuman', label: 'Info', icon: Megaphone },
 ]
 
 export default function PortalBottomNav({ onShowMore }) {
@@ -13,6 +13,7 @@ export default function PortalBottomNav({ onShowMore }) {
 
     const isActive = (link) => {
         if (link.exact) return location.pathname === link.to
+        if (link.to.startsWith('/#')) return false
         return location.pathname.startsWith(link.to)
     }
 

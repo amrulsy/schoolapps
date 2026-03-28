@@ -84,8 +84,8 @@ export default function PortalAnnouncements() {
                     ) : posts.length > 0 ? (
                         <>
                             <div className="portal-grid portal-grid-3">
-                                {posts.map(post => (
-                                    <Link key={post.id} to={`/pengumuman/${post.slug}`} style={{ textDecoration: 'none' }}>
+                                {posts.map((post, idx) => (
+                                    <Link key={post.id} to={`/pengumuman/${post.slug}`} className="stagger-item" style={{ textDecoration: 'none', animationDelay: `${idx * 0.2}s` }}>
                                         <div className="portal-card">
                                             {post.cover_image ? (
                                                 <img src={getDirectDriveUrl(post.cover_image)} alt={post.title} className="portal-card-image" loading="lazy" />

@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     nama VARCHAR(150),
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'kasir', 'guru') DEFAULT 'kasir'
+    role ENUM('admin', 'kasir', 'staf_tu', 'staf_keuangan', 'staf_perbankan', 'staf_infaq', 'guru') DEFAULT 'kasir'
 );
 
 CREATE TABLE IF NOT EXISTS kategori_tagihan (
@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS siswa (
     agama VARCHAR(20),
     jurusan VARCHAR(50),
     angkatan VARCHAR(10),
+    jenis_pendaftaran ENUM('Baru', 'Pindahan') DEFAULT 'Baru',
+    tanggal_mulai_sekolah DATE,
     email VARCHAR(150),
     telp VARCHAR(20),
     asal_sekolah VARCHAR(150),
@@ -91,6 +93,14 @@ CREATE TABLE IF NOT EXISTS siswa_orangtua (
     status_hidup ENUM('Hidup', 'Meninggal') DEFAULT 'Hidup',
     FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE,
     UNIQUE KEY (siswa_id, jenis)
+);
+
+CREATE TABLE IF NOT EXISTS master_dokumen (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    kode VARCHAR(50) UNIQUE NOT NULL,
+    nama VARCHAR(150) NOT NULL,
+    is_required BOOLEAN DEFAULT TRUE,
+    keterangan TEXT
 );
 
 CREATE TABLE IF NOT EXISTS siswa_dokumen (

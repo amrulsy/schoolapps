@@ -503,8 +503,8 @@ export default function PortalPPDB() {
                     <div style={{ maxWidth: '1140px', margin: '0 auto 80px' }}>
                         <div className="steps-flow-container">
                             {steps.length > 0 ? steps.map((step, idx) => (
-                                <div key={step.id} className="step-item-wrapper">
-                                    <div className="step-card" style={{ animationDelay: `${idx * 0.1}s`, width: '100%' }}>
+                                <div key={step.id} className="step-item-wrapper stagger-item" style={{ animationDelay: `${idx * 0.2}s` }}>
+                                    <div className="step-card" style={{ width: '100%' }}>
                                         <div className="step-icon">
                                             <span style={{ fontSize: '1.5rem' }}>{step.icon || '📌'}</span>
                                         </div>
@@ -534,7 +534,7 @@ export default function PortalPPDB() {
                             <div className="info-panel">
                                 <div className="requirement-list">
                                     {requirements.length > 0 ? requirements.map((req, i) => (
-                                        <div key={req.id} className="requirement-item" style={{ animationDelay: `${i * 0.1}s` }}>
+                                        <div key={req.id} className="requirement-item stagger-item" style={{ animationDelay: `${i * 0.2}s` }}>
                                             <div className="requirement-check">
                                                 <CheckCircle2 size={18} strokeWidth={2.5} />
                                             </div>

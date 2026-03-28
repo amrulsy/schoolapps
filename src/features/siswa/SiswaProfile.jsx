@@ -62,7 +62,7 @@ function SectionCard({ icon, title, children, columns = 2 }) {
     return (
         <div className="parent-card">
             <h5 className="section-card-title">{icon}{title}</h5>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${columns >= 3 ? '140px' : '200px'}, 1fr))`, gap: '18px 28px' }}>
+            <div className="section-card-grid" data-columns={columns}>
                 {children}
             </div>
         </div>
@@ -71,73 +71,120 @@ function SectionCard({ icon, title, children, columns = 2 }) {
 
 /** Parent bio card */
 function ParentSection({ title, icon, prefix, data, isEditing, formData, onChange, formatRupiah }) {
+    const [isOpen, setIsOpen] = useState(true)
     const d = data || {}
     const f = (field) => formData?.[`${prefix}_${field}`] ?? d[field]
     const ch = (field) => (val) => onChange(`${prefix}_${field}`, val)
 
     return (
-        <div className="parent-card">
-            <h5 className="section-card-title">{icon}{title}</h5>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 28px' }}>
-                <Field label="Nama Lengkap" value={d.nama} editValue={f('nama')} isEditing={isEditing} onChange={ch('nama')} span={2} />
-                <Field label="NIK" value={d.nik} editValue={f('nik')} isEditing={isEditing} onChange={ch('nik')} />
-                <Field label="Status" value={d.status_hidup} editValue={f('status_hidup')} isEditing={isEditing} onChange={ch('status_hidup')} type="select" options={STATUS_HIDUP} />
-                <Field label="Pendidikan Terakhir" value={d.pendidikan} editValue={f('pendidikan')} isEditing={isEditing} onChange={ch('pendidikan')} type="select" options={PEND} />
-                <Field label="Pekerjaan" value={d.pekerjaan} editValue={f('pekerjaan')} isEditing={isEditing} onChange={ch('pekerjaan')} />
-                <Field label="Penghasilan" value={d.penghasilan} editValue={f('penghasilan')} isEditing={isEditing} onChange={ch('penghasilan')} type="number"
-                    displayValue={d.penghasilan > 0 ? formatRupiah(d.penghasilan) : 'Tidak ada'} />
-                <Field label="No. Handphone" value={d.hp} editValue={f('hp')} isEditing={isEditing} onChange={ch('hp')} />
-                {data?.hubungan !== undefined && (
-                    <Field label="Hubungan" value={d.hubungan} editValue={f('hubungan')} isEditing={isEditing} onChange={ch('hubungan')} />
+        <div className="parent-card" style={{ transition: 'all 0.3s ease', overflow: 'hidden' }}>
+            <h5 
+                className="section-card-title interactive-header" 
+                style={{ cursor: isEditing ? 'default' : 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 }} 
+                onClick={() => !isEditing && setIsOpen(!isOpen)}
+            >
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{icon}{title}</div>
+                {!isEditing && (
+                    <span style={{ transition: 'transform 0.3s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
                 )}
-                {data?.alamat !== undefined && (
-                    <Field label="Alamat" value={d.alamat} editValue={f('alamat')} isEditing={isEditing} onChange={ch('alamat')} span={2} type="textarea" />
-                )}
+            </h5>
+            <div style={{ 
+                maxHeight: (isOpen || isEditing) ? '1000px' : '0px', 
+                opacity: (isOpen || isEditing) ? 1 : 0, 
+                overflow: 'hidden', 
+                transition: 'all 0.3s ease-in-out' 
+            }}>
+                <div className="parent-section-grid" style={{ marginTop: 16 }}>
+                    <Field label="Nama Lengkap" value={d.nama} editValue={f('nama')} isEditing={isEditing} onChange={ch('nama')} span={2} />
+                    <Field label="NIK" value={d.nik} editValue={f('nik')} isEditing={isEditing} onChange={ch('nik')} />
+                    <Field label="Status" value={d.status_hidup} editValue={f('status_hidup')} isEditing={isEditing} onChange={ch('status_hidup')} type="select" options={STATUS_HIDUP} />
+                    <Field label="Pendidikan Terakhir" value={d.pendidikan} editValue={f('pendidikan')} isEditing={isEditing} onChange={ch('pendidikan')} type="select" options={PEND} />
+                    <Field label="Pekerjaan" value={d.pekerjaan} editValue={f('pekerjaan')} isEditing={isEditing} onChange={ch('pekerjaan')} />
+                    <Field label="Penghasilan" value={d.penghasilan} editValue={f('penghasilan')} isEditing={isEditing} onChange={ch('penghasilan')} type="number"
+                        displayValue={d.penghasilan > 0 ? formatRupiah(d.penghasilan) : 'Tidak ada'} />
+                    <Field label="No. Handphone" value={d.hp} editValue={f('hp')} isEditing={isEditing} onChange={ch('hp')} />
+                    {data?.hubungan !== undefined && (
+                        <Field label="Hubungan" value={d.hubungan} editValue={f('hubungan')} isEditing={isEditing} onChange={ch('hubungan')} />
+                    )}
+                    {data?.alamat !== undefined && (
+                        <Field label="Alamat" value={d.alamat} editValue={f('alamat')} isEditing={isEditing} onChange={ch('alamat')} span={2} type="textarea" />
+                    )}
+                </div>
             </div>
         </div>
     )
 }
 
 /** Document card */
-function DocumentCard({ doc }) {
+function DocumentCard({ doc, siswaId, onUploadSuccess, addToast }) {
     const fileInputRef = useRef(null)
-    const [fileName, setFileName] = useState(null)
+    const [uploading, setUploading] = useState(false)
 
     const isNone = doc.status === 'Tidak Ada'
     const isVerif = doc.status === 'Terverifikasi'
     const statusClass = isVerif ? 'doc-status-verif' : isNone ? 'doc-status-none' : 'doc-status-unverif'
 
-    const handleFile = (e) => {
+    const handleFile = async (e) => {
         const file = e.target.files[0]
-        if (file) setFileName(file.name)
+        if (!file) return
+
+        if (file.size > 5 * 1024 * 1024) {
+            addToast('warning', 'Peringatan', 'Ukuran file maksimal 5MB')
+            return
+        }
+
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('kode_dokumen', doc.kode_dokumen || doc.kode)
+        formData.append('nama_dokumen', doc.nama_dokumen || doc.nama)
+
+        try {
+            setUploading(true)
+            const res = await fetch(`${API_BASE}/siswa/${siswaId}/dokumen`, {
+                method: 'POST',
+                body: formData
+            })
+            if (res.ok) {
+                addToast('success', 'Berhasil', `Dokumen ${doc.nama_dokumen || doc.nama} diunggah`)
+                if (onUploadSuccess) onUploadSuccess()
+            } else {
+                throw new Error('Upload gagal')
+            }
+        } catch (err) {
+            addToast('danger', 'Error', err.message)
+        } finally {
+            setUploading(false)
+        }
+    }
+
+    const handleDownload = () => {
+        if (!doc.file_path) return;
+        window.open(`${API_BASE.replace('/api', '')}${doc.file_path}`, '_blank');
     }
 
     return (
-        <div className="document-card">
+        <div className="document-card" style={{ opacity: uploading ? 0.6 : 1, pointerEvents: uploading ? 'none' : 'auto' }}>
             <div className={`doc-icon-wrapper ${isNone ? 'empty' : ''}`}>
                 <FileText size={22} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {doc.nama}
+                    {doc.nama_dokumen || doc.nama} {doc.is_required ? <span className="text-danger">*</span> : ''}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span className={`doc-status-badge ${statusClass}`}>{doc.status}</span>
-                    {!isNone && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{fileName || doc.size}</span>}
+                    <span className={`doc-status-badge ${statusClass}`}>{doc.status || 'Tidak Ada'}</span>
+                    {!isNone && doc.file_size && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{doc.file_size}</span>}
                 </div>
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
                 <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFile} accept=".pdf,.jpg,.jpeg,.png" />
                 {!isNone && (
-                    <>
-                        <button className="btn-icon btn-view" style={{ width: 30, height: 30, padding: 0 }} title="Pratinjau"><Search size={18} /></button>
-                        <button className="btn-icon btn-view" style={{ width: 30, height: 30, padding: 0 }} title="Unduh"><Download size={18} /></button>
-                    </>
+                    <button className="btn-icon btn-view" style={{ width: 30, height: 30, padding: 0 }} title="Unduh/Lihat" onClick={handleDownload}><Download size={18} /></button>
                 )}
                 <button
                     className="btn-icon btn-edit"
                     style={{ width: 30, height: 30, padding: 0, color: isNone ? 'var(--primary-600)' : 'inherit', background: isNone ? 'var(--primary-50)' : undefined, borderRadius: 7 }}
-                    title="Unggah" onClick={() => fileInputRef.current?.click()}
+                    title={uploading ? "Mengunggah..." : "Unggah"} onClick={() => fileInputRef.current?.click()}
                 >
                     <Upload size={18} />
                 </button>
@@ -283,15 +330,15 @@ export default function SiswaProfile({ data, onClose }) {
                 {/* ── Banner ── */}
                 <div className="profile-banner" />
 
-                <div style={{ padding: '0 28px 28px' }}>
+                <div className="profile-content-container">
                     {/* ── Avatar + Info row ── */}
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, marginBottom: 24 }}>
+                    <div className="profile-header-row">
                         <div className="profile-avatar-wrapper">
                             <div className="profile-avatar-inner">{p.nama?.charAt(0)}</div>
                         </div>
 
-                        <div style={{ flex: 1, paddingBottom: 4 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+                        <div className="profile-header-info">
+                            <div className="profile-header-meta">
                                 <div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                                         <h2 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.03em', margin: 0 }}>{p.nama}</h2>
@@ -307,7 +354,7 @@ export default function SiswaProfile({ data, onClose }) {
                                         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><BookOpen size={14} />{p.jurusan || '-'}</span>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                <div className="profile-header-actions">
                                     {isEditing ? (
                                         <>
                                             <button className="btn btn-primary" onClick={handleSave} style={{ fontSize: '0.875rem' }}><Save size={16} /> Simpan Perubahan</button>
@@ -349,67 +396,76 @@ export default function SiswaProfile({ data, onClose }) {
                     {/* ══════════════ TAB: DATA IDENTITAS ══════════════ */}
                     {activeTab === 'diri' && (
                         <div className="tab-pane-content fade-in">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 20, alignItems: 'start' }}>
 
                                 {/* Card 1 — Identitas Dasar */}
-                                <SectionCard icon={<Shield size={18} />} title="Identitas Dasar" columns={2}>
-                                    <Field label="Nama Lengkap" value={p.nama} editValue={fv('nama')} isEditing={isEditing} onChange={v => handleChange('nama', v)} span={2} />
-                                    <Field label="NIS" value={p.nis} editValue={fv('nis')} isEditing={isEditing} onChange={v => handleChange('nis', v)} />
-                                    <Field label="NISN" value={p.nisn} editValue={fv('nisn')} isEditing={isEditing} onChange={v => handleChange('nisn', v)} />
-                                    <Field label="Jenis Kelamin" value={p.jk === 'L' ? 'Laki-laki' : 'Perempuan'} editValue={fv('jk')} isEditing={isEditing} onChange={v => handleChange('jk', v)} type="select" options={['L', 'P']} displayValue={p.jk === 'L' ? 'Laki-laki' : 'Perempuan'} />
-                                    <Field label="Agama" value={p.agama} editValue={fv('agama')} isEditing={isEditing} onChange={v => handleChange('agama', v)} type="select" options={AGAMA} />
-                                    <Field label="Tempat Lahir" value={p.tempatLahir} editValue={fv('tempatLahir')} isEditing={isEditing} onChange={v => handleChange('tempatLahir', v)} />
-                                    <Field label="Tanggal Lahir" value={p.tglLahir} editValue={fv('tglLahir')} isEditing={isEditing} onChange={v => handleChange('tglLahir', v)} type="date" displayValue={fmtDate(p.tglLahir)} />
-                                    <Field label="Kewarganegaraan" value={p.kewarganegaraan} editValue={fv('kewarganegaraan')} isEditing={isEditing} onChange={v => handleChange('kewarganegaraan', v)} type="select" options={KEWARGANEGARAAN} />
-                                    <Field label="Jurusan" value={p.jurusan} editValue={fv('jurusan')} isEditing={isEditing} onChange={v => handleChange('jurusan', v)} />
-                                    <Field label="Email" value={p.email} editValue={fv('email')} isEditing={isEditing} onChange={v => handleChange('email', v)} type="email" />
-                                    <Field label="Nomor HP" value={p.telp} editValue={fv('telp')} isEditing={isEditing} onChange={v => handleChange('telp', v)} type="tel" />
-                                    <Field label="Asal Sekolah (SMP/MTs)" value={p.asal_sekolah} editValue={fv('asal_sekolah')} isEditing={isEditing} onChange={v => handleChange('asal_sekolah', v)} span={2} />
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                    <SectionCard icon={<Shield size={18} />} title="Identitas Dasar" columns={3}>
+                                        <Field label="Nama Lengkap" value={p.nama} editValue={fv('nama')} isEditing={isEditing} onChange={v => handleChange('nama', v)} span={2} />
+                                        <Field label="NIS" value={p.nis} editValue={fv('nis')} isEditing={isEditing} onChange={v => handleChange('nis', v)} />
+                                        <Field label="NISN" value={p.nisn} editValue={fv('nisn')} isEditing={isEditing} onChange={v => handleChange('nisn', v)} />
+                                        <Field label="Jenis Kelamin" value={p.jk === 'L' ? 'Laki-laki' : 'Perempuan'} editValue={fv('jk')} isEditing={isEditing} onChange={v => handleChange('jk', v)} type="select" options={['L', 'P']} displayValue={p.jk === 'L' ? 'Laki-laki' : 'Perempuan'} />
+                                        <Field label="Agama" value={p.agama} editValue={fv('agama')} isEditing={isEditing} onChange={v => handleChange('agama', v)} type="select" options={AGAMA} />
+                                        <Field label="Tempat Lahir" value={p.tempatLahir} editValue={fv('tempatLahir')} isEditing={isEditing} onChange={v => handleChange('tempatLahir', v)} />
+                                        <Field label="Tanggal Lahir" value={p.tglLahir} editValue={fv('tglLahir')} isEditing={isEditing} onChange={v => handleChange('tglLahir', v)} type="date" displayValue={fmtDate(p.tglLahir)} />
+                                        <Field label="Kewarganegaraan" value={p.kewarganegaraan} editValue={fv('kewarganegaraan')} isEditing={isEditing} onChange={v => handleChange('kewarganegaraan', v)} type="select" options={KEWARGANEGARAAN} />
+                                        <Field label="Jurusan" value={p.jurusan} editValue={fv('jurusan')} isEditing={isEditing} onChange={v => handleChange('jurusan', v)} />
+                                        <Field label="Tahun Angkatan" value={p.angkatan} editValue={fv('angkatan')} isEditing={isEditing} onChange={v => handleChange('angkatan', v)} />
+                                        <Field label="Jenis Pendaftaran" value={p.jenisPendaftaran} editValue={fv('jenisPendaftaran')} isEditing={isEditing} onChange={v => handleChange('jenisPendaftaran', v)} type="select" options={['Baru', 'Pindahan']} />
+                                        <Field label="Tanggal Mulai Sekolah" value={p.tanggalMulaiSekolah} editValue={fv('tanggalMulaiSekolah')} isEditing={isEditing} onChange={v => handleChange('tanggalMulaiSekolah', v)} type="date" displayValue={fmtDate(p.tanggalMulaiSekolah)} />
+                                        <Field label="Email" value={p.email} editValue={fv('email')} isEditing={isEditing} onChange={v => handleChange('email', v)} type="email" />
+                                        <Field label="Nomor HP" value={p.telp} editValue={fv('telp')} isEditing={isEditing} onChange={v => handleChange('telp', v)} type="tel" />
+                                        <Field label="Asal Sekolah (SMP/MTs)" value={p.asal_sekolah} editValue={fv('asal_sekolah')} isEditing={isEditing} onChange={v => handleChange('asal_sekolah', v)} span={2} />
 
-                                    {/* NIK dengan mask */}
-                                    <div style={{ gridColumn: 'span 1' }}>
-                                        <span className="info-item-label">Nomor Induk Kependudukan (NIK)</span>
-                                        {isEditing ? (
-                                            <input type="text" className="edit-input mono" maxLength={16} value={fv('nik') || ''} onChange={e => handleChange('nik', e.target.value)} />
-                                        ) : (
-                                            <div className="info-item-value">
-                                                <span className="mono">{maskNik(p.nik)}</span>
-                                                <button onClick={() => setShowNik(!showNik)} className="btn-icon" style={{ width: 22, height: 22, padding: 0, marginLeft: 2 }}>
-                                                    {showNik ? <EyeOff size={13} /> : <Eye size={13} />}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <Field label="No. Kartu Keluarga" value={p.no_kk} editValue={fv('no_kk')} isEditing={isEditing} onChange={v => handleChange('no_kk', v)} />
-                                    <Field label="Anak Ke-" value={p.anak_ke} editValue={fv('anak_ke')} isEditing={isEditing} onChange={v => handleChange('anak_ke', Number(v))} type="number" />
-                                    <Field label="Jumlah Saudara" value={p.jml_saudara} editValue={fv('jml_saudara')} isEditing={isEditing} onChange={v => handleChange('jml_saudara', Number(v))} type="number" />
-                                    <Field label="Hobby / Kegemaran" value={p.hobby} editValue={fv('hobby')} isEditing={isEditing} onChange={v => handleChange('hobby', v)} />
-                                    <Field label="Cita-cita" value={p.cita_cita} editValue={fv('cita_cita')} isEditing={isEditing} onChange={v => handleChange('cita_cita', v)} />
-                                </SectionCard>
+                                        {/* NIK dengan mask */}
+                                        <div className="info-item-box">
+                                            <span className="info-item-label">Nomor Induk Kependudukan (NIK)</span>
+                                            {isEditing ? (
+                                                <input type="text" className="edit-input mono" maxLength={16} value={fv('nik') || ''} onChange={e => handleChange('nik', e.target.value)} />
+                                            ) : (
+                                                <div className="info-item-value">
+                                                    <span className="mono">{maskNik(p.nik)}</span>
+                                                    <button onClick={() => setShowNik(!showNik)} className="btn-icon" style={{ width: 22, height: 22, padding: 0, marginLeft: 2 }}>
+                                                        {showNik ? <EyeOff size={13} /> : <Eye size={13} />}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Field label="No. Kartu Keluarga" value={p.no_kk} editValue={fv('no_kk')} isEditing={isEditing} onChange={v => handleChange('no_kk', v)} />
+                                        <Field label="Anak Ke-" value={p.anak_ke} editValue={fv('anak_ke')} isEditing={isEditing} onChange={v => handleChange('anak_ke', Number(v))} type="number" />
+                                        <Field label="Jumlah Saudara" value={p.jml_saudara} editValue={fv('jml_saudara')} isEditing={isEditing} onChange={v => handleChange('jml_saudara', Number(v))} type="number" />
+                                        <Field label="Hobby / Kegemaran" value={p.hobby} editValue={fv('hobby')} isEditing={isEditing} onChange={v => handleChange('hobby', v)} />
+                                        <Field label="Cita-cita" value={p.cita_cita} editValue={fv('cita_cita')} isEditing={isEditing} onChange={v => handleChange('cita_cita', v)} />
+                                    </SectionCard>
+                                </div>
 
-                                {/* Card 2 — Kesehatan */}
-                                <SectionCard icon={<Activity size={18} />} title="Kesehatan" columns={2}>
-                                    <Field label="Berat Badan" value={p.bb} editValue={fv('bb')} isEditing={isEditing} onChange={v => handleChange('bb', Number(v))} type="number" displayValue={`${p.bb || '-'} kg`} />
-                                    <Field label="Tinggi Badan" value={p.tb} editValue={fv('tb')} isEditing={isEditing} onChange={v => handleChange('tb', Number(v))} type="number" displayValue={`${p.tb || '-'} cm`} />
-                                    <Field label="Golongan Darah" value={p.gol_darah} editValue={fv('gol_darah')} isEditing={isEditing} onChange={v => handleChange('gol_darah', v)} type="select" options={GOLDAR} />
-                                    <Field label="Berkebutuhan Khusus" value={p.kebutuhan_khusus} editValue={fv('kebutuhan_khusus')} isEditing={isEditing} onChange={v => handleChange('kebutuhan_khusus', v)}
-                                        type="select" options={['Tidak', 'Tuna Netra', 'Tuna Rungu', 'Tuna Wicara', 'Lainnya']} />
-                                    <Field label="Riwayat Penyakit" value={p.riwayat_penyakit} editValue={fv('riwayat_penyakit')} isEditing={isEditing} onChange={v => handleChange('riwayat_penyakit', v)} span={2} type="textarea" />
-                                </SectionCard>
+                                {/* Row 2 of Bento Menu */}
+                                <div style={{ display: 'grid', gridColumn: '1 / -1', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 20 }}>
+                                    {/* Card 2 — Kesehatan */}
+                                    <SectionCard icon={<Activity size={18} />} title="Kesehatan" columns={1}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                            <Field label="Berat Badan" value={p.bb} editValue={fv('bb')} isEditing={isEditing} onChange={v => handleChange('bb', Number(v))} type="number" displayValue={`${p.bb || '-'} kg`} />
+                                            <Field label="Tinggi Badan" value={p.tb} editValue={fv('tb')} isEditing={isEditing} onChange={v => handleChange('tb', Number(v))} type="number" displayValue={`${p.tb || '-'} cm`} />
+                                        </div>
+                                        <Field label="Golongan Darah" value={p.gol_darah} editValue={fv('gol_darah')} isEditing={isEditing} onChange={v => handleChange('gol_darah', v)} type="select" options={GOLDAR} />
+                                        <Field label="Berkebutuhan Khusus" value={p.kebutuhan_khusus} editValue={fv('kebutuhan_khusus')} isEditing={isEditing} onChange={v => handleChange('kebutuhan_khusus', v)}
+                                            type="select" options={['Tidak', 'Tuna Netra', 'Tuna Rungu', 'Tuna Wicara', 'Lainnya']} />
+                                        <Field label="Riwayat Penyakit" value={p.riwayat_penyakit} editValue={fv('riwayat_penyakit')} isEditing={isEditing} onChange={v => handleChange('riwayat_penyakit', v)} type="textarea" />
+                                    </SectionCard>
 
-                                {/* Card 3 — Domisili */}
-                                <SectionCard icon={<Home size={18} />} title="Domisili / Tempat Tinggal" columns={3}>
-                                    <Field label="Alamat Jalan" value={p.alamat} editValue={fv('alamat')} isEditing={isEditing} onChange={v => handleChange('alamat', v)} span={3} />
-                                    <Field label="RT" value={p.rt} editValue={fv('rt')} isEditing={isEditing} onChange={v => handleChange('rt', v)} />
-                                    <Field label="RW" value={p.rw} editValue={fv('rw')} isEditing={isEditing} onChange={v => handleChange('rw', v)} />
-                                    <Field label="Kode Pos" value={p.kodepos} editValue={fv('kodepos')} isEditing={isEditing} onChange={v => handleChange('kodepos', v)} />
-                                    <Field label="Desa / Kelurahan" value={p.kelurahan} editValue={fv('kelurahan')} isEditing={isEditing} onChange={v => handleChange('kelurahan', v)} />
-                                    <Field label="Kecamatan" value={p.kecamatan} editValue={fv('kecamatan')} isEditing={isEditing} onChange={v => handleChange('kecamatan', v)} />
-                                    <Field label="Kabupaten / Kota" value={p.kabupaten} editValue={fv('kabupaten')} isEditing={isEditing} onChange={v => handleChange('kabupaten', v)} />
-                                    <Field label="Provinsi" value={p.provinsi} editValue={fv('provinsi')} isEditing={isEditing} onChange={v => handleChange('provinsi', v)} />
-                                    <Field label="Jenis Tinggal" value={p.jenis_tinggal} editValue={fv('jenis_tinggal')} isEditing={isEditing} onChange={v => handleChange('jenis_tinggal', v)} type="select" options={JENIS_TINGGAL} />
-                                </SectionCard>
-
+                                    {/* Card 3 — Domisili */}
+                                    <SectionCard icon={<Home size={18} />} title="Domisili / Tempat Tinggal" columns={2}>
+                                        <Field label="Alamat Jalan" value={p.alamat} editValue={fv('alamat')} isEditing={isEditing} onChange={v => handleChange('alamat', v)} span={2} type="textarea" />
+                                        <Field label="RT" value={p.rt} editValue={fv('rt')} isEditing={isEditing} onChange={v => handleChange('rt', v)} />
+                                        <Field label="RW" value={p.rw} editValue={fv('rw')} isEditing={isEditing} onChange={v => handleChange('rw', v)} />
+                                        <Field label="Kode Pos" value={p.kodepos} editValue={fv('kodepos')} isEditing={isEditing} onChange={v => handleChange('kodepos', v)} />
+                                        <Field label="Desa / Kelurahan" value={p.kelurahan} editValue={fv('kelurahan')} isEditing={isEditing} onChange={v => handleChange('kelurahan', v)} />
+                                        <Field label="Kecamatan" value={p.kecamatan} editValue={fv('kecamatan')} isEditing={isEditing} onChange={v => handleChange('kecamatan', v)} />
+                                        <Field label="Kabupaten / Kota" value={p.kabupaten} editValue={fv('kabupaten')} isEditing={isEditing} onChange={v => handleChange('kabupaten', v)} />
+                                        <Field label="Provinsi" value={p.provinsi} editValue={fv('provinsi')} isEditing={isEditing} onChange={v => handleChange('provinsi', v)} span={2} />
+                                        <Field label="Jenis Tinggal" value={p.jenis_tinggal} editValue={fv('jenis_tinggal')} isEditing={isEditing} onChange={v => handleChange('jenis_tinggal', v)} type="select" options={JENIS_TINGGAL} span={2} />
+                                    </SectionCard>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -457,7 +513,17 @@ export default function SiswaProfile({ data, onClose }) {
                             </div>
                             <div className="document-grid">
                                 {(p.dokumen || []).map(doc => (
-                                    <DocumentCard key={doc.id} doc={doc} />
+                                    <DocumentCard 
+                                        key={doc.kode_dokumen || doc.kode || doc.id} 
+                                        doc={doc} 
+                                        siswaId={p.id} 
+                                        addToast={addToast}
+                                        onUploadSuccess={() => {
+                                            fetch(`${API_BASE}/siswa/${p.id}`)
+                                                .then(res => res.json())
+                                                .then(d => setStudents(prev => prev.map(s => s.id === p.id ? { ...s, dokumen: d.dokumen } : s)))
+                                        }}
+                                    />
                                 ))}
                             </div>
                         </div>

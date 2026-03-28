@@ -1,6 +1,6 @@
 // Central API configuration — single source of truth for all base URLs and auth headers
 // Set VITE_API_URL di .env untuk production (misal: https://api.domain.com)
-const origin = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000`
+const origin = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3005`
 
 
 export const API_BASE = `${origin}/api`

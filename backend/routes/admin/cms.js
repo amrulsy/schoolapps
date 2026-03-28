@@ -125,10 +125,10 @@ router.get('/banners', async (req, res) => {
 
 router.post('/banners', async (req, res) => {
     try {
-        const { title, subtitle, image_url, cta_text, cta_link, sort_order } = req.body;
+        const { title, subtitle, image_url, cta_text, cta_link, sort_order, is_active } = req.body;
         const [result] = await pool.query(
-            'INSERT INTO cms_banners (title, subtitle, image_url, cta_text, cta_link, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
-            [title, subtitle || null, image_url, cta_text || null, cta_link || null, sort_order || 0]
+            'INSERT INTO cms_banners (title, subtitle, image_url, cta_text, cta_link, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [title, subtitle || null, image_url, cta_text || null, cta_link || null, sort_order || 0, is_active ?? 1]
         );
         invalidateCache('/api/public/banners');
         res.status(201).json({ id: result.insertId });
@@ -423,10 +423,10 @@ router.get('/partners', async (req, res) => {
 
 router.post('/partners', async (req, res) => {
     try {
-        const { name, logo_url, website_url, sort_order } = req.body;
+        const { name, logo_url, category, website_url, sort_order } = req.body;
         const [result] = await pool.query(
-            'INSERT INTO cms_partners (name, logo_url, website_url, sort_order) VALUES (?, ?, ?, ?)',
-            [name, logo_url, website_url || null, sort_order || 0]
+            'INSERT INTO cms_partners (name, logo_url, category, website_url, sort_order) VALUES (?, ?, ?, ?, ?)',
+            [name, logo_url, category || 'mitra', website_url || null, sort_order || 0]
         );
         invalidateCache('/api/public/partners');
         res.status(201).json({ id: result.insertId });
@@ -435,10 +435,10 @@ router.post('/partners', async (req, res) => {
 
 router.put('/partners/:id', async (req, res) => {
     try {
-        const { name, logo_url, website_url, sort_order, is_active } = req.body;
+        const { name, logo_url, category, website_url, sort_order, is_active } = req.body;
         await pool.query(
-            'UPDATE cms_partners SET name = ?, logo_url = ?, website_url = ?, sort_order = ?, is_active = ? WHERE id = ?',
-            [name, logo_url, website_url, sort_order || 0, is_active ?? true, req.params.id]
+            'UPDATE cms_partners SET name = ?, logo_url = ?, category = ?, website_url = ?, sort_order = ?, is_active = ? WHERE id = ?',
+            [name, logo_url, category || 'mitra', website_url, sort_order || 0, is_active ?? true, req.params.id]
         );
         invalidateCache('/api/public/partners');
         res.json({ success: true });
@@ -531,6 +531,170 @@ router.delete('/ppdb-requirements/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM cms_ppdb_requirements WHERE id = ?', [req.params.id]);
         invalidateCache('/api/public/ppdb-requirements');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== TESTIMONIALS ====================
+
+router.get('/testimonials', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM cms_testimonials ORDER BY sort_order ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/testimonials', async (req, res) => {
+    try {
+        const { name, role, company, photo_url, quote, rating, sort_order } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO cms_testimonials (name, role, company, photo_url, quote, rating, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [name, role || null, company || null, photo_url || null, quote, rating || 5, sort_order || 0]
+        );
+        invalidateCache('/api/public/testimonials');
+        res.status(201).json({ id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/testimonials/:id', async (req, res) => {
+    try {
+        const { name, role, company, photo_url, quote, rating, sort_order, is_active } = req.body;
+        await pool.query(
+            'UPDATE cms_testimonials SET name = ?, role = ?, company = ?, photo_url = ?, quote = ?, rating = ?, sort_order = ?, is_active = ? WHERE id = ?',
+            [name, role, company, photo_url, quote, rating || 5, sort_order || 0, is_active ?? true, req.params.id]
+        );
+        invalidateCache('/api/public/testimonials');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/testimonials/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cms_testimonials WHERE id = ?', [req.params.id]);
+        invalidateCache('/api/public/testimonials');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== GALLERY ====================
+
+router.get('/gallery', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM cms_gallery ORDER BY sort_order ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/gallery', async (req, res) => {
+    try {
+        const { title, image_url, category, description, sort_order } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO cms_gallery (title, image_url, category, description, sort_order) VALUES (?, ?, ?, ?, ?)',
+            [title, image_url, category || null, description || null, sort_order || 0]
+        );
+        invalidateCache('/api/public/gallery');
+        res.status(201).json({ id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/gallery/:id', async (req, res) => {
+    try {
+        const { title, image_url, category, description, sort_order, is_active } = req.body;
+        await pool.query(
+            'UPDATE cms_gallery SET title = ?, image_url = ?, category = ?, description = ?, sort_order = ?, is_active = ? WHERE id = ?',
+            [title, image_url, category, description, sort_order || 0, is_active ?? true, req.params.id]
+        );
+        invalidateCache('/api/public/gallery');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/gallery/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cms_gallery WHERE id = ?', [req.params.id]);
+        invalidateCache('/api/public/gallery');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== FAQ ====================
+
+router.get('/faq', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM cms_faq ORDER BY sort_order ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/faq', async (req, res) => {
+    try {
+        const { question, answer, category, sort_order } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO cms_faq (question, answer, category, sort_order) VALUES (?, ?, ?, ?)',
+            [question, answer, category || null, sort_order || 0]
+        );
+        invalidateCache('/api/public/faq');
+        res.status(201).json({ id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/faq/:id', async (req, res) => {
+    try {
+        const { question, answer, category, sort_order, is_active } = req.body;
+        await pool.query(
+            'UPDATE cms_faq SET question = ?, answer = ?, category = ?, sort_order = ?, is_active = ? WHERE id = ?',
+            [question, answer, category, sort_order || 0, is_active ?? true, req.params.id]
+        );
+        invalidateCache('/api/public/faq');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/faq/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cms_faq WHERE id = ?', [req.params.id]);
+        invalidateCache('/api/public/faq');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== IDENTITY LOGOS ====================
+
+router.get('/identity-logos', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM cms_identity_logos ORDER BY sort_order ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/identity-logos', async (req, res) => {
+    try {
+        const { label, name, logo_url, color_class, sort_order } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO cms_identity_logos (label, name, logo_url, color_class, sort_order) VALUES (?, ?, ?, ?, ?)',
+            [label || 'Identitas', name, logo_url || null, color_class || 'yayasan', sort_order || 0]
+        );
+        invalidateCache('/api/public/identity-logos');
+        res.status(201).json({ id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/identity-logos/:id', async (req, res) => {
+    try {
+        const { label, name, logo_url, color_class, sort_order, is_active } = req.body;
+        await pool.query(
+            'UPDATE cms_identity_logos SET label = ?, name = ?, logo_url = ?, color_class = ?, sort_order = ?, is_active = ? WHERE id = ?',
+            [label, name, logo_url, color_class, sort_order || 0, is_active ?? true, req.params.id]
+        );
+        invalidateCache('/api/public/identity-logos');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/identity-logos/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cms_identity_logos WHERE id = ?', [req.params.id]);
+        invalidateCache('/api/public/identity-logos');
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });

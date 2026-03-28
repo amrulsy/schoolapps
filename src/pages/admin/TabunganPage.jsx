@@ -116,6 +116,95 @@ const styles = /*css*/`
     width: 50%;
     flex-shrink: 0;
   }
+
+  @media (max-width: 768px) {
+    .bank-mini-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 24px;
+      gap: 20px;
+      border-radius: 24px;
+      margin-bottom: 24px;
+    }
+    .bank-mini-header button {
+      width: 100%;
+      height: 48px;
+    }
+    .grid-3 {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 12px !important;
+    }
+    .grid-60-40 {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 16px !important;
+    }
+    .stat-card-premium {
+      height: auto !important;
+      min-height: 160px;
+    }
+    .card-glass-layer {
+      padding: 24px !important;
+    }
+    .stat-card-premium h3 {
+      font-size: 1.8rem !important;
+    }
+    .filter-pill {
+      font-size: 0.75rem;
+      padding: 6px 12px;
+    }
+    .table-container thead {
+      display: none;
+    }
+    .table-container tr {
+      display: block;
+      padding: 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      position: relative;
+    }
+    .table-container td {
+      display: block;
+      width: 100% !important;
+      padding: 4px 0 !important;
+      border: none;
+      text-align: left !important;
+    }
+    .table-container td:first-child {
+      padding-bottom: 12px !important;
+    }
+    .table-container td.text-end, .table-container td.text-center {
+      text-align: left !important;
+    }
+    .table-container td:last-child {
+      display: flex;
+      justify-content: flex-start;
+      gap: 12px;
+      padding-top: 16px !important;
+      border-top: 1px dashed rgba(0,0,0,0.05);
+      margin-top: 8px;
+    }
+    .quick-action-btn {
+      width: 40px;
+      height: 40px;
+    }
+    .step-container {
+      width: 200%;
+    }
+    .step-content {
+      width: 50%;
+      padding: 16px !important;
+    }
+    .modal-backdrop.px-3 {
+      padding: 10px !important;
+    }
+    .modal-lg {
+      max-width: 100% !important;
+      margin: 0 !important;
+      max-height: 95vh;
+      overflow-y: auto;
+    }
+  }
 `;
 
 export default function TabunganPage() {

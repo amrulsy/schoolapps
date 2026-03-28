@@ -8,6 +8,16 @@ import { useCustomAlert } from '../../hooks/useCustomAlert'
 import { useApp } from '../../context/AppContext'
 
 const styles = /*css*/`
+  .table-responsive {
+    margin-bottom: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  @media (max-width: 768px) {
+    .table {
+      min-width: 800px;
+    }
+  }
   .guru-header {
     background: var(--bg-card);
     padding: 24px 32px;
@@ -516,7 +526,7 @@ export default function DataGuruPage() {
             {loading ? <LoadingSpinner fullScreen={false} /> : (
                 <div className="card shadow-sm border-0" style={{ borderRadius: 32, overflow: 'hidden' }}>
                     <div className="card-body p-0">
-                        <div className="table-responsive text-nowrap">
+                        <div className="table-responsive">
                             <table className="table table-hover align-middle mb-0">
                                 <thead style={{ background: 'var(--bg-stripe)' }}>
                                     <tr>

@@ -101,19 +101,19 @@ export default function PortalInfo() {
                             <h2 className="portal-section-title">Jurusan yang Tersedia</h2>
                         </div>
 
-                        <div className="portal-grid portal-grid-3">
-                            {programs.length > 0 ? (
-                                programs.map(p => (
-                                    <div key={p.id} className="portal-program-card">
-                                        <div className="portal-program-icon">{p.icon}</div>
-                                        <h3>{p.title}</h3>
-                                        <p>{p.description}</p>
-                                    </div>
-                                ))
-                            ) : (
-                                <p style={{ color: 'var(--portal-text-muted)' }}>Belum ada data program keahlian.</p>
-                            )}
-                        </div>
+                         <div className="portal-grid portal-grid-3">
+                             {programs.length > 0 ? (
+                                 programs.map((p, idx) => (
+                                     <div key={p.id} className="portal-program-card stagger-item" style={{ animationDelay: `${idx * 0.2}s` }}>
+                                         <div className="portal-program-icon">{p.icon}</div>
+                                         <h3>{p.title}</h3>
+                                         <p>{p.description}</p>
+                                     </div>
+                                 ))
+                             ) : (
+                                 <p style={{ color: 'var(--portal-text-muted)' }}>Belum ada data program keahlian.</p>
+                             )}
+                         </div>
                     </div>
                 </div>
             </section>

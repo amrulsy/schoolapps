@@ -52,6 +52,19 @@ const styles = `
   }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
   .pulse-dot { animation: pulse 1.5s ease-in-out infinite; }
+
+  @media (max-width: 768px) {
+    .wa-page { padding: 0 4px; }
+    .wa-card { padding: 20px; border-radius: 24px; }
+    .wa-btn { padding: 10px 16px; font-size: 0.8rem; flex: 1; justify-content: center; }
+    .wa-grid-responsive { grid-template-columns: 1fr !important; }
+    .wa-stat-row { flex-direction: column; align-items: flex-start; gap: 4px; padding: 16px 0; }
+    .wa-stat-row span:last-child { width: 100%; text-align: left; margin-top: 4px; }
+    .wa-qr-container img { max-width: 100%; }
+    .wa-card .d-flex.align-items-center.gap-20 { gap: 12px !important; }
+    .wa-card h2 { font-size: 1.25rem !important; }
+    .wa-card p { font-size: 0.8rem !important; }
+  }
 `
 
 export default function WhatsAppConfigPage() {
@@ -159,7 +172,7 @@ export default function WhatsAppConfigPage() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+            <div className="wa-grid-responsive" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                     {/* Status Card */}
                     <div className="wa-card" style={{ height: '100%' }}>

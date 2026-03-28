@@ -405,3 +405,159 @@ select.edit-input {
     background-position: right 12px center;
     padding-right: 36px;
 }
+
+/* --- Layout Wrappers --- */
+.profile-content-container {
+    padding: 0 28px 28px;
+}
+
+.profile-header-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.profile-header-info {
+    flex: 1;
+    padding-bottom: 4px;
+}
+
+.profile-header-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.profile-header-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.section-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px 28px;
+}
+
+.section-card-grid[data-columns="3"] {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.parent-section-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 28px;
+}
+
+.info-item-box {
+    grid-column: span 1;
+}
+
+@media (max-width: 768px) {
+    .profile-banner {
+        height: 140px;
+    }
+
+    .profile-content-container {
+        padding: 0 16px 20px;
+    }
+
+    .profile-avatar-wrapper {
+        width: 100px;
+        height: 100px;
+        margin-top: -50px;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: var(--radius-xl);
+    }
+
+    .profile-avatar-inner {
+        font-size: 2.5rem;
+        border-radius: calc(var(--radius-xl) - 4px);
+    }
+
+    .profile-header-row {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 16px;
+    }
+
+    .profile-header-info {
+        width: 100%;
+        text-align: center;
+    }
+
+    .profile-header-meta {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .profile-header-meta h2 {
+        font-size: 1.5rem !important;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .profile-header-meta .d-flex {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .profile-header-actions {
+        width: 100%;
+        justify-content: center;
+        margin-top: 20px;
+    }
+
+    .profile-header-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .profile-nav-tabs {
+        padding: 0 16px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        margin-top: 24px;
+    }
+
+    .profile-nav-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .profile-tab-btn {
+        padding: 10px 14px;
+        white-space: nowrap;
+        font-size: 0.8rem;
+    }
+
+    .tab-pane-content {
+        padding: 24px 16px;
+    }
+
+    .section-card-grid, .parent-section-grid, .info-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    .info-item-box {
+        grid-column: span 1 !important;
+    }
+
+    /* Override span 2/3 for mobile stacking */
+    div[style*="grid-column: span 2"], 
+    div[style*="grid-column: span 3"] {
+        grid-column: span 1 !important;
+    }
+
+    .document-grid {
+        grid-template-columns: 1fr;
+    }
+}

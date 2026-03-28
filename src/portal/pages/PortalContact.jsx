@@ -128,7 +128,7 @@ export default function PortalContact() {
                             </h2>
 
                             {contactInfo.map((info, i) => (
-                                <div key={i} className="portal-contact-info-card">
+                                <div key={i} className="portal-contact-info-card stagger-item" style={{ animationDelay: `${i * 0.2}s` }}>
                                     <div className="portal-contact-info-icon">{info.icon}</div>
                                     <div>
                                         <div className="portal-contact-info-label">{info.label}</div>

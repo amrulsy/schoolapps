@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Outlet, Navigate } from 'react-router-dom'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useApp } from '../context/AppContext'
+import { STAFF_ROLES, isPathAllowed } from '../utils/permissions'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
 import Toast from '../components/Toast'
@@ -17,6 +18,7 @@ export default function AdminLayout() {
     const { sidebarCollapsed, currentUser, isLoaded, login } = useApp()
     const [isMobile, setIsMobile] = useState(window.innerWidth <= MOBILE_BREAKPOINT)
     const [drawerOpen, setDrawerOpen] = useState(false)
+    const location = useLocation()
 
     useEffect(() => {
         const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`)
@@ -40,8 +42,13 @@ export default function AdminLayout() {
         return <Navigate to="/guru" replace />
     }
 
-    if (currentUser.role !== 'admin') {
+    if (!STAFF_ROLES.includes(currentUser.role)) {
         return <Navigate to="/" replace />
+    }
+
+    // Route-level guard: redirect to dashboard if accessing unauthorized path
+    if (!isPathAllowed(currentUser.role, location.pathname)) {
+        return <Navigate to="/admin" replace />
     }
 
     const marginLeft = isMobile ? '0' : (sidebarCollapsed ? 'calc(var(--sidebar-collapsed) + 32px)' : 'calc(var(--sidebar-width) + 32px)')

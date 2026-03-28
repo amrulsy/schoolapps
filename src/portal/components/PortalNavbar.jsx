@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Megaphone, Info, GraduationCap, Receipt, Phone } from 'lucide-react'
+import { Home, Megaphone, Info, GraduationCap, Receipt, Phone, ArrowRight } from 'lucide-react'
 
 const NAV_LINKS = [
     { to: '/', label: 'Beranda', icon: <Home size={20} />, exact: true },
+    { to: '/jurusan', label: 'Jurusan', icon: <GraduationCap size={20} /> },
     { to: '/pengumuman', label: 'Pengumuman', icon: <Megaphone size={20} /> },
     { to: '/informasi', label: 'Informasi', icon: <Info size={20} /> },
     { to: '/ppdb', label: 'PPDB', icon: <GraduationCap size={20} /> },
@@ -28,6 +29,7 @@ export default function PortalNavbar({ mobileOpen, setMobileOpen }) {
 
     const isActive = (link) => {
         if (link.exact) return location.pathname === link.to
+        if (link.to.startsWith('/#')) return false // Basic anchor handling
         return location.pathname.startsWith(link.to)
     }
 
@@ -45,23 +47,37 @@ export default function PortalNavbar({ mobileOpen, setMobileOpen }) {
                     <ul className="portal-navbar-links">
                         {NAV_LINKS.map(link => (
                             <li key={link.to}>
-                                <Link
-                                    to={link.to}
-                                    className={isActive(link) ? 'active' : ''}
-                                >
-                                    {link.label}
-                                </Link>
+                                {link.to.startsWith('/#') ? (
+                                    <a
+                                        href={link.to}
+                                        className={isActive(link) ? 'active' : ''}
+                                    >
+                                        {link.label}
+                                    </a>
+                                ) : (
+                                    <Link
+                                        to={link.to}
+                                        className={isActive(link) ? 'active' : ''}
+                                    >
+                                        {link.label}
+                                    </Link>
+                                )}
                             </li>
                         ))}
                     </ul>
 
-                    <button
-                        className={`portal-hamburger ${mobileOpen ? 'open' : ''}`}
-                        onClick={() => setMobileOpen(!mobileOpen)}
-                        aria-label="Menu"
-                    >
-                        <span /><span /><span />
-                    </button>
+                    <div className="portal-navbar-actions">
+                        <Link to="/login" className="portal-btn portal-btn-primary portal-btn-sm" style={{ fontWeight: 600, padding: '8px 16px', borderRadius: '50px' }}>
+                            Login Portal
+                        </Link>
+                        <button
+                            className={`portal-hamburger ${mobileOpen ? 'open' : ''}`}
+                            onClick={() => setMobileOpen(!mobileOpen)}
+                            aria-label="Menu"
+                        >
+                            <span /><span /><span />
+                        </button>
+                    </div>
                 </div>
             </nav>
 
@@ -77,6 +93,16 @@ export default function PortalNavbar({ mobileOpen, setMobileOpen }) {
                             <span className="mobile-menu-label">{link.label}</span>
                         </Link>
                     ))}
+                </div>
+                <div style={{ padding: '0 20px 20px' }}>
+                    <Link 
+                        to="/login" 
+                        className="portal-btn portal-btn-primary" 
+                        style={{ width: '100%', borderRadius: '12px', justifyContent: 'center' }}
+                        onClick={() => setMobileOpen(false)}
+                    >
+                        Login Portal <ArrowRight size={18} style={{ marginLeft: '8px' }} />
+                    </Link>
                 </div>
             </div>
         </>

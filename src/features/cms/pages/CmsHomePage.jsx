@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../../../context/AppContext'
-import { Save, Plus, Edit2, Trash2, Eye, Layout, Monitor, Handshake, GraduationCap, Megaphone, RefreshCw, Image as ImageIcon, FileText, Building2, Globe, Mail, Type, Star, PlayCircle, AlignLeft } from 'lucide-react'
+import { Save, Plus, Edit2, Trash2, Eye, Layout, Monitor, Handshake, GraduationCap, Megaphone, RefreshCw, Image as ImageIcon, FileText, Building2, Globe, Mail, Type, Star, PlayCircle, AlignLeft, HelpCircle, MessageSquare, Camera, Shield } from 'lucide-react'
 import { useCustomAlert } from '../../../hooks/useCustomAlert'
 import { getDirectDriveUrl } from '../../../utils/urlHelper'
 import MediaUploadField from '../../../components/MediaUploadField'
@@ -11,10 +11,14 @@ import CmsPostsPage from './CmsPostsPage'
 
 const TABS = [
     { key: 'hero', label: 'Hero Section', icon: Monitor },
+    { key: 'identity', label: 'Logo Identitas', icon: Shield },
     { key: 'banners', label: 'Banners', icon: ImageIcon },
     { key: 'posts', label: 'Pengumuman / Berita', icon: FileText },
     { key: 'programs', label: 'Program Keahlian', icon: GraduationCap },
     { key: 'partners', label: 'Mitra / Partner', icon: Handshake },
+    { key: 'testimonials', label: 'Testimoni', icon: MessageSquare },
+    { key: 'gallery', label: 'Galeri', icon: Camera },
+    { key: 'faq', label: 'FAQ', icon: HelpCircle },
     { key: 'school-network', label: 'Network Sekolah', icon: Building2 },
     { key: 'cta', label: 'CTA Section', icon: Megaphone },
     { key: 'site', label: 'Informasi Situs', icon: Globe },
@@ -92,11 +96,39 @@ export default function CmsHomePage() {
     const [schoolForm, setSchoolForm] = useState({ name: '', short: '', logo_url: '' })
     const [savingSchool, setSavingSchool] = useState(false)
 
+    // Testimonials state
+    const [testimonials, setTestimonials] = useState([])
+    const [showTestimonialModal, setShowTestimonialModal] = useState(false)
+    const [editTestimonial, setEditTestimonial] = useState(null)
+    const [testimonialForm, setTestimonialForm] = useState({ name: '', role: '', company: '', photo_url: '', quote: '', rating: 5, sort_order: 0 })
+    const [savingTestimonial, setSavingTestimonial] = useState(false)
+
+    // Gallery state
+    const [galleryItems, setGalleryItems] = useState([])
+    const [showGalleryModal, setShowGalleryModal] = useState(false)
+    const [editGalleryItem, setEditGalleryItem] = useState(null)
+    const [galleryForm, setGalleryForm] = useState({ title: '', image_url: '', category: '', description: '', sort_order: 0 })
+    const [savingGallery, setSavingGallery] = useState(false)
+
+    // FAQ state
+    const [faqItems, setFaqItems] = useState([])
+    const [showFaqModal, setShowFaqModal] = useState(false)
+    const [editFaqItem, setEditFaqItem] = useState(null)
+    const [faqForm, setFaqForm] = useState({ question: '', answer: '', category: '', sort_order: 0 })
+    const [savingFaq, setSavingFaq] = useState(false)
+
+    // Identity Logos state
+    const [identityLogos, setIdentityLogos] = useState([])
+    const [showIdentityModal, setShowIdentityModal] = useState(false)
+    const [editIdentity, setEditIdentity] = useState(null)
+    const [identityForm, setIdentityForm] = useState({ label: '', name: '', logo_url: '', color_class: 'yayasan', sort_order: 0 })
+    const [savingIdentity, setSavingIdentity] = useState(false)
+
     useEffect(() => { loadAll() }, [])
 
     const loadAll = async () => {
         setLoading(true)
-        await Promise.all([loadSettings(), loadPrograms(), loadPartners()])
+        await Promise.all([loadSettings(), loadPrograms(), loadPartners(), loadTestimonials(), loadGallery(), loadFaq(), loadIdentityLogos()])
         setLoading(false)
     }
 
@@ -376,10 +408,14 @@ export default function CmsHomePage() {
             {/* Tab Content */}
             <div style={{ minHeight: 400 }}>
                 {activeTab === 'hero' && renderHeroTab()}
+                {activeTab === 'identity' && renderIdentityTab()}
                 {activeTab === 'banners' && <CmsBannersPage hideHeader={true} />}
                 {activeTab === 'posts' && <CmsPostsPage hideHeader={true} />}
                 {activeTab === 'programs' && renderProgramsTab()}
                 {activeTab === 'partners' && renderPartnersTab()}
+                {activeTab === 'testimonials' && renderTestimonialsTab()}
+                {activeTab === 'gallery' && renderGalleryTab()}
+                {activeTab === 'faq' && renderFaqTab()}
                 {activeTab === 'school-network' && renderSchoolNetworkTab()}
                 {activeTab === 'cta' && renderCtaTab()}
                 {activeTab === 'site' && renderSiteTab()}
@@ -390,6 +426,10 @@ export default function CmsHomePage() {
             {showProgramModal && renderProgramModal()}
             {showPartnerModal && renderPartnerModal()}
             {showSchoolModal && renderSchoolModal()}
+            {showTestimonialModal && renderTestimonialModal()}
+            {showGalleryModal && renderGalleryModal()}
+            {showFaqModal && renderFaqModal()}
+            {showIdentityModal && renderIdentityModal()}
         </div>
     )
 
@@ -1315,6 +1355,18 @@ export default function CmsHomePage() {
                                     placeholder="Nama perusahaan / lembaga"
                                 />
                             </div>
+                            <div className="form-group mb-4">
+                                <label>Kategori <span className="text-danger">*</span></label>
+                                <select 
+                                    className="form-control" 
+                                    value={partnerForm.category}
+                                    onChange={e => setPartnerForm({ ...partnerForm, category: e.target.value })}
+                                    required
+                                >
+                                    <option value="mitra">Mitra / Partner Industri</option>
+                                    <option value="affiliasi">Network Sekolah / Afiliasi</option>
+                                </select>
+                            </div>
                             <MediaUploadField
                                 label="Logo Partner"
                                 value={partnerForm.logo_url}
@@ -1410,5 +1462,600 @@ export default function CmsHomePage() {
             </div>
         )
     }
-}
 
+    // ==================== TESTIMONIALS CRUD ====================
+    async function loadTestimonials() {
+        try {
+            const res = await fetch(`${API_BASE}/testimonials`, { headers: getAuthHeaders() })
+            if (res.ok) setTestimonials(await res.json())
+        } catch { /* silent */ }
+    }
+
+    function openTestimonialModal(t = null) {
+        setEditTestimonial(t)
+        setTestimonialForm(t ? { name: t.name, role: t.role || '', company: t.company || '', photo_url: t.photo_url || '', quote: t.quote, rating: t.rating || 5, sort_order: t.sort_order || 0 }
+            : { name: '', role: '', company: '', photo_url: '', quote: '', rating: 5, sort_order: testimonials.length })
+        setShowTestimonialModal(true)
+    }
+
+    async function saveTestimonial(e) {
+        e.preventDefault()
+        setSavingTestimonial(true)
+        try {
+            const url = editTestimonial ? `${API_BASE}/testimonials/${editTestimonial.id}` : `${API_BASE}/testimonials`
+            const method = editTestimonial ? 'PUT' : 'POST'
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(testimonialForm) })
+            if (res.ok) {
+                addToast('success', 'Berhasil', editTestimonial ? 'Testimoni diperbarui' : 'Testimoni ditambahkan')
+                setShowTestimonialModal(false)
+                loadTestimonials()
+            } else addToast('danger', 'Gagal', 'Gagal menyimpan testimoni')
+        } catch { addToast('danger', 'Error', 'Terjadi kesalahan') }
+        finally { setSavingTestimonial(false) }
+    }
+
+    async function deleteTestimonial(id) {
+        const ok = await confirmDelete('Hapus Testimoni', 'Testimoni ini akan dihapus permanen.')
+        if (!ok) return
+        try {
+            await fetch(`${API_BASE}/testimonials/${id}`, { method: 'DELETE', headers: getAuthHeaders() })
+            addToast('success', 'Berhasil', 'Testimoni dihapus')
+            loadTestimonials()
+        } catch { addToast('danger', 'Error', 'Gagal menghapus') }
+    }
+
+    function renderTestimonialsTab() {
+        return (
+            <div className="cms-section-card">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 className="cms-section-title">💬 Kelola Testimoni</h3>
+                        <p className="cms-section-desc">Testimoni dari alumni, siswa, dan orang tua yang tampil di portal.</p>
+                    </div>
+                    <button className="btn btn-primary" onClick={() => openTestimonialModal()}>
+                        <Plus size={16} /> Tambah Testimoni
+                    </button>
+                </div>
+                {testimonials.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: 16 }}>
+                        <MessageSquare size={32} className="mb-2" style={{ opacity: 0.3 }} />
+                        <p>Belum ada testimoni. Klik "Tambah Testimoni" untuk memulai.</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gap: 12 }}>
+                        {testimonials.map(t => (
+                            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 700, color: 'var(--primary-600)', flexShrink: 0, overflow: 'hidden' }}>
+                                    {t.photo_url ? <img src={getDirectDriveUrl(t.photo_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : t.name?.charAt(0)}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t.name}</div>
+                                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{t.role}{t.company ? ` • ${t.company}` : ''}</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>"{t.quote}"</div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                                    <span style={{ ...badgeStyle, background: t.is_active ? '#dcfce7' : '#fee2e2', color: t.is_active ? '#16a34a' : '#dc2626' }}>
+                                        {t.is_active ? 'Aktif' : 'Nonaktif'}
+                                    </span>
+                                    <button className="btn-icon" onClick={() => openTestimonialModal(t)}><Edit2 size={15} /></button>
+                                    <button className="btn-icon text-danger" onClick={() => deleteTestimonial(t.id)}><Trash2 size={15} /></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    function renderTestimonialModal() {
+        return (
+            <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                <div className="modal" style={{ maxWidth: 550 }}>
+                    <div className="modal-header">
+                        <h3>{editTestimonial ? 'Edit Testimoni' : 'Tambah Testimoni'}</h3>
+                        <button className="btn-icon" onClick={() => setShowTestimonialModal(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                        <form id="testimonialForm" onSubmit={saveTestimonial}>
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label>Nama <span className="text-danger">*</span></label>
+                                    <input type="text" className="form-control" value={testimonialForm.name}
+                                        onChange={e => setTestimonialForm({ ...testimonialForm, name: e.target.value })} required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Peran / Jabatan</label>
+                                    <input type="text" className="form-control" value={testimonialForm.role}
+                                        onChange={e => setTestimonialForm({ ...testimonialForm, role: e.target.value })}
+                                        placeholder="Alumni 2022, Orang Tua Siswa, dll" />
+                                </div>
+                            </div>
+                            <div className="form-group mb-4">
+                                <label>Instansi / Perusahaan</label>
+                                <input type="text" className="form-control" value={testimonialForm.company}
+                                    onChange={e => setTestimonialForm({ ...testimonialForm, company: e.target.value })}
+                                    placeholder="Software Engineer @ Tokopedia" />
+                            </div>
+                            <MediaUploadField label="Foto" value={testimonialForm.photo_url}
+                                onChange={(url) => setTestimonialForm({ ...testimonialForm, photo_url: url })}
+                                helperText="Foto profil untuk testimoni." previewStyle={{ height: '100px' }} />
+                            <div className="form-group mb-4">
+                                <label>Kutipan / Testimoni <span className="text-danger">*</span></label>
+                                <textarea className="form-control" rows={3} value={testimonialForm.quote}
+                                    onChange={e => setTestimonialForm({ ...testimonialForm, quote: e.target.value })} required
+                                    placeholder="Tulis testimoni di sini..." />
+                            </div>
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label>Rating (1-5)</label>
+                                    <input type="number" className="form-control" min={1} max={5} value={testimonialForm.rating}
+                                        onChange={e => setTestimonialForm({ ...testimonialForm, rating: parseInt(e.target.value) || 5 })} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Urutan Tampil</label>
+                                    <input type="number" className="form-control" value={testimonialForm.sort_order}
+                                        onChange={e => setTestimonialForm({ ...testimonialForm, sort_order: parseInt(e.target.value) || 0 })} />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowTestimonialModal(false)} disabled={savingTestimonial}>Batal</button>
+                        <button type="submit" form="testimonialForm" className="btn btn-primary" disabled={savingTestimonial}>
+                            {savingTestimonial ? 'Menyimpan...' : 'Simpan Testimoni'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // ==================== GALLERY CRUD ====================
+    async function loadGallery() {
+        try {
+            const res = await fetch(`${API_BASE}/gallery`, { headers: getAuthHeaders() })
+            if (res.ok) setGalleryItems(await res.json())
+        } catch { /* silent */ }
+    }
+
+    function openGalleryModal(g = null) {
+        setEditGalleryItem(g)
+        setGalleryForm(g ? { title: g.title, image_url: g.image_url, category: g.category || '', description: g.description || '', sort_order: g.sort_order || 0 }
+            : { title: '', image_url: '', category: '', description: '', sort_order: galleryItems.length })
+        setShowGalleryModal(true)
+    }
+
+    async function saveGalleryItem(e) {
+        e.preventDefault()
+        setSavingGallery(true)
+        try {
+            const url = editGalleryItem ? `${API_BASE}/gallery/${editGalleryItem.id}` : `${API_BASE}/gallery`
+            const method = editGalleryItem ? 'PUT' : 'POST'
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(galleryForm) })
+            if (res.ok) {
+                addToast('success', 'Berhasil', editGalleryItem ? 'Gambar diperbarui' : 'Gambar ditambahkan')
+                setShowGalleryModal(false)
+                loadGallery()
+            } else addToast('danger', 'Gagal', 'Gagal menyimpan')
+        } catch { addToast('danger', 'Error', 'Terjadi kesalahan') }
+        finally { setSavingGallery(false) }
+    }
+
+    async function deleteGalleryItem(id) {
+        const ok = await confirmDelete('Hapus Gambar', 'Gambar ini akan dihapus permanen dari galeri.')
+        if (!ok) return
+        try {
+            await fetch(`${API_BASE}/gallery/${id}`, { method: 'DELETE', headers: getAuthHeaders() })
+            addToast('success', 'Berhasil', 'Gambar dihapus')
+            loadGallery()
+        } catch { addToast('danger', 'Error', 'Gagal menghapus') }
+    }
+
+    function renderGalleryTab() {
+        return (
+            <div className="cms-section-card">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 className="cms-section-title">🖼️ Kelola Galeri</h3>
+                        <p className="cms-section-desc">Foto kegiatan sekolah yang tampil di halaman portal.</p>
+                    </div>
+                    <button className="btn btn-primary" onClick={() => openGalleryModal()}>
+                        <Plus size={16} /> Tambah Gambar
+                    </button>
+                </div>
+                {galleryItems.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: 16 }}>
+                        <Camera size={32} className="mb-2" style={{ opacity: 0.3 }} />
+                        <p>Belum ada gambar di galeri. Klik "Tambah Gambar" untuk memulai.</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+                        {galleryItems.map(g => (
+                            <div key={g.id} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fff' }}>
+                                <div style={{ aspectRatio: '4/3', overflow: 'hidden' }}>
+                                    <img src={getDirectDriveUrl(g.image_url)} alt={g.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                                <div style={{ padding: 12 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 4 }}>{g.title}</div>
+                                    {g.category && <span style={{ ...badgeStyle, background: '#ede9fe', color: '#7c3aed', fontSize: '0.7rem' }}>{g.category}</span>}
+                                    <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+                                        <button className="btn-icon" onClick={() => openGalleryModal(g)}><Edit2 size={14} /></button>
+                                        <button className="btn-icon text-danger" onClick={() => deleteGalleryItem(g.id)}><Trash2 size={14} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    function renderGalleryModal() {
+        return (
+            <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                <div className="modal" style={{ maxWidth: 500 }}>
+                    <div className="modal-header">
+                        <h3>{editGalleryItem ? 'Edit Gambar' : 'Tambah Gambar'}</h3>
+                        <button className="btn-icon" onClick={() => setShowGalleryModal(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                        <form id="galleryForm" onSubmit={saveGalleryItem}>
+                            <div className="form-group mb-4">
+                                <label>Judul <span className="text-danger">*</span></label>
+                                <input type="text" className="form-control" value={galleryForm.title}
+                                    onChange={e => setGalleryForm({ ...galleryForm, title: e.target.value })} required
+                                    placeholder="Judul gambar..." />
+                            </div>
+                            <MediaUploadField label="Gambar" value={galleryForm.image_url}
+                                onChange={(url) => setGalleryForm({ ...galleryForm, image_url: url })}
+                                helperText="Upload gambar kegiatan sekolah." />
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label>Kategori</label>
+                                    <input type="text" className="form-control" value={galleryForm.category}
+                                        onChange={e => setGalleryForm({ ...galleryForm, category: e.target.value })}
+                                        placeholder="Lab, Lomba, PKL, dll" />
+                                </div>
+                                <div className="form-group">
+                                    <label>Urutan Tampil</label>
+                                    <input type="number" className="form-control" value={galleryForm.sort_order}
+                                        onChange={e => setGalleryForm({ ...galleryForm, sort_order: parseInt(e.target.value) || 0 })} />
+                                </div>
+                            </div>
+                            <div className="form-group mb-4">
+                                <label>Deskripsi (Opsional)</label>
+                                <textarea className="form-control" rows={2} value={galleryForm.description}
+                                    onChange={e => setGalleryForm({ ...galleryForm, description: e.target.value })}
+                                    placeholder="Keterangan singkat..." />
+                            </div>
+                        </form>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowGalleryModal(false)} disabled={savingGallery}>Batal</button>
+                        <button type="submit" form="galleryForm" className="btn btn-primary" disabled={savingGallery}>
+                            {savingGallery ? 'Menyimpan...' : 'Simpan Gambar'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // ==================== FAQ CRUD ====================
+    async function loadFaq() {
+        try {
+            const res = await fetch(`${API_BASE}/faq`, { headers: getAuthHeaders() })
+            if (res.ok) setFaqItems(await res.json())
+        } catch { /* silent */ }
+    }
+
+    function openFaqModal(f = null) {
+        setEditFaqItem(f)
+        setFaqForm(f ? { question: f.question, answer: f.answer, category: f.category || '', sort_order: f.sort_order || 0 }
+            : { question: '', answer: '', category: '', sort_order: faqItems.length })
+        setShowFaqModal(true)
+    }
+
+    async function saveFaqItem(e) {
+        e.preventDefault()
+        setSavingFaq(true)
+        try {
+            const url = editFaqItem ? `${API_BASE}/faq/${editFaqItem.id}` : `${API_BASE}/faq`
+            const method = editFaqItem ? 'PUT' : 'POST'
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(faqForm) })
+            if (res.ok) {
+                addToast('success', 'Berhasil', editFaqItem ? 'FAQ diperbarui' : 'FAQ ditambahkan')
+                setShowFaqModal(false)
+                loadFaq()
+            } else addToast('danger', 'Gagal', 'Gagal menyimpan')
+        } catch { addToast('danger', 'Error', 'Terjadi kesalahan') }
+        finally { setSavingFaq(false) }
+    }
+
+    async function deleteFaqItem(id) {
+        const ok = await confirmDelete('Hapus FAQ', 'FAQ ini akan dihapus permanen.')
+        if (!ok) return
+        try {
+            await fetch(`${API_BASE}/faq/${id}`, { method: 'DELETE', headers: getAuthHeaders() })
+            addToast('success', 'Berhasil', 'FAQ dihapus')
+            loadFaq()
+        } catch { addToast('danger', 'Error', 'Gagal menghapus') }
+    }
+
+    function renderFaqTab() {
+        return (
+            <div className="cms-section-card">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 className="cms-section-title">❓ Kelola FAQ</h3>
+                        <p className="cms-section-desc">Pertanyaan yang sering diajukan. Akan tampil sebagai accordion di portal.</p>
+                    </div>
+                    <button className="btn btn-primary" onClick={() => openFaqModal()}>
+                        <Plus size={16} /> Tambah FAQ
+                    </button>
+                </div>
+                {faqItems.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: 16 }}>
+                        <HelpCircle size={32} className="mb-2" style={{ opacity: 0.3 }} />
+                        <p>Belum ada FAQ. Klik "Tambah FAQ" untuk memulai.</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                        {faqItems.map(f => (
+                            <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-600)', flexShrink: 0 }}>
+                                    <HelpCircle size={18} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{f.question}</div>
+                                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.answer}</div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                                    {f.category && <span style={{ ...badgeStyle, background: '#fef3c7', color: '#b45309', fontSize: '0.7rem' }}>{f.category}</span>}
+                                    <span style={{ ...badgeStyle, background: f.is_active ? '#dcfce7' : '#fee2e2', color: f.is_active ? '#16a34a' : '#dc2626' }}>
+                                        {f.is_active ? 'Aktif' : 'Nonaktif'}
+                                    </span>
+                                    <button className="btn-icon" onClick={() => openFaqModal(f)}><Edit2 size={15} /></button>
+                                    <button className="btn-icon text-danger" onClick={() => deleteFaqItem(f.id)}><Trash2 size={15} /></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    function renderFaqModal() {
+        return (
+            <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                <div className="modal" style={{ maxWidth: 550 }}>
+                    <div className="modal-header">
+                        <h3>{editFaqItem ? 'Edit FAQ' : 'Tambah FAQ'}</h3>
+                        <button className="btn-icon" onClick={() => setShowFaqModal(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                        <form id="faqForm" onSubmit={saveFaqItem}>
+                            <div className="form-group mb-4">
+                                <label>Pertanyaan <span className="text-danger">*</span></label>
+                                <input type="text" className="form-control" value={faqForm.question}
+                                    onChange={e => setFaqForm({ ...faqForm, question: e.target.value })} required
+                                    placeholder="Bagaimana cara mendaftar?" />
+                            </div>
+                            <div className="form-group mb-4">
+                                <label>Jawaban <span className="text-danger">*</span></label>
+                                <textarea className="form-control" rows={4} value={faqForm.answer}
+                                    onChange={e => setFaqForm({ ...faqForm, answer: e.target.value })} required
+                                    placeholder="Tulis jawaban FAQ di sini..." />
+                            </div>
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label>Kategori</label>
+                                    <input type="text" className="form-control" value={faqForm.category}
+                                        onChange={e => setFaqForm({ ...faqForm, category: e.target.value })}
+                                        placeholder="PPDB, Biaya, Umum, dll" />
+                                </div>
+                                <div className="form-group">
+                                    <label>Urutan Tampil</label>
+                                    <input type="number" className="form-control" value={faqForm.sort_order}
+                                        onChange={e => setFaqForm({ ...faqForm, sort_order: parseInt(e.target.value) || 0 })} />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowFaqModal(false)} disabled={savingFaq}>Batal</button>
+                        <button type="submit" form="faqForm" className="btn btn-primary" disabled={savingFaq}>
+                            {savingFaq ? 'Menyimpan...' : 'Simpan FAQ'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // ==================== IDENTITY LOGOS ====================
+
+    function loadIdentityLogos() {
+        return fetch(`${API_BASE}/identity-logos`, { headers: getAuthHeaders() })
+            .then(res => res.ok ? res.json() : [])
+            .then(data => setIdentityLogos(data))
+            .catch(() => {})
+    }
+
+    function openIdentityModal(item = null) {
+        setEditIdentity(item)
+        setIdentityForm(item
+            ? { label: item.label, name: item.name, logo_url: item.logo_url || '', color_class: item.color_class || 'yayasan', sort_order: item.sort_order, is_active: item.is_active }
+            : { label: '', name: '', logo_url: '', color_class: 'yayasan', sort_order: identityLogos.length, is_active: 1 }
+        )
+        setShowIdentityModal(true)
+    }
+
+    async function saveIdentity(e) {
+        e.preventDefault()
+        setSavingIdentity(true)
+        try {
+            const url = editIdentity ? `${API_BASE}/identity-logos/${editIdentity.id}` : `${API_BASE}/identity-logos`
+            const method = editIdentity ? 'PUT' : 'POST'
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(identityForm) })
+            if (res.ok) {
+                addToast('success', 'Berhasil', `Logo ${editIdentity ? 'diperbarui' : 'ditambahkan'}`)
+                setShowIdentityModal(false)
+                loadIdentityLogos()
+            } else {
+                const err = await res.json()
+                addToast('danger', 'Gagal', err.error || 'Terjadi kesalahan')
+            }
+        } catch { addToast('danger', 'Error', 'Gagal menyimpan') }
+        finally { setSavingIdentity(false) }
+    }
+
+    async function deleteIdentity(item) {
+        if (await confirmDelete(`Hapus logo "${item.name}"?`, 'Data akan dihapus permanen.')) {
+            try {
+                const res = await fetch(`${API_BASE}/identity-logos/${item.id}`, { method: 'DELETE', headers: getAuthHeaders() })
+                if (res.ok) { addToast('success', 'Berhasil', 'Logo dihapus'); loadIdentityLogos() }
+            } catch { addToast('danger', 'Error', 'Gagal menghapus') }
+        }
+    }
+
+    function renderIdentityTab() {
+        const colorOptions = [
+            { value: 'yayasan', label: 'Biru (Yayasan)', emoji: '🏛️' },
+            { value: 'jurusan', label: 'Kuning (Jurusan)', emoji: '🎓' },
+            { value: 'pramuka', label: 'Pink (Pramuka)', emoji: '⚜️' },
+            { value: 'osis', label: 'Hijau (OSIS)', emoji: '🏅' },
+            { value: 'ekskul', label: 'Ungu (Ekskul)', emoji: '🎭' },
+        ]
+        return (
+            <div className="cms-section-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div>
+                        <h3 className="cms-section-title" style={{ marginBottom: 4 }}>🛡️ Logo Identitas</h3>
+                        <p className="cms-section-desc">Kartu identitas yang tampil di bawah hero section — mendukung scroll horizontal jika lebih dari 5 item.</p>
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={() => openIdentityModal()}>
+                        <Plus size={14} /> Tambah Logo
+                    </button>
+                </div>
+
+                {identityLogos.length === 0 ? (
+                    <div className="cms-empty-state">Belum ada logo identitas. Klik tombol "Tambah Logo" untuk menambahkan.</div>
+                ) : (
+                    <div className="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: 50 }}>No</th>
+                                    <th style={{ width: 60 }}>Logo</th>
+                                    <th>Label</th>
+                                    <th>Nama</th>
+                                    <th>Warna</th>
+                                    <th style={{ width: 70 }}>Urutan</th>
+                                    <th style={{ width: 80 }}>Status</th>
+                                    <th style={{ width: 90 }}>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {identityLogos.map((item, i) => (
+                                    <tr key={item.id}>
+                                        <td className="text-center">{i + 1}</td>
+                                        <td>
+                                            <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', borderRadius: 8, overflow: 'hidden' }}>
+                                                {item.logo_url ? (
+                                                    <img src={getDirectDriveUrl(item.logo_url)} alt={item.name} style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                                                ) : (
+                                                    <span style={{ fontSize: '1.2rem' }}>{colorOptions.find(c => c.value === item.color_class)?.emoji || '🏫'}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td><strong>{item.label}</strong></td>
+                                        <td>{item.name}</td>
+                                        <td><span style={{ padding: '2px 10px', borderRadius: 100, fontSize: '0.75rem', fontWeight: 700, background: '#f1f5f9' }}>{item.color_class}</span></td>
+                                        <td className="text-center">{item.sort_order}</td>
+                                        <td>
+                                            <span className={`badge ${item.is_active ? 'badge-success' : 'badge-secondary'}`}>
+                                                {item.is_active ? 'Aktif' : 'Off'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="action-group">
+                                                <button className="btn-icon btn-edit" onClick={() => openIdentityModal(item)} title="Edit"><Edit2 size={16} /></button>
+                                                <button className="btn-icon btn-delete danger" onClick={() => deleteIdentity(item)} title="Hapus"><Trash2 size={16} /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    function renderIdentityModal() {
+        return (
+            <div className="modal-overlay" onClick={() => setShowIdentityModal(false)}>
+                <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+                    <div className="modal-header">
+                        <h3>{editIdentity ? 'Edit Logo Identitas' : 'Tambah Logo Identitas'}</h3>
+                    </div>
+                    <div className="modal-body">
+                        <form id="identityForm" onSubmit={saveIdentity}>
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label>Label <span className="text-danger">*</span></label>
+                                    <input type="text" className="form-control" value={identityForm.label}
+                                        onChange={e => setIdentityForm({ ...identityForm, label: e.target.value })} required
+                                        placeholder="Yayasan / Sekolah / Pramuka" />
+                                </div>
+                                <div className="form-group">
+                                    <label>Nama <span className="text-danger">*</span></label>
+                                    <input type="text" className="form-control" value={identityForm.name}
+                                        onChange={e => setIdentityForm({ ...identityForm, name: e.target.value })} required
+                                        placeholder="Yayasan Pendidikan PPRQ" />
+                                </div>
+                            </div>
+                            <div className="form-group mb-4">
+                                <label>URL Logo</label>
+                                <MediaUploadField
+                                    value={identityForm.logo_url}
+                                    onChange={val => setIdentityForm({ ...identityForm, logo_url: val })}
+                                    label="Logo"
+                                />
+                            </div>
+                            <div className="grid-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label>Warna Tema</label>
+                                    <select className="form-control" value={identityForm.color_class}
+                                        onChange={e => setIdentityForm({ ...identityForm, color_class: e.target.value })}>
+                                        <option value="yayasan">🏛️ Biru (Yayasan)</option>
+                                        <option value="jurusan">🎓 Kuning (Jurusan)</option>
+                                        <option value="pramuka">⚜️ Pink (Pramuka)</option>
+                                        <option value="osis">🏅 Hijau (OSIS)</option>
+                                        <option value="ekskul">🎭 Ungu (Ekskul)</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Urutan Tampil</label>
+                                    <input type="number" className="form-control" value={identityForm.sort_order}
+                                        onChange={e => setIdentityForm({ ...identityForm, sort_order: parseInt(e.target.value) || 0 })} />
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowIdentityModal(false)} disabled={savingIdentity}>Batal</button>
+                        <button type="submit" form="identityForm" className="btn btn-primary" disabled={savingIdentity}>
+                            {savingIdentity ? 'Menyimpan...' : 'Simpan Logo'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+}

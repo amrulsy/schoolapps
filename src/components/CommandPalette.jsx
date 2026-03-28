@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, X, Command } from 'lucide-react'
+import { useApp } from '../context/AppContext'
+import { isPathAllowed } from '../utils/permissions'
 
 const navigationItems = [
     { to: '/admin', text: 'Dashboard', category: 'General' },
+    // Data Master
     { to: '/admin/siswa', text: 'Data Siswa', category: 'Data Master' },
     { to: '/admin/guru', text: 'Data Guru', category: 'Data Master' },
     { to: '/admin/unit-kelas', text: 'Unit & Kelas', category: 'Data Master' },
@@ -15,18 +18,24 @@ const navigationItems = [
     { to: '/admin/bk', text: 'Bimbingan Konseling', category: 'Data Master' },
     { to: '/admin/akademik', text: 'Nilai Akademik', category: 'Data Master' },
     { to: '/admin/pesan', text: 'Manajemen Pesan', category: 'Data Master' },
-    { to: '/admin/tagihan', text: 'Tagihan', category: 'Keuangan' },
-    { to: '/admin/riwayat-generate', text: 'Riwayat Generate', category: 'Keuangan' },
-    { to: '/admin/kartu-spp', text: 'Kartu SPP', category: 'Keuangan' },
+    { to: '/admin/gate-monitor', text: 'Gate Monitor', category: 'Data Master' },
+    // Keuangan
+    { to: '/admin/keuangan-dashboard', text: 'Dashboard Keuangan', category: 'Keuangan' },
     { to: '/admin/pembayaran', text: 'Pembayaran (POS)', category: 'Keuangan' },
-    { to: '/admin/tabungan', text: 'Kasir Tabungan', category: 'Keuangan' },
     { to: '/admin/riwayat', text: 'Riwayat Transaksi', category: 'Keuangan' },
+    { to: '/admin/generate-tagihan', text: 'Generate Tagihan', category: 'Keuangan' },
+    { to: '/admin/kartu-spp', text: 'Kartu SPP', category: 'Keuangan' },
     { to: '/admin/arus-kas', text: 'Arus Kas', category: 'Keuangan' },
-    { to: '/admin/laporan', text: 'Laporan Keuangan', category: 'Laporan' },
+    { to: '/admin/tabungan', text: 'Kasir Tabungan', category: 'Keuangan' },
+    { to: '/admin/infaq', text: 'Infaq Harian', category: 'Keuangan' },
+    { to: '/admin/infaq-libur', text: 'Pengaturan Libur', category: 'Keuangan' },
+    // Sistem
     { to: '/admin/users', text: 'Manajemen User', category: 'Sistem' },
     { to: '/admin/student-menus', text: 'Menu Siswa', category: 'Sistem' },
     { to: '/admin/pengaturan', text: 'Pengaturan', category: 'Sistem' },
+    { to: '/admin/whatsapp', text: 'WhatsApp Gateway', category: 'Sistem' },
     { to: '/admin/backup', text: 'Backup & Restore', category: 'Sistem' },
+    // CMS
     { to: '/admin/cms/home', text: 'Konten Halaman Utama', category: 'CMS' },
     { to: '/admin/cms/ppdb', text: 'Manajemen PPDB', category: 'CMS' },
     { to: '/admin/cms/contacts', text: 'Pesan Kontak', category: 'CMS' },
@@ -38,6 +47,7 @@ export default function CommandPalette() {
     const [selectedIndex, setSelectedIndex] = useState(0)
     const navigate = useNavigate()
     const inputRef = useRef(null)
+    const { currentUser } = useApp()
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -65,9 +75,14 @@ export default function CommandPalette() {
         }
     }, [isOpen])
 
+    // RBAC: only show items the current user is allowed to access
+    const allowedItems = navigationItems.filter(item =>
+        isPathAllowed(currentUser?.role, item.to)
+    )
+
     const filteredItems = query === ''
-        ? navigationItems.slice(0, 5)
-        : navigationItems.filter(item =>
+        ? allowedItems.slice(0, 5)
+        : allowedItems.filter(item =>
             item.text.toLowerCase().includes(query.toLowerCase()) ||
             item.category.toLowerCase().includes(query.toLowerCase())
         )
@@ -102,7 +117,7 @@ export default function CommandPalette() {
                     <input
                         ref={inputRef}
                         type="text"
-                        placeholder="Search for pages, settings, or tools..."
+                        placeholder="Cari halaman, pengaturan..."
                         value={query}
                         onChange={e => {
                             setQuery(e.target.value)
@@ -115,7 +130,7 @@ export default function CommandPalette() {
 
                 <div className="command-palette-results">
                     {filteredItems.length === 0 ? (
-                        <div className="no-results">No results found for "{query}"</div>
+                        <div className="no-results">Tidak ditemukan hasil untuk "{query}"</div>
                     ) : (
                         filteredItems.map((item, index) => (
                             <div
@@ -138,9 +153,9 @@ export default function CommandPalette() {
                 </div>
 
                 <div className="command-palette-footer">
-                    <span><kbd>↑↓</kbd> to navigate</span>
-                    <span><kbd>⏎</kbd> to select</span>
-                    <span><kbd>ESC</kbd> to close</span>
+                    <span><kbd>↑↓</kbd> navigasi</span>
+                    <span><kbd>⏎</kbd> pilih</span>
+                    <span><kbd>ESC</kbd> tutup</span>
                 </div>
             </div>
         </div>

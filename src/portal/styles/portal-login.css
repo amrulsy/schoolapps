@@ -1,0 +1,233 @@
+/* ====== PORTAL LOGIN SELECTION PAGE ====== */
+
+.login-selection-page {
+    min-height: 100vh;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 20px 60px; /* Added top padding for navbar */
+    position: relative;
+    overflow: hidden;
+}
+
+/* --- Dynamic Background --- */
+.login-bg-decor {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.decor-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.2;
+    animation: blobMove 20s infinite alternate;
+}
+
+.blob-1 { width: 500px; height: 500px; background: var(--portal-primary); top: -200px; left: -100px; }
+.blob-2 { width: 400px; height: 400px; background: #8b5cf6; bottom: -100px; right: -50px; }
+.blob-3 { width: 300px; height: 300px; background: #25D366; top: 20%; right: 10%; }
+
+@keyframes blobMove {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(50px, 50px) scale(1.1); }
+}
+
+/* --- Container --- */
+.login-selection-container {
+    max-width: 1000px;
+    width: 100%;
+    position: relative;
+    z-index: 10;
+    text-align: center;
+}
+
+.login-selection-header {
+    margin-bottom: 50px;
+}
+
+.login-selection-header h1 {
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    color: var(--portal-text);
+    margin-bottom: 12px;
+    z-index: 5;
+    position: relative;
+}
+
+.login-selection-header h1 span {
+    background: linear-gradient(135deg, var(--portal-primary) 0%, var(--portal-secondary) 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900;
+}
+
+.login-selection-header p {
+    font-size: 1.15rem;
+    color: var(--portal-text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 5;
+}
+
+/* --- Cards Grid --- */
+.login-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+}
+
+.login-role-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 32px;
+    padding: 50px 40px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-role-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--card-color) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.5s;
+    z-index: 0;
+}
+
+.login-role-card:hover {
+    transform: translateY(-15px) scale(1.02);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.1);
+    border-color: var(--card-color);
+}
+
+.login-role-card:hover::before {
+    opacity: 0.05;
+}
+
+/* --- Card Content --- */
+.login-role-icon {
+    width: 120px;
+    height: 120px;
+    background: white;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    margin-bottom: 30px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+    position: relative;
+    z-index: 1;
+    transition: all 0.5s;
+}
+
+.login-role-card:hover .login-role-icon {
+    transform: rotate(-5deg) scale(1.1);
+    background: var(--card-color);
+    color: white;
+}
+
+.login-role-card h2 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    color: var(--portal-text);
+    position: relative;
+    z-index: 1;
+}
+
+.login-role-card p {
+    color: var(--portal-text-secondary);
+    line-height: 1.6;
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
+}
+
+.login-role-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 100px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+    position: relative;
+    z-index: 1;
+}
+
+.login-role-card:hover .login-role-btn {
+    background: var(--card-color);
+    color: white;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    .login-selection-page { padding-top: 135px; align-items: flex-start; }
+    .login-selection-header { margin-bottom: 25px; }
+    
+    .login-selection-grid {
+        grid-template-columns: repeat(2, 1fr); /* Force 2 columns */
+        gap: 12px;
+    }
+    
+    .login-role-card {
+        padding: 30px 15px; /* Smaller padding */
+        border-radius: 20px;
+    }
+    
+    .login-role-icon {
+        width: 70px;
+        height: 70px;
+        font-size: 2.2rem;
+        margin-bottom: 15px;
+        border-radius: 18px;
+    }
+    
+    .login-role-card h2 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+    }
+    
+    .login-role-card p {
+        font-size: 0.85rem;
+        line-height: 1.4;
+        margin-bottom: 20px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* Limit text to save vertical space */
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .login-role-btn {
+        padding: 10px 15px;
+        font-size: 0.8rem;
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Specific button colors to differentiate roles clearer */
+.login-role-card:nth-child(1) .login-role-btn { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.login-role-card:nth-child(2) .login-role-btn { background: rgba(79, 70, 229, 0.1); color: #4f46e5; }
+
+.login-role-card:hover .login-role-btn {
+    color: white !important;
+}

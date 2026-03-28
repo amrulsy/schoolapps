@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
+import { filterMenuSections, getRoleDisplay } from '../utils/permissions'
 import {
     LayoutDashboard, Users, Building2, Calendar, ClipboardList, Landmark,
     FileText, CreditCard, BookOpen, BarChart3, UserCog, Settings,
-    ChevronLeft, ChevronDown,    History, Zap, Layout, Database, LayoutTemplate, Clock,
+    ChevronLeft, ChevronDown, History, Zap, Layout, Database, LayoutTemplate, Clock,
     Package, Wallet, ShieldCheck, Globe, MessageCircle, Monitor, CreditCard as Card,
     HandHeart, CalendarOff
 } from 'lucide-react'
@@ -25,14 +26,14 @@ const menuSections = [
             { to: '/admin/presensi', icon: ClipboardList, text: 'Presensi Siswa' },
             { to: '/admin/bk', icon: ClipboardList, text: 'Bimbingan Konseling' },
             { to: '/admin/akademik', icon: BookOpen, text: 'Nilai Akademik' },
-            { to: '/admin/pesan', icon: BookOpen, text: 'Manajemen Pesan' },
+            { to: '/admin/pesan', icon: MessageCircle, text: 'Manajemen Pesan' },
             { to: '/admin/gate-monitor', icon: Monitor, text: 'Gate Monitor' },
         ]
     },
     {
         label: 'KEUANGAN',
         icon: Wallet,
-        color: '#10b981', // green
+        color: '#10b981',
         items: [
             { to: '/admin/keuangan-dashboard', icon: LayoutDashboard, text: 'Dashboard Keuangan' },
             { to: '/admin/pembayaran', icon: CreditCard, text: 'Pembayaran (POS)' },
@@ -48,7 +49,7 @@ const menuSections = [
     {
         label: 'SISTEM',
         icon: ShieldCheck,
-        color: '#8b5cf6', // purple
+        color: '#8b5cf6',
         items: [
             { to: '/admin/users', icon: UserCog, text: 'Manajemen User' },
             { to: '/admin/student-menus', icon: LayoutTemplate, text: 'Menu Siswa' },
@@ -60,7 +61,7 @@ const menuSections = [
     {
         label: 'KONTEN PORTAL (CMS)',
         icon: Globe,
-        color: '#f43f5e', // rose
+        color: '#f43f5e',
         items: [
             { to: '/admin/cms/home', icon: Layout, text: 'Konten Halaman Utama' },
             { to: '/admin/cms/ppdb', icon: ClipboardList, text: 'Manajemen PPDB' },
@@ -70,7 +71,7 @@ const menuSections = [
 ]
 
 export default function Sidebar() {
-    const { sidebarCollapsed, setSidebarCollapsed, currentUser } = useApp()
+    const { sidebarCollapsed, setSidebarCollapsed, currentUser, schoolSettings } = useApp()
     const location = useLocation()
     const [searchTerm, setSearchTerm] = useState('')
     const [openSection, setOpenSection] = useState('')
@@ -85,7 +86,6 @@ export default function Sidebar() {
         }
     }, [location.pathname])
 
-    // Auto-scroll to active link
     useEffect(() => {
         if (activeLinkRef.current) {
             activeLinkRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -96,12 +96,15 @@ export default function Sidebar() {
         setOpenSection(prev => prev === label ? '' : label)
     }
 
-    const filteredSections = menuSections.map(section => ({
+    // Use centralized RBAC then apply search filter
+    const rbacSections = filterMenuSections(currentUser.role, menuSections)
+    const filteredSections = rbacSections.map(section => ({
         ...section,
-        items: section.items.filter(item =>
-            item.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            section.label.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        items: section.items.filter(item => {
+            const matchesSearch = item.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                 section.label.toLowerCase().includes(searchTerm.toLowerCase())
+            return matchesSearch
+        })
     })).filter(section => section.items.length > 0)
 
     return (
@@ -110,7 +113,7 @@ export default function Sidebar() {
                 <div className="brand-icon">🏫</div>
                 <div className="brand-text">
                     <h2>SIAS</h2>
-                    <p>SMK PPRQ</p>
+                    <p>{schoolSettings.school_name || 'SMK PPRQ'}</p>
                 </div>
             </div>
 
@@ -182,7 +185,7 @@ export default function Sidebar() {
                 <div className="avatar">{currentUser.nama.charAt(0)}</div>
                 <div className="user-info">
                     <div className="name">{currentUser.nama}</div>
-                    <div className="role">{currentUser.role === 'admin' ? '🟣 Admin' : currentUser.role === 'guru' ? '🔵 Guru' : 'Kasir'}</div>
+                    <div className="role">{getRoleDisplay(currentUser.role)}</div>
                 </div>
                 <button
                     className="btn-icon"

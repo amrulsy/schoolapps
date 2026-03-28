@@ -21,7 +21,9 @@ export function SiswaProvider({ children }) {
                 kelas: s.kelas_nama,
                 tempatLahir: s.tempat_lahir,
                 tglLahir: s.tgl_lahir,
-                jenisTinggal: s.jenis_tinggal
+                jenisTinggal: s.jenis_tinggal,
+                jenisPendaftaran: s.jenis_pendaftaran,
+                tanggalMulaiSekolah: s.tanggal_mulai_sekolah
             }));
             const nestedUnits = uData.map(unit => ({
                 ...unit,

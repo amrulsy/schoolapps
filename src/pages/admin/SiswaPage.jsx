@@ -14,6 +14,16 @@ import SiswaProfile from '../../features/siswa/SiswaProfile'
 import ImportDropzoneModal from '../../features/siswa/ImportDropzoneModal'
 
 const styles = /*css*/`
+  .table-responsive {
+    margin-bottom: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  @media (max-width: 768px) {
+    .table {
+      min-width: 800px;
+    }
+  }
   .siswa-header {
     background: var(--bg-card);
     padding: 24px 32px;
@@ -503,7 +513,7 @@ export default function SiswaPage() {
             ) : (
                 <div className="card shadow-sm border-0" style={{ borderRadius: 32, overflow: 'hidden' }}>
                     <div className="card-body p-0">
-                        <div className="table-responsive text-nowrap">
+                        <div className="table-responsive">
                             <table className="table table-hover align-middle mb-0">
                                 <thead style={{ background: 'var(--bg-stripe)' }}>
                                     <tr>
@@ -525,7 +535,7 @@ export default function SiswaPage() {
                                                     </div>
                                                     <div>
                                                         <div className="fw-bold" style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{s.nama}</div>
-                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', opacity: 0.8, marginTop: 2 }}>ID: #{s.id.toString().padStart(4, '0')}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', opacity: 0.8, marginTop: 2 }}>ID: #{s.id.toString().padStart(4, '0')} • Angkatan: {s.angkatan || '-'}</div>
                                                     </div>
                                                 </div>
                                             </td>

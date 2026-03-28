@@ -41,6 +41,77 @@ export default function CmsPpdbPage() {
     })
     const [savingSettings, setSavingSettings] = useState(false)
 
+    const styles = `
+        @media (max-width: 768px) {
+            .cms-hero-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                padding: 30px 20px !important;
+                gap: 20px !important;
+            }
+            .cms-hero-header h1 {
+                font-size: 1.8rem !important;
+            }
+            .cms-hero-actions {
+                width: 100%;
+                flex-direction: row !important;
+            }
+            .cms-hero-actions button, .cms-hero-actions a {
+                flex: 1;
+                justify-content: center;
+                font-size: 0.85rem !important;
+            }
+            .cms-tab-nav {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: auto;
+                white-space: nowrap;
+                padding: 4px !important;
+                display: flex !important;
+                gap: 4px !important;
+                scrollbar-width: none;
+            }
+            .cms-tab-nav::-webkit-scrollbar { display: none; }
+            .cms-tab-btn {
+                padding: 10px 16px !important;
+                font-size: 0.85rem !important;
+                flex-shrink: 0;
+            }
+            .cms-tab-btn span {
+                display: inline-block !important;
+            }
+            .cms-section-card {
+                padding: 1.25rem !important;
+                border-radius: 20px !important;
+            }
+            .grid-2 {
+                grid-template-columns: 1fr !important;
+            }
+            .table-responsive thead {
+                display: none;
+            }
+            .table-responsive tr {
+                display: block;
+                padding: 1.5rem 0;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .table-responsive tr td {
+                display: block !important;
+                width: 100% !important;
+                padding: 0.5rem 24px !important;
+                border: none !important;
+                text-align: left !important;
+            }
+            .table-responsive tr td:last-child {
+                text-align: left !important;
+                padding-top: 1rem !important;
+            }
+            .table-responsive tr td:last-child .d-flex {
+                justify-content: flex-start !important;
+            }
+        }
+    `;
+
     useEffect(() => {
         loadAll()
     }, [])
@@ -283,6 +354,7 @@ export default function CmsPpdbPage() {
 
     return (
         <div className="fade-in">
+            <style dangerouslySetInnerHTML={{ __html: styles }} />
             <div className="page-header cms-hero-header">
                 <div className="cms-hero-overlay"></div>
 
@@ -419,8 +491,8 @@ export default function CmsPpdbPage() {
                             </div>
                         </div>
 
-                        <div className="table-responsive">
-                            <table className="table" style={{ margin: 0 }}>
+                        <div className="table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            <table className="table" style={{ margin: 0, minWidth: '800px' }}>
                                 <thead style={{ background: 'var(--bg-hover)' }}>
                                     <tr>
                                         <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Waktu Daftar</th>

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
+import { filterMenuSections, getRoleDisplay } from '../utils/permissions'
 import {
     Users, Building2, Calendar, ClipboardList, Landmark,
-    FileText, CreditCard, BookOpen, History, Zap,
+    CreditCard, BookOpen, History, Zap,
     UserCog, Settings, Database, Layout, X, LogOut,
-    ChevronDown, ChevronRight, LayoutDashboard, Search, LayoutTemplate,
-    Package, Wallet, ShieldCheck, Globe, BarChart3, MessageCircle
+    ChevronDown, LayoutDashboard, Search, LayoutTemplate,
+    Package, Wallet, ShieldCheck, Globe, MessageCircle, Monitor,
+    HandHeart, CalendarOff
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 
@@ -26,7 +28,8 @@ const drawerSections = [
             { to: '/admin/presensi', icon: ClipboardList, text: 'Presensi Siswa' },
             { to: '/admin/bk', icon: ClipboardList, text: 'Bimbingan Konseling' },
             { to: '/admin/akademik', icon: BookOpen, text: 'Nilai Akademik' },
-            { to: '/admin/pesan', icon: BookOpen, text: 'Manajemen Pesan' },
+            { to: '/admin/pesan', icon: MessageCircle, text: 'Manajemen Pesan' },
+            { to: '/admin/gate-monitor', icon: Monitor, text: 'Gate Monitor' },
         ]
     },
     {
@@ -35,13 +38,14 @@ const drawerSections = [
         color: '#10b981',
         items: [
             { to: '/admin/keuangan-dashboard', icon: LayoutDashboard, text: 'Dashboard Keuangan' },
-            { to: '/admin/tagihan', icon: FileText, text: 'Tagihan' },
-            { to: '/admin/riwayat-generate', icon: Zap, text: 'Riwayat Generate' },
-            { to: '/admin/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
             { to: '/admin/pembayaran', icon: CreditCard, text: 'Pembayaran (POS)' },
-            { to: '/admin/tabungan', icon: Landmark, text: 'Kasir Tabungan' },
             { to: '/admin/riwayat', icon: History, text: 'Riwayat Transaksi' },
+            { to: '/admin/generate-tagihan', icon: Zap, text: 'Generate Tagihan' },
+            { to: '/admin/kartu-spp', icon: CreditCard, text: 'Kartu SPP' },
             { to: '/admin/arus-kas', icon: BookOpen, text: 'Arus Kas' },
+            { to: '/admin/tabungan', icon: Landmark, text: 'Kasir Tabungan' },
+            { to: '/admin/infaq', icon: HandHeart, text: 'Infaq Harian' },
+            { to: '/admin/infaq-libur', icon: CalendarOff, text: 'Pengaturan Libur' },
         ]
     },
     {
@@ -85,6 +89,16 @@ export default function MobileDrawer({ isOpen, onClose }) {
         }
     }, [location.pathname, isOpen])
 
+    // Lock body scroll when drawer is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden'
+        } else {
+            document.body.style.overflow = ''
+        }
+        return () => { document.body.style.overflow = '' }
+    }, [isOpen])
+
     const toggleSection = (label) => {
         setOpenSection(prev => prev === label ? '' : label)
     }
@@ -109,7 +123,9 @@ export default function MobileDrawer({ isOpen, onClose }) {
         })
     }
 
-    const filteredSections = drawerSections.map(section => ({
+    // RBAC filtering + search filtering
+    const rbacSections = filterMenuSections(currentUser.role, drawerSections)
+    const filteredSections = rbacSections.map(section => ({
         ...section,
         items: section.items.filter(item =>
             item.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -133,7 +149,7 @@ export default function MobileDrawer({ isOpen, onClose }) {
                         <div className="drawer-user-info">
                             <div className="drawer-user-name">{currentUser.nama}</div>
                             <div className="drawer-user-role">
-                                {currentUser.role === 'admin' ? '🟣 Admin' : '🟢 Kasir'}
+                                {getRoleDisplay(currentUser.role)}
                             </div>
                         </div>
                     </div>

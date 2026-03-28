@@ -59,12 +59,14 @@ const STYLES = /*css*/`
 `
 
 export default function TahunAjaranPage() {
+    const { confirmAction } = useCustomAlert()
     const { showAlert } = useCustomAlert()
     const [loading, setLoading] = useState(true)
     const [taList, setTaList] = useState([])
     const [showTAModal, setShowTAModal] = useState(false)
     const [showWKModal, setShowWKModal] = useState(false)
-    const [newTA, setNewTA] = useState('')
+    const [newTA, setNewTA] = useState({ tahun: '', tanggal_mulai: '', tanggal_selesai: '' })
+    const [editingTA, setEditingTA] = useState(null)
 
     // Wali Kelas assignment state
     const [selectedTA, setSelectedTA] = useState(null)
@@ -90,7 +92,16 @@ export default function TahunAjaranPage() {
         } catch { setLoading(false) }
     }
 
-    const handleSetAktif = async (id) => {
+    const handleSetAktif = async (id, tahun) => {
+        const isConfirmed = await confirmAction({
+            title: `Aktifkan Tahun Ajaran ${tahun}?`,
+            text: "Tahun ajaran yang sedang aktif akan otomatis dinonaktifkan. Pastikan data transaksi dan jadwal sudah sesuai.",
+            icon: 'warning',
+            confirmText: 'Ya, Aktifkan'
+        })
+
+        if (!isConfirmed) return
+
         try {
             await api.put(`/tahun-ajaran/${id}/status`)
             loadData()
@@ -107,14 +118,24 @@ export default function TahunAjaranPage() {
     }
 
     const handleAddTA = async () => {
-        if (!newTA) return
+        if (!newTA.tahun) return
         try {
-            await api.post('/tahun-ajaran', { tahun: newTA })
-            setNewTA('')
+            await api.post('/tahun-ajaran', newTA)
+            setNewTA({ tahun: '', tanggal_mulai: '', tanggal_selesai: '' })
             setShowTAModal(false)
             loadData()
             showAlert('Berhasil', 'Tahun ajaran baru ditambahkan', 'success')
         } catch { showAlert('Error', 'Gagal menambah tahun ajaran', 'error') }
+    }
+
+    const handleEditTA = async () => {
+        if (!editingTA?.tahun) return
+        try {
+            await api.put(`/tahun-ajaran/${editingTA.id}`, editingTA)
+            setEditingTA(null)
+            loadData()
+            showAlert('Berhasil', 'Data tahun ajaran diperbarui', 'success')
+        } catch { showAlert('Error', 'Gagal memperbarui data', 'error') }
     }
 
     // Wali Kelas functions
@@ -185,19 +206,29 @@ export default function TahunAjaranPage() {
                                     <span className={`badge-ta ${t.status === 'aktif' ? 'aktif' : 'nonaktif'}`}>
                                         {t.status === 'aktif' ? '● Aktif Sekarang' : 'Nonaktif'}
                                     </span>
+                                    {t.tanggal_mulai && (
+                                        <div className="text-muted mt-2" style={{ fontSize: '0.7rem' }}>
+                                            {new Date(t.tanggal_mulai).toLocaleDateString('id-ID')} - {t.tanggal_selesai ? new Date(t.tanggal_selesai).toLocaleDateString('id-ID') : '...'}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                            {t.status === 'aktif' && (
-                                <div className="semester-pill">
-                                    <button className={`sem-btn ${t.semester_aktif === 'Ganjil' ? 'active' : ''}`} onClick={() => handleSetSemester(t.id, 'Ganjil')}>Ganjil</button>
-                                    <button className={`sem-btn ${t.semester_aktif === 'Genap' ? 'active' : ''}`} onClick={() => handleSetSemester(t.id, 'Genap')}>Genap</button>
-                                </div>
-                            )}
+                            <div className="d-flex align-items-center gap-2">
+                                <button className="btn-circle" onClick={() => setEditingTA({...t, tanggal_mulai: t.tanggal_mulai?.split('T')[0], tanggal_selesai: t.tanggal_selesai?.split('T')[0]})}>
+                                    <Shield size={16} />
+                                </button>
+                                {t.status === 'aktif' && (
+                                    <div className="semester-pill">
+                                        <button className={`sem-btn ${t.semester_aktif === 'Ganjil' ? 'active' : ''}`} onClick={() => handleSetSemester(t.id, 'Ganjil')}>Ganjil</button>
+                                        <button className={`sem-btn ${t.semester_aktif === 'Genap' ? 'active' : ''}`} onClick={() => handleSetSemester(t.id, 'Genap')}>Genap</button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
                             {t.status !== 'aktif' ? (
-                                <button className="btn btn-ghost w-100" style={{ color: 'var(--success-600)', background: 'var(--success-50)', borderRadius: 12 }} onClick={() => handleSetAktif(t.id)}>
+                                <button className="btn btn-ghost w-100" style={{ color: 'var(--success-600)', background: 'var(--success-50)', borderRadius: 12 }} onClick={() => handleSetAktif(t.id, t.tahun)}>
                                     <CheckCircle2 size={16} className="me-2" /> Aktifkan Tahun Ini
                                 </button>
                             ) : (
@@ -218,10 +249,45 @@ export default function TahunAjaranPage() {
                         <button className="btn btn-primary" onClick={handleAddTA}>Simpan</button>
                     </div>
                 }>
-                    <div className="form-group">
+                    <div className="form-group mb-3">
                         <label className="fw-bold mb-2 small text-uppercase">Tahun Ajaran</label>
-                        <input className="form-control" placeholder="Contoh: 2026/2027" value={newTA} onChange={e => setNewTA(e.target.value)} autoFocus />
-                        <p className="small text-muted mt-3">Tahun ajaran baru akan diset sebagai Ganjil secara default.</p>
+                        <input className="form-control" placeholder="Contoh: 2026/2027" value={newTA.tahun} onChange={e => setNewTA({ ...newTA, tahun: e.target.value })} autoFocus />
+                    </div>
+                    <div className="row">
+                        <div className="col-md-6 form-group">
+                            <label className="fw-bold mb-2 small text-uppercase">Tanggal Mulai</label>
+                            <input type="date" className="form-control" value={newTA.tanggal_mulai} onChange={e => setNewTA({ ...newTA, tanggal_mulai: e.target.value })} />
+                        </div>
+                        <div className="col-md-6 form-group">
+                            <label className="fw-bold mb-2 small text-uppercase">Tanggal Selesai</label>
+                            <input type="date" className="form-control" value={newTA.tanggal_selesai} onChange={e => setNewTA({ ...newTA, tanggal_selesai: e.target.value })} />
+                        </div>
+                    </div>
+                    <p className="small text-muted mt-3">Tahun ajaran baru akan diset sebagai Ganjil secara default.</p>
+                </Modal>
+            )}
+
+            {/* Edit TA Modal */}
+            {editingTA && (
+                <Modal title="Ubah Tahun Ajaran" onClose={() => setEditingTA(null)} footer={
+                    <div className="d-flex gap-2 justify-content-end">
+                        <button className="btn btn-ghost" onClick={() => setEditingTA(null)}>Batal</button>
+                        <button className="btn btn-primary" onClick={handleEditTA}>Simpan</button>
+                    </div>
+                }>
+                    <div className="form-group mb-3">
+                        <label className="fw-bold mb-2 small text-uppercase">Tahun Ajaran</label>
+                        <input className="form-control" placeholder="Contoh: 2026/2027" value={editingTA.tahun} onChange={e => setEditingTA({ ...editingTA, tahun: e.target.value })} />
+                    </div>
+                    <div className="row">
+                        <div className="col-md-6 form-group">
+                            <label className="fw-bold mb-2 small text-uppercase">Tanggal Mulai</label>
+                            <input type="date" className="form-control" value={editingTA.tanggal_mulai || ''} onChange={e => setEditingTA({ ...editingTA, tanggal_mulai: e.target.value })} />
+                        </div>
+                        <div className="col-md-6 form-group">
+                            <label className="fw-bold mb-2 small text-uppercase">Tanggal Selesai</label>
+                            <input type="date" className="form-control" value={editingTA.tanggal_selesai || ''} onChange={e => setEditingTA({ ...editingTA, tanggal_selesai: e.target.value })} />
+                        </div>
                     </div>
                 </Modal>
             )}

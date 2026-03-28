@@ -1886,64 +1886,77 @@
     aspect-ratio: 4/3;
 }
 
-/* --- Smart Sticky Action Bar (Mobile Only) */
-.portal-mobile-sticky-bar {
+/* --- Floating Quick Actions (Desktop & Mobile) */
+.portal-floating-actions {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid var(--portal-border);
-    padding: 12px 20px;
-    z-index: 1000;
-    transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+    right: 32px;
+    bottom: 32px;
+    z-index: 10000;
+    transform: translateX(150%);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
 }
 
-@media (min-width: 768px) {
-    .portal-mobile-sticky-bar {
-        display: none;
-        /* Only show on mobile */
-    }
+.portal-floating-actions.visible {
+    transform: translateX(0);
+    pointer-events: auto;
 }
 
-.portal-mobile-sticky-bar.visible {
-    transform: translateY(0);
-}
-
-.portal-sticky-bar-content {
+.portal-floating-actions-inner {
     display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.portal-floating-btn {
+    display: flex;
+    align-items: center;
     gap: 12px;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-.portal-sticky-btn {
-    flex: 1;
-    text-align: center;
-    padding: 14px;
-    border-radius: var(--portal-radius-lg);
-    font-weight: 700;
-    font-size: 0.95rem;
+    padding: 14px 24px;
+    border-radius: 100px;
     text-decoration: none;
-    transition: var(--portal-transition);
+    font-weight: 800;
+    font-size: 0.95rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.portal-sticky-btn.primary {
+.portal-floating-btn.primary {
     background: var(--portal-primary);
     color: #fff;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
 }
 
-.portal-sticky-btn.secondary {
-    background: #25D366;
-    /* WhatsApp Green */
+.portal-floating-btn.secondary {
+    background: #25D366; /* WhatsApp Green */
     color: #fff;
-    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+    box-shadow: 0 10px 25px rgba(37, 211, 102, 0.4);
 }
 
-.portal-sticky-btn:active {
-    transform: scale(0.98);
+.portal-floating-btn:hover {
+    transform: scale(1.08) translateY(-3px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
 }
+
+.portal-floating-btn:active {
+    transform: scale(0.95);
+}
+
+.portal-floating-btn span {
+    display: inline-block;
+}
+
+@media (max-width: 1024px) {
+    .portal-floating-actions {
+        right: 20px;
+        bottom: 120px; /* Positioned above the bottom navigation bar */
+    }
+    
+    .portal-floating-btn {
+        padding: 12px 20px;
+        font-size: 0.85rem;
+    }
+}

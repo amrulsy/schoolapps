@@ -345,21 +345,27 @@
     animation: fadeInUp 0.6s var(--portal-ease) forwards;
 }
 
-.portal-animate-delay-1 {
-    animation-delay: 0.1s;
+/* --- Majestic Staggered Entrance Utility --- */
+@keyframes stagger-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(25px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.portal-animate-delay-2 {
-    animation-delay: 0.2s;
+.stagger-item {
+    opacity: 0;
+    animation: stagger-fade-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.portal-animate-delay-3 {
-    animation-delay: 0.3s;
-}
-
-.portal-animate-delay-4 {
-    animation-delay: 0.4s;
-}
+.portal-animate-delay-1 { animation-delay: 0.1s; }
+.portal-animate-delay-2 { animation-delay: 0.2s; }
+.portal-animate-delay-3 { animation-delay: 0.3s; }
+.portal-animate-delay-4 { animation-delay: 0.4s; }
 
 /* Scroll reveal placeholder class */
 .portal-reveal {

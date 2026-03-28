@@ -45,3 +45,14 @@ backend/.env
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Session & Cache (Large files)
+backend/wa_session
+backend/.wwebjs_cache
+backend/.wwebjs_auth
+backend/database.sqlite*
+backend/database.sqlite-journal
+backend/database.sqlite-shm
+backend/database.sqlite-wal
+backend/uploads/*
+!backend/uploads/.gitkeep

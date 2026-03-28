@@ -454,7 +454,7 @@ export default function PortalProgramDetail() {
                                 </h4>
                                 <div className="about-learning-grid">
                                     {learningOutcomes.map((item, i) => (
-                                        <div key={i} className="learning-card">
+                                        <div key={i} className="learning-card stagger-item" style={{ animationDelay: `${i * 0.2}s` }}>
                                             <div className="learning-card-icon" style={{ background: `${themeColor}15`, color: themeColor }}>
                                                 <CheckCircle size={20} />
                                             </div>
@@ -494,8 +494,8 @@ export default function PortalProgramDetail() {
 
                     <div className="showcase-bento-container">
                         <div className="showcase-bento-grid">
-                            {showcaseItems.map(item => (
-                                <div key={item.id} className={`bento-item bento-${item.size}`}>
+                            {showcaseItems.map((item, idx) => (
+                                <div key={item.id} className={`bento-item bento-${item.size} stagger-item`} style={{ animationDelay: `${idx * 0.2}s` }}>
                                     <img src={getDirectDriveUrl(item.url)} alt={item.title} className="bento-img" loading="lazy" />
 
                                     <div className="bento-overlay">
@@ -540,7 +540,8 @@ export default function PortalProgramDetail() {
                             marginBottom: '40px'
                         }}>
                             {careerProspects.map((career, idx) => (
-                                <div key={idx} className="career-card" style={{
+                                <div key={idx} className="career-card stagger-item" style={{
+                                    animationDelay: `${idx * 0.2}s`,
                                     background: 'rgba(255,255,255,0.05)',
                                     backdropFilter: 'blur(10px)',
                                     borderRadius: '16px',

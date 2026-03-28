@@ -237,11 +237,19 @@ router.get('/stats', cacheMiddleware(1800), async (req, res) => {
         const [siswaCount] = await pool.query("SELECT COUNT(*) as count FROM siswa WHERE status = 'aktif'");
         const [kelasCount] = await pool.query('SELECT COUNT(*) as count FROM kelas');
         const [jurusanCount] = await pool.query('SELECT COUNT(DISTINCT jurusan) as count FROM siswa WHERE jurusan IS NOT NULL');
+        const [guruCount] = await pool.query('SELECT COUNT(*) as count FROM guru');
+        const [partnerCount] = await pool.query('SELECT COUNT(*) as count FROM cms_partners WHERE is_active = 1');
+
+        // Get PPDB year from settings
+        const [ppdbYear] = await pool.query("SELECT setting_value FROM cms_settings WHERE setting_key = 'ppdb_year'");
 
         res.json({
             total_siswa: siswaCount[0].count,
             total_kelas: kelasCount[0].count,
-            total_jurusan: jurusanCount[0].count
+            total_jurusan: jurusanCount[0].count,
+            total_guru: guruCount[0]?.count || 0,
+            total_partner: partnerCount[0]?.count || 0,
+            ppdb_year: ppdbYear[0]?.setting_value || null
         });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -316,6 +324,46 @@ router.post('/contact', async (req, res) => {
         );
 
         res.status(201).json({ success: true, message: 'Pesan berhasil dikirim!' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/testimonials — Active testimonials
+router.get('/testimonials', cacheMiddleware(600), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_testimonials WHERE is_active = 1 ORDER BY sort_order ASC'
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/gallery — Active gallery images
+router.get('/gallery', cacheMiddleware(600), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_gallery WHERE is_active = 1 ORDER BY sort_order ASC'
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/faq — Active FAQ items
+router.get('/faq', cacheMiddleware(600), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_faq WHERE is_active = 1 ORDER BY sort_order ASC'
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/identity-logos — Active identity logos
+router.get('/identity-logos', cacheMiddleware(600), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_identity_logos WHERE is_active = 1 ORDER BY sort_order ASC'
+        );
+        res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

@@ -25,6 +25,7 @@ const guruWaliKelasRoutes = require('./routes/guru/waliKelas');
 const adminAkademikRoutes = require('./routes/admin/akademik');
 const adminPesanRoutes = require('./routes/admin/pesan');
 const adminInfaqRoutes = require('./routes/admin/infaq');
+const adminSchoolSettingsRoutes = require('./routes/admin/schoolSettings');
 const AttendanceController = require('./controllers/AttendanceController');
 
 // Middleware
@@ -33,6 +34,26 @@ const { studentAuthMiddleware } = require('./middleware/studentAuth');
 const { rateLimiter } = require('./middleware/rateLimiter');
 const { cacheMiddleware } = require('./middleware/cache');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const multer = require('multer');
+
+const storageDokumen = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = 'uploads/dokumen_siswa';
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${req.params.id}_${Date.now()}_${file.originalname}`);
+    }
+});
+const uploadDokumen = multer({ 
+    storage: storageDokumen, 
+    limits: { fileSize: 5 * 1024 * 1024 } 
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -91,8 +112,8 @@ app.delete('/api/wali-kelas/:id', async (req, res) => {
 // Serve uploaded media files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- PUBLIC PORTAL ROUTES (no auth, rate-limited, cached 5 menit) ---
-app.use('/api/public', rateLimiter(60, 60000), cacheMiddleware(300), publicPortalRoutes);
+// --- PUBLIC PORTAL ROUTES (no auth required, but rate limited) ---
+app.use('/api/public', /* rateLimiter(60, 60000), cacheMiddleware(300), */ publicPortalRoutes);
 
 // --- AUTH ROUTES ---
 // Rate limit ketat untuk endpoint login (10 request per menit)
@@ -121,9 +142,14 @@ app.use('/api/guru/wali-kelas', authMiddleware, guruWaliKelasRoutes);
 app.use('/api/admin/akademik', authMiddleware, adminAkademikRoutes);
 app.use('/api/admin/pesan', authMiddleware, adminPesanRoutes);
 
-// --- RFID ATTENDANCE ROUTES ---
+// --- RFID ATTENDANCE & SETTINGS ---
 app.put('/api/students/:id/rfid', authMiddleware, AttendanceController.registerRfid);
 app.post('/api/attendance/scan', AttendanceController.scanRfid); // Public/Gate access
+app.get('/api/admin/attendance/settings', authMiddleware, AttendanceController.getSettings);
+app.post('/api/admin/attendance/settings', authMiddleware, AttendanceController.updateSettings);
+
+// --- SCHOOL SETTINGS & WA STATUS ---
+app.use('/api/admin/school-settings', authMiddleware, adminSchoolSettingsRoutes);
 
 
 // --- STUDENT PORTAL API ROUTES ---
@@ -303,9 +329,24 @@ app.get('/api/tahun-ajaran', async (req, res) => {
 
 app.post('/api/tahun-ajaran', async (req, res) => {
     try {
-        const { tahun } = req.body;
-        const [result] = await pool.query('INSERT INTO tahun_ajaran (tahun, status) VALUES (?, "nonaktif")', [tahun]);
+        const { tahun, tanggal_mulai, tanggal_selesai } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO tahun_ajaran (tahun, status, tanggal_mulai, tanggal_selesai) VALUES (?, "nonaktif", ?, ?)', 
+            [tahun, tanggal_mulai || null, tanggal_selesai || null]
+        );
         res.status(201).json({ id: result.insertId, tahun, status: 'nonaktif' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Update tahun ajaran (dates)
+app.put('/api/tahun-ajaran/:id', async (req, res) => {
+    try {
+        const { tahun, tanggal_mulai, tanggal_selesai } = req.body;
+        await pool.query(
+            'UPDATE tahun_ajaran SET tahun = ?, tanggal_mulai = ?, tanggal_selesai = ? WHERE id = ?',
+            [tahun, tanggal_mulai || null, tanggal_selesai || null, req.params.id]
+        );
+        res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -403,8 +444,13 @@ app.get('/api/siswa/:id', async (req, res) => {
         siswa.ibu = ortu.find(o => o.jenis === 'ibu') || {};
         siswa.wali_detail = ortu.find(o => o.jenis === 'wali') || {};
 
-        // Ambil Dokumen
-        const [dok] = await pool.query('SELECT * FROM siswa_dokumen WHERE siswa_id = ?', [siswa.id]);
+        // Ambil Dokumen (merge dengan master_dokumen)
+        const [dok] = await pool.query(`
+            SELECT m.kode as kode_dokumen, m.nama as nama_dokumen, m.is_required, 
+                   COALESCE(sd.status, 'Tidak Ada') as status, sd.file_size, sd.file_path, sd.id as siswa_dok_id
+            FROM master_dokumen m
+            LEFT JOIN siswa_dokumen sd ON m.kode = sd.kode_dokumen AND sd.siswa_id = ?
+        `, [siswa.id]);
         siswa.dokumen = dok;
 
         res.json(siswa);
@@ -414,14 +460,15 @@ app.get('/api/siswa/:id', async (req, res) => {
 app.post('/api/siswa', async (req, res) => {
     try {
         const {
-            nisn, nama, jk, status, tempatLahir, tglLahir, telp, alamat, wali, kelasId
+            nisn, nama, jk, status, tempatLahir, tglLahir, telp, alamat, wali, kelasId,
+            angkatan, jenis_pendaftaran, tanggal_mulai_sekolah
         } = req.body;
 
         const [result] = await pool.query(`
             INSERT INTO siswa 
-            (nisn, nama, jk, status, tempat_lahir, tgl_lahir, telp, alamat, wali, kelas_id) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [nisn, nama, jk, status || 'aktif', tempatLahir, tglLahir || null, telp, alamat, wali, kelasId]);
+            (nisn, nama, jk, status, tempat_lahir, tgl_lahir, telp, alamat, wali, kelas_id, angkatan, jenis_pendaftaran, tanggal_mulai_sekolah) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [nisn, nama, jk, status || 'aktif', tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null]);
 
         res.status(201).json({ id: result.insertId });
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -431,6 +478,7 @@ app.put('/api/siswa/:id', async (req, res) => {
     try {
         const {
             nisn, nama, jk, status, tempatLahir, tglLahir, telp, alamat, wali, kelasId,
+            angkatan, jenis_pendaftaran, tanggal_mulai_sekolah,
             ayah, ibu, wali_detail
         } = req.body;
 
@@ -439,9 +487,10 @@ app.put('/api/siswa/:id', async (req, res) => {
             UPDATE siswa SET 
                 nisn = ?, nama = ?, jk = ?, status = ?, 
                 tempat_lahir = ?, tgl_lahir = ?, telp = ?, 
-                alamat = ?, wali = ?, kelas_id = ?
+                alamat = ?, wali = ?, kelas_id = ?,
+                angkatan = ?, jenis_pendaftaran = ?, tanggal_mulai_sekolah = ?
             WHERE id = ?
-        `, [nisn, nama, jk, status, tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, req.params.id]);
+        `, [nisn, nama, jk, status, tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null, req.params.id]);
 
         // 2. Update/Insert Orang Tua (Ayah, Ibu, Wali)
         const updateParent = async (jenis, p) => {
@@ -471,6 +520,68 @@ app.delete('/api/siswa/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM siswa WHERE id = ?', [req.params.id]);
         res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// --- MASTER DOKUMEN & SISWA DOKUMEN ROUTES ---
+
+app.get('/api/admin/master-dokumen', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM master_dokumen ORDER BY id ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/master-dokumen', async (req, res) => {
+    try {
+        const { kode, nama, is_required, keterangan } = req.body;
+        await pool.query(
+            'INSERT INTO master_dokumen (kode, nama, is_required, keterangan) VALUES (?, ?, ?, ?)',
+            [kode, nama, is_required !== undefined ? is_required : true, keterangan || null]
+        );
+        res.status(201).json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put('/api/admin/master-dokumen/:id', async (req, res) => {
+    try {
+        const { kode, nama, is_required, keterangan } = req.body;
+        await pool.query(
+            'UPDATE master_dokumen SET kode = ?, nama = ?, is_required = ?, keterangan = ? WHERE id = ?',
+            [kode, nama, is_required !== undefined ? is_required : true, keterangan || null, req.params.id]
+        );
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/admin/master-dokumen/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM master_dokumen WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Upload Dokumen Siswa
+app.post('/api/siswa/:id/dokumen', uploadDokumen.single('file'), async (req, res) => {
+    try {
+        const { kode_dokumen, nama_dokumen } = req.body;
+        const file = req.file;
+        if (!file) return res.status(400).json({ error: 'File tidak ditemukan' });
+
+        const filePath = `/uploads/dokumen_siswa/${file.filename}`;
+        const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+
+        await pool.query(`
+            INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_size, file_path)
+            VALUES (?, ?, ?, 'Belum Verifikasi', ?, ?)
+            ON DUPLICATE KEY UPDATE 
+                nama_dokumen = VALUES(nama_dokumen),
+                status = 'Belum Verifikasi',
+                file_size = VALUES(file_size),
+                file_path = VALUES(file_path)
+        `, [req.params.id, kode_dokumen, nama_dokumen || kode_dokumen, fileSize, filePath]);
+
+        res.json({ success: true, filePath, status: 'Belum Verifikasi', file_size: fileSize });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -760,10 +871,79 @@ app.post('/api/cashflow', async (req, res) => {
 });
 
 // --- USERS ROUTES ---
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', authMiddleware, async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT id, nama, username, role FROM users');
         res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/users', authMiddleware, async (req, res) => {
+    try {
+        // Only admin should be able to create users
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Hanya Admin yang dapat mengelola user.' });
+        }
+
+        const { nama, username, password, role } = req.body;
+        if (!nama || !username || !password || !role) {
+            return res.status(400).json({ error: 'Semua field wajib diisi.' });
+        }
+
+        const password_hash = await bcrypt.hash(password, 10);
+        const [result] = await pool.query(
+            'INSERT INTO users (nama, username, password_hash, role) VALUES (?, ?, ?, ?)',
+            [nama, username, password_hash, role]
+        );
+        res.status(201).json({ id: result.insertId, nama, username, role });
+    } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ error: 'Username sudah digunakan.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/users/:id', authMiddleware, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Hanya Admin yang dapat mengelola user.' });
+        }
+
+        const { nama, username, password, role } = req.body;
+        const userId = req.params.id;
+
+        if (password) {
+            const password_hash = await bcrypt.hash(password, 10);
+            await pool.query(
+                'UPDATE users SET nama = ?, username = ?, password_hash = ?, role = ? WHERE id = ?',
+                [nama, username, password_hash, role, userId]
+            );
+        } else {
+            await pool.query(
+                'UPDATE users SET nama = ?, username = ?, role = ? WHERE id = ?',
+                [nama, username, role, userId]
+            );
+        }
+        res.json({ success: true });
+    } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ error: 'Username sudah digunakan.' });
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/users/:id', authMiddleware, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Hanya Admin yang dapat mengelola user.' });
+        }
+        const userId = req.params.id;
+        
+        // Prevent deleting self
+        if (Number(userId) === req.user.id) {
+            return res.status(400).json({ error: 'Anda tidak dapat menghapus akun Anda sendiri.' });
+        }
+
+        await pool.query('DELETE FROM users WHERE id = ?', [userId]);
+        res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

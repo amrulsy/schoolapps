@@ -1,111 +1,618 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
-import { Save, Upload, AlertTriangle } from 'lucide-react'
+import { 
+    Save, Upload, AlertTriangle, Calendar, Clock, 
+    MessageSquare, Database, Shield, Layout,
+    CheckCircle, XCircle, RefreshCw, Trash2, Plus, FileText
+} from 'lucide-react'
+import api, { API_BASE } from '../../services/api'
 
 export default function PengaturanPage() {
-    const { tahunAjaran, addToast } = useApp()
-    const [school, setSchool] = useState({
-        nama: 'SMK PPRQ',
-        alamat: 'Jl. Pesantren No.1, Kota',
-        telepon: '(021) 123-4567',
-        email: 'admin@smkpprq.sch.id',
-        kepala_sekolah: 'H. Ahmad Syukron, S.Pd.I',
-        nip_kepsek: '19750812 200501 1 002'
-    })
+    const { 
+        schoolSettings, updateSchoolSettings, 
+        tahunAjaranList, setTahunAjaranAktif, addTahunAjaran,
+        addToast 
+    } = useApp()
+    
+    const [activeTab, setActiveTab] = useState('profil')
+    const [loading, setLoading] = useState(false)
 
-    const handleSave = () => {
-        // In a real app, this would save to DB
-        localStorage.setItem('school_settings', JSON.stringify(school))
-        addToast('success', 'Berhasil', 'Pengaturan sekolah berhasil diperbarui')
+    // Local states for different settings modules
+    const [localProfile, setLocalProfile] = useState({})
+    const [attendanceSettings, setAttendanceSettings] = useState({})
+    const [infaqSettings, setInfaqSettings] = useState({})
+    const [holidays, setHolidays] = useState([])
+    const [waStatus, setWaStatus] = useState(null)
+    const [newHoliday, setNewHoliday] = useState({ tanggal: '', keterangan: '' })
+    const [masterDokumen, setMasterDokumen] = useState([])
+    const [newDokumen, setNewDokumen] = useState({ kode: '', nama: '', is_required: true, keterangan: '' })
+
+    // Initialize local profile from context
+    useEffect(() => {
+        if (schoolSettings) {
+            setLocalProfile({
+                nama: schoolSettings.school_name || '',
+                alamat: schoolSettings.school_address || '',
+                telepon: schoolSettings.school_phone || '',
+                email: schoolSettings.school_email || '',
+                kepala_sekolah: schoolSettings.school_principal || '',
+                nip_kepsek: schoolSettings.school_principal_nip || ''
+            })
+        }
+    }, [schoolSettings])
+
+    // Load other settings when tab changes
+    useEffect(() => {
+        if (activeTab === 'presensi') fetchAttendanceSettings()
+        if (activeTab === 'infaq') fetchInfaqSettings()
+        if (activeTab === 'libur') fetchHolidays()
+        if (activeTab === 'sistem') fetchWaStatus()
+        if (activeTab === 'berkas') fetchMasterDokumen()
+    }, [activeTab])
+
+    const fetchAttendanceSettings = async () => {
+        try {
+            const { data } = await api.get('/admin/attendance/settings')
+            setAttendanceSettings(data)
+        } catch (err) { console.error(err) }
     }
+
+    const fetchInfaqSettings = async () => {
+        try {
+            const { data } = await api.get('/admin/infaq/settings')
+            setInfaqSettings(data)
+        } catch (err) { console.error(err) }
+    }
+
+    const fetchHolidays = async () => {
+        try {
+            const { data } = await api.get('/admin/infaq/holidays')
+            setHolidays(data)
+        } catch (err) { console.error(err) }
+    }
+
+    const fetchWaStatus = async () => {
+        try {
+            const { data } = await api.get('/admin/school-settings/whatsapp/status')
+            setWaStatus(data)
+        } catch (err) { console.error(err) }
+    }
+
+    const fetchMasterDokumen = async () => {
+        try {
+            const { data } = await api.get('/admin/master-dokumen')
+            setMasterDokumen(data)
+        } catch (err) { console.error(err) }
+    }
+
+    const handleSaveProfile = async () => {
+        setLoading(true)
+        await updateSchoolSettings({
+            school_name: localProfile.nama,
+            school_address: localProfile.alamat,
+            school_phone: localProfile.telepon,
+            school_email: localProfile.email,
+            school_principal: localProfile.kepala_sekolah,
+            school_principal_nip: localProfile.nip_kepsek
+        })
+        setLoading(false)
+    }
+
+    const handleSaveAttendance = async () => {
+        try {
+            await api.post('/admin/attendance/settings', attendanceSettings)
+            addToast('success', 'Berhasil', 'Pengaturan presensi disimpan')
+        } catch (err) { addToast('danger', 'Error', 'Gagal menyimpan pengaturan') }
+    }
+
+    const handleSaveInfaq = async () => {
+        try {
+            await api.post('/admin/infaq/settings', infaqSettings)
+            addToast('success', 'Berhasil', 'Pengaturan infaq disimpan')
+        } catch (err) { addToast('danger', 'Error', 'Gagal menyimpan pengaturan') }
+    }
+
+    const handleAddHoliday = async () => {
+        if (!newHoliday.tanggal || !newHoliday.keterangan) return
+        try {
+            const { data } = await api.post('/admin/infaq/holidays', newHoliday)
+            setHolidays(prev => [data, ...prev])
+            setNewHoliday({ tanggal: '', keterangan: '' })
+            addToast('success', 'Berhasil', 'Hari libur ditambahkan')
+        } catch (err) { addToast('danger', 'Error', 'Gagal menambah hari libur') }
+    }
+
+    const handleDeleteHoliday = async (id) => {
+        try {
+            await api.delete(`/admin/infaq/holidays/${id}`)
+            setHolidays(prev => prev.filter(h => h.id !== id))
+            addToast('success', 'Berhasil', 'Hari libur dihapus')
+        } catch (err) { addToast('danger', 'Error', 'Gagal menghapus hari libur') }
+    }
+
+    const handleAddDokumen = async () => {
+        if (!newDokumen.kode || !newDokumen.nama) return
+        try {
+            await api.post('/admin/master-dokumen', newDokumen)
+            setNewDokumen({ kode: '', nama: '', is_required: true, keterangan: '' })
+            fetchMasterDokumen()
+            addToast('success', 'Berhasil', 'Dokumen berhasil ditambahkan')
+        } catch (err) { addToast('danger', 'Error', 'Gagal menambah dokumen') }
+    }
+
+    const handleDeleteDokumen = async (id) => {
+        try {
+            await api.delete(`/admin/master-dokumen/${id}`)
+            setMasterDokumen(prev => prev.filter(d => d.id !== id))
+            addToast('success', 'Berhasil', 'Dokumen berhasil dihapus')
+        } catch (err) { addToast('danger', 'Error', 'Gagal menghapus dokumen') }
+    }
+
+    const handleBackup = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/backup/export`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (!res.ok) throw new Error('Download failed');
+            
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-${new Date().toISOString().slice(0, 10)}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            addToast('success', 'Berhasil', 'Backup data berhasil diunduh');
+        } catch (err) {
+            addToast('danger', 'Error', 'Gagal mengunduh backup');
+        }
+    }
+
+    const tabs = [
+        { id: 'profil', label: 'Profil Sekolah', icon: <Layout size={18} /> },
+        { id: 'akademik', label: 'Akademik', icon: <Calendar size={18} /> },
+        { id: 'libur', label: 'Hari Libur', icon: <Calendar size={18} /> },
+        { id: 'presensi', label: 'Presensi RFID', icon: <Clock size={18} /> },
+        { id: 'infaq', label: 'Infaq Harian', icon: <MessageSquare size={18} /> },
+        { id: 'berkas', label: 'Berkas Digital', icon: <FileText size={18} /> },
+        { id: 'sistem', label: 'Sistem', icon: <Database size={18} /> },
+    ]
 
     return (
         <div className="fade-in">
             <div className="page-header">
-                <h1>Pengaturan</h1>
+                <h1>Pengaturan Sistem</h1>
             </div>
 
-            <div className="card" style={{ marginBottom: 24 }}>
-                <div className="card-header">
-                    <h3>🏫 Profil Sekolah</h3>
-                </div>
-
-                <div className="form-row">
-                    <div className="form-group">
-                        <label>Nama Sekolah</label>
-                        <input className="form-control" value={school.nama} onChange={e => setSchool(prev => ({ ...prev, nama: e.target.value }))} />
-                    </div>
-                    <div className="form-group">
-                        <label>Telepon</label>
-                        <input className="form-control" value={school.telepon} onChange={e => setSchool(prev => ({ ...prev, telepon: e.target.value }))} />
-                    </div>
-                </div>
-
-                <div className="form-group">
-                    <label>Alamat</label>
-                    <input className="form-control" value={school.alamat} onChange={e => setSchool(prev => ({ ...prev, alamat: e.target.value }))} />
-                </div>
-
-                <div className="form-row">
-                    <div className="form-group">
-                        <label>Email</label>
-                        <input type="email" className="form-control" value={school.email} onChange={e => setSchool(prev => ({ ...prev, email: e.target.value }))} />
-                    </div>
-                    <div className="form-group">
-                        <label>Logo Sekolah</label>
-                        <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
-                            <Upload size={16} /> Upload Logo
+            <div className="settings-container" style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: 24 }}>
+                {/* Sidebar Tabs */}
+                <div className="settings-nav card" style={{ padding: '12px 0', alignSelf: 'start' }}>
+                    {tabs.map(tab => (
+                        <button 
+                            key={tab.id}
+                            className={`settings-nav-item ${activeTab === tab.id ? 'active' : ''}`}
+                            onClick={() => setActiveTab(tab.id)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                                padding: '12px 20px', border: 'none', background: 'none',
+                                cursor: 'pointer', textAlign: 'left', fontSize: '0.95rem',
+                                color: activeTab === tab.id ? 'var(--primary-600)' : 'var(--slate-600)',
+                                borderLeft: activeTab === tab.id ? '4px solid var(--primary-600)' : '4px solid transparent',
+                                fontWeight: activeTab === tab.id ? '600' : '500',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {tab.icon}
+                            {tab.label}
                         </button>
-                    </div>
+                    ))}
                 </div>
 
-                <div className="form-row">
-                    <div className="form-group">
-                        <label>Kepala Sekolah</label>
-                        <input className="form-control" value={school.kepala_sekolah} onChange={e => setSchool(prev => ({ ...prev, kepala_sekolah: e.target.value }))} />
-                    </div>
-                    <div className="form-group">
-                        <label>NIP Kepala Sekolah</label>
-                        <input className="form-control" value={school.nip_kepsek} onChange={e => setSchool(prev => ({ ...prev, nip_kepsek: e.target.value }))} />
-                    </div>
-                </div>
+                {/* Content Area */}
+                <div className="settings-content">
+                    {activeTab === 'profil' && (
+                        <div className="card fade-in">
+                            <div className="card-header">
+                                <h3>🏫 Profil Sekolah</h3>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Nama Sekolah</label>
+                                    <input className="form-control" value={localProfile.nama} onChange={e => setLocalProfile(p => ({...p, nama: e.target.value}))} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Telepon</label>
+                                    <input className="form-control" value={localProfile.telepon} onChange={e => setLocalProfile(p => ({...p, telepon: e.target.value}))} />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Alamat</label>
+                                <textarea className="form-control" rows="3" value={localProfile.alamat} onChange={e => setLocalProfile(p => ({...p, alamat: e.target.value}))}></textarea>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Email</label>
+                                    <input className="form-control" value={localProfile.email} onChange={e => setLocalProfile(p => ({...p, email: e.target.value}))} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Logo Sekolah</label>
+                                    <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
+                                        <Upload size={16} /> Upload Logo
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Kepala Sekolah</label>
+                                    <input className="form-control" value={localProfile.kepala_sekolah} onChange={e => setLocalProfile(p => ({...p, kepala_sekolah: e.target.value}))} />
+                                </div>
+                                <div className="form-group">
+                                    <label>NIP Kepala Sekolah</label>
+                                    <input className="form-control" value={localProfile.nip_kepsek} onChange={e => setLocalProfile(p => ({...p, nip_kepsek: e.target.value}))} />
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right', marginTop: 20 }}>
+                                <button className="btn btn-primary" onClick={handleSaveProfile} disabled={loading}>
+                                    <Save size={18} /> {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
-                <div style={{ textAlign: 'right', marginTop: 16 }}>
-                    <button className="btn btn-primary" onClick={handleSave}>
-                        <Save size={16} /> Simpan Perubahan
-                    </button>
+                    {activeTab === 'akademik' && (
+                        <div className="card fade-in">
+                            <div className="card-header">
+                                <h3>📅 Manajemen Tahun Ajaran</h3>
+                            </div>
+                            
+                            <table className="table" style={{ marginTop: 16 }}>
+                                <thead>
+                                    <tr>
+                                        <th>Tahun Ajaran</th>
+                                        <th>Status</th>
+                                        <th style={{ textAlign: 'right' }}>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tahunAjaranList.map(ta => (
+                                        <tr key={ta.id}>
+                                            <td style={{ fontWeight: '600' }}>{ta.tahun}</td>
+                                            <td>
+                                                <span className={`badge ${ta.status === 'aktif' ? 'badge-success' : 'badge-slate'}`}>
+                                                    {ta.status === 'aktif' ? 'Aktif' : 'Non-Aktif'}
+                                                </span>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                {ta.status !== 'aktif' && (
+                                                    <button className="btn btn-sm btn-ghost" onClick={() => setTahunAjaranAktif(ta.id)}>
+                                                        Set Aktif
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            <div className="alert alert-warning" style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+                                <AlertTriangle size={20} />
+                                <div>
+                                    <strong>Perhatian!</strong>
+                                    <p style={{ margin: 0, fontSize: '0.9rem' }}>Mengganti tahun ajaran aktif akan mengubah konteks seluruh data (Nilai, Infaq, Presensi) yang ditampilkan di sistem.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'libur' && (
+                        <div className="card fade-in">
+                            <div className="card-header">
+                                <h3>🏖️ Kalender Hari Libur</h3>
+                            </div>
+                            
+                            <div className="form-row" style={{ alignItems: 'flex-end', marginTop: 16 }}>
+                                <div className="form-group">
+                                    <label>Tanggal</label>
+                                    <input type="date" className="form-control" value={newHoliday.tanggal} onChange={e => setNewHoliday(prev => ({...prev, tanggal: e.target.value}))} />
+                                </div>
+                                <div className="form-group" style={{ flex: 2 }}>
+                                    <label>Keterangan</label>
+                                    <input type="text" className="form-control" placeholder="Contoh: Libur Idul Fitri" value={newHoliday.keterangan} onChange={e => setNewHoliday(prev => ({...prev, keterangan: e.target.value}))} />
+                                </div>
+                                <div className="form-group">
+                                    <button className="btn btn-primary" onClick={handleAddHoliday}>
+                                        <Plus size={18} /> Tambah
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: 24, maxHeight: 400, overflowY: 'auto' }}>
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tanggal</th>
+                                            <th>Keterangan</th>
+                                            <th style={{ textAlign: 'right' }}>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {holidays.map(h => (
+                                            <tr key={h.id}>
+                                                <td>{new Date(h.tanggal).toLocaleDateString('id-ID', { dateStyle: 'long' })}</td>
+                                                <td style={{ fontWeight: '500' }}>{h.keterangan}</td>
+                                                <td style={{ textAlign: 'right' }}>
+                                                    <button className="btn btn-sm btn-ghost text-danger" onClick={() => handleDeleteHoliday(h.id)}>
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {holidays.length === 0 && (
+                                            <tr>
+                                                <td colSpan="3" style={{ textAlign: 'center', padding: 40, color: 'var(--slate-400)' }}>
+                                                    Belum ada data hari libur.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'presensi' && (
+                        <div className="card fade-in">
+                            <div className="card-header">
+                                <h3>⌚ Pengaturan Presensi RFID</h3>
+                            </div>
+                            
+                            <div className="form-row" style={{ marginTop: 16 }}>
+                                <div className="form-group">
+                                    <label>Batas Waktu Terlambat</label>
+                                    <input type="time" className="form-control" value={attendanceSettings.late_threshold_time || ''} onChange={e => setAttendanceSettings(p => ({...p, late_threshold_time: e.target.value}))} />
+                                    <small className="text-muted">Tap setelah jam ini akan dicatat sebagai 'Terlambat'</small>
+                                </div>
+                                <div className="form-group">
+                                    <label>Mulai Pulang</label>
+                                    <input type="time" className="form-control" value={attendanceSettings.exit_start_time || ''} onChange={e => setAttendanceSettings(p => ({...p, exit_start_time: e.target.value}))} />
+                                    <small className="text-muted">Tap pulang diperbolehkan setelah jam ini</small>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <input type="checkbox" checked={attendanceSettings.wa_notification_enabled === 'true'} onChange={e => setAttendanceSettings(p => ({...p, wa_notification_enabled: e.target.checked ? 'true' : 'false'}))} />
+                                    Aktifkan Notifikasi WhatsApp Otomatis
+                                </label>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Template Pesan Masuk (Hadir)</label>
+                                <textarea className="form-control" rows="2" value={attendanceSettings.wa_template_masuk || ''} onChange={e => setAttendanceSettings(p => ({...p, wa_template_masuk: e.target.value}))}></textarea>
+                                <small className="text-muted">Tersedia placeholder: [nama], [jam]</small>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Template Pesan Masuk (Terlambat)</label>
+                                <textarea className="form-control" rows="2" value={attendanceSettings.wa_template_terlambat || ''} onChange={e => setAttendanceSettings(p => ({...p, wa_template_terlambat: e.target.value}))}></textarea>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Template Pesan Pulang</label>
+                                <textarea className="form-control" rows="2" value={attendanceSettings.wa_template_pulang || ''} onChange={e => setAttendanceSettings(p => ({...p, wa_template_pulang: e.target.value}))}></textarea>
+                            </div>
+
+                            <div style={{ textAlign: 'right', marginTop: 20 }}>
+                                <button className="btn btn-primary" onClick={handleSaveAttendance}>
+                                    <Save size={18} /> Simpan Pengaturan Presensi
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'infaq' && (
+                        <div className="card fade-in">
+                            <div className="card-header">
+                                <h3>💰 Pengaturan Infaq Harian</h3>
+                            </div>
+                            
+                            <div className="form-group" style={{ marginTop: 16 }}>
+                                <label>Nominal Default (Rp)</label>
+                                <input type="number" className="form-control" value={infaqSettings.nominal_default || ''} onChange={e => setInfaqSettings(p => ({...p, nominal_default: e.target.value}))} />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Hari Koleksi Infaq</label>
+                                <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                                    {[1,2,3,4,5,6].map(day => (
+                                        <label key={day} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={infaqSettings.active_days?.includes(day)} 
+                                                onChange={e => {
+                                                    const current = infaqSettings.active_days || []
+                                                    const updated = e.target.checked 
+                                                        ? [...current, day] 
+                                                        : current.filter(d => d !== day)
+                                                    setInfaqSettings(p => ({...p, active_days: updated}))
+                                                }} 
+                                            />
+                                            {['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][day]}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ textAlign: 'right', marginTop: 20 }}>
+                                <button className="btn btn-primary" onClick={handleSaveInfaq}>
+                                    <Save size={18} /> Simpan Pengaturan Infaq
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'berkas' && (
+                        <div className="card fade-in">
+                            <div className="card-header">
+                                <h3>📂 Konfigurasi Berkas Digital Siswa</h3>
+                            </div>
+                            
+                            <div className="form-row" style={{ alignItems: 'flex-end', marginTop: 16 }}>
+                                <div className="form-group" style={{ flex: 1 }}>
+                                    <label>Kode</label>
+                                    <input type="text" className="form-control" placeholder="Cth: KK" value={newDokumen.kode} onChange={e => setNewDokumen(prev => ({...prev, kode: e.target.value.toUpperCase().replace(/\s+/g, '_')}))} />
+                                </div>
+                                <div className="form-group" style={{ flex: 2 }}>
+                                    <label>Nama Dokumen</label>
+                                    <input type="text" className="form-control" placeholder="Cth: Kartu Keluarga" value={newDokumen.nama} onChange={e => setNewDokumen(prev => ({...prev, nama: e.target.value}))} />
+                                </div>
+                                <div className="form-group" style={{ flex: 2 }}>
+                                    <label>Keterangan (Opsional)</label>
+                                    <input type="text" className="form-control" placeholder="Cth: FC KTP ortu gabung di dalam file" value={newDokumen.keterangan} onChange={e => setNewDokumen(prev => ({...prev, keterangan: e.target.value}))} />
+                                </div>
+                                <div className="form-group">
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, cursor: 'pointer', marginBottom: 0 }}>
+                                        <input type="checkbox" checked={newDokumen.is_required} onChange={e => setNewDokumen(prev => ({...prev, is_required: e.target.checked}))} />
+                                        Wajib?
+                                    </label>
+                                </div>
+                                <div className="form-group">
+                                    <button className="btn btn-primary" onClick={handleAddDokumen} disabled={!newDokumen.kode || !newDokumen.nama}>
+                                        <Plus size={18} /> Tambah
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: 24, maxHeight: 400, overflowY: 'auto' }}>
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Kode</th>
+                                            <th>Nama Dokumen</th>
+                                            <th>Wajib</th>
+                                            <th>Keterangan</th>
+                                            <th style={{ textAlign: 'right' }}>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {masterDokumen.map(d => (
+                                            <tr key={d.id}>
+                                                <td className="mono fw-bold text-primary">{d.kode}</td>
+                                                <td style={{ fontWeight: '600' }}>{d.nama}</td>
+                                                <td>
+                                                    {d.is_required ? <span className="badge badge-success">Wajib</span> : <span className="badge badge-slate">Opsional</span>}
+                                                </td>
+                                                <td className="text-muted">{d.keterangan || '-'}</td>
+                                                <td style={{ textAlign: 'right' }}>
+                                                    <button className="btn btn-sm btn-ghost text-danger" onClick={() => handleDeleteDokumen(d.id)}>
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {masterDokumen.length === 0 && (
+                                            <tr>
+                                                <td colSpan="5" style={{ textAlign: 'center', padding: 40, color: 'var(--slate-400)' }}>
+                                                    Belum ada konfigurasi dokumen siswa.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'sistem' && (
+                        <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                            <div className="card fade-in">
+                                <div className="card-header">
+                                    <h3>📱 Koneksi WhatsApp</h3>
+                                </div>
+                                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                                    {waStatus?.isReady ? (
+                                        <div style={{ color: 'var(--success-600)' }}>
+                                            <CheckCircle size={48} style={{ marginBottom: 12 }} />
+                                            <p style={{ fontWeight: 600, fontSize: '1.1rem' }}>WhatsApp Terhubung</p>
+                                            <p className="text-muted">Status: {waStatus.statusMessage}</p>
+                                        </div>
+                                    ) : waStatus?.qrCode ? (
+                                        <div>
+                                            <img src={waStatus.qrCode} alt="QR Code" style={{ width: 200, height: 200, border: '1px solid var(--slate-200)', borderRadius: 8 }} />
+                                            <p style={{ marginTop: 12, fontWeight: 500 }}>Silakan scan QR Code untuk menghubungkan WhatsApp</p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: 'var(--danger-600)' }}>
+                                            <XCircle size={48} style={{ marginBottom: 12 }} />
+                                            <p style={{ fontWeight: 600 }}>WhatsApp Terputus</p>
+                                            <p className="text-muted">{waStatus?.statusMessage || 'Sedang memuat status...'}</p>
+                                        </div>
+                                    )}
+                                    
+                                    <button className="btn btn-ghost" style={{ marginTop: 20 }} onClick={fetchWaStatus}>
+                                        <RefreshCw size={16} /> Refresh Status
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="card fade-in">
+                                <div className="card-header">
+                                    <h3>💾 Backup & Pemulihan</h3>
+                                </div>
+                                <div style={{ padding: '20px 0' }}>
+                                    <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: 20 }}>
+                                        Backup data Anda secara berkala untuk mencegah kehilangan data. File backup akan mencakup seluruh database dan file unggahan.
+                                    </p>
+                                    
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        <button className="btn btn-ghost" style={{ justifyContent: 'center', padding: 12 }} onClick={handleBackup}>
+                                            <Database size={18} /> Export Backup (.zip)
+                                        </button>
+                                        <div style={{ borderTop: '1px dashed var(--slate-200)', margin: '10px 0' }}></div>
+                                        <button className="btn btn-ghost text-danger" style={{ justifyContent: 'center', padding: 12 }}>
+                                            <Shield size={18} /> Restore Data
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <div className="card">
-                <div className="card-header">
-                    <h3>📅 Tahun Ajaran Aktif</h3>
-                </div>
-
-                <div className="form-row" style={{ alignItems: 'flex-end' }}>
-                    <div className="form-group">
-                        <label>Tahun Ajaran Aktif</label>
-                        <select className="form-control" defaultValue={tahunAjaran}>
-                            <option>2025/2026</option>
-                            <option>2024/2025</option>
-                            <option>2023/2024</option>
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <button className="btn btn-ghost">🔄 Ganti</button>
-                    </div>
-                </div>
-
-                <div style={{
-                    background: 'var(--warning-50)', border: '1px solid var(--warning-500)',
-                    borderRadius: 'var(--radius-md)', padding: 12, marginTop: 8,
-                    display: 'flex', alignItems: 'flex-start', gap: 8,
-                    fontSize: '0.85rem', color: 'var(--warning-600)',
-                }}>
-                    <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
-                    <span>Mengganti tahun ajaran aktif akan mengubah konteks seluruh data yang ditampilkan di sistem.</span>
-                </div>
-            </div>
+            <style>{`
+                .settings-nav-item:hover {
+                    background: var(--slate-50) !important;
+                }
+                .settings-nav-item.active {
+                    background: var(--primary-50) !important;
+                }
+                .form-group label {
+                    font-weight: 500;
+                    margin-bottom: 6px;
+                    display: block;
+                    color: var(--slate-700);
+                    font-size: 0.9rem;
+                }
+                .alert-warning {
+                    background: #fffbeb;
+                    border: 1px solid #fef3c7;
+                    color: #92400e;
+                    padding: 16px;
+                    border-radius: 8px;
+                }
+                .badge-slate {
+                    background: var(--slate-100);
+                    color: var(--slate-600);
+                }
+                .text-danger {
+                    color: var(--danger-600);
+                }
+                .settings-grid .card {
+                    height: 100%;
+                }
+            `}</style>
         </div>
     )
 }

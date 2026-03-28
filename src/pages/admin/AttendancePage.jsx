@@ -165,43 +165,96 @@ const styles = /*css*/`
       border-radius: 20px;
       margin-bottom: 20px;
     }
+    .attendance-header .d-flex.align-items-center.gap-3.mb-1 {
+      margin-bottom: 0 !important;
+    }
     .attendance-header .d-flex.gap-2 {
       width: 100%;
       flex-wrap: wrap;
     }
-    .attendance-header .d-flex.gap-2 button {
+    .attendance-header .d-flex.gap-2 button,
+    .attendance-header .d-flex.gap-2 > div {
       flex: 1;
-      min-width: 0;
+      min-width: 45%;
       justify-content: center;
+      padding: 10px 12px !important;
     }
     .bento-grid {
-      gap: 16px;
+      gap: 12px;
       margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
     }
     .bento-card {
       padding: 20px;
       border-radius: 20px;
+      height: auto;
     }
     .bento-card h1 {
-      font-size: 2.5rem !important;
+      font-size: 2.2rem !important;
+      letter-spacing: -1px !important;
     }
     .d-flex.gap-3.mt-4 {
-      flex-direction: column;
-      gap: 10px !important;
+      flex-direction: row;
+      gap: 8px !important;
+    }
+    .stat-pill {
+      padding: 12px;
+      gap: 8px;
     }
     .attendance-btn-group {
-      grid-template-columns: repeat(4, 1fr);
-      gap: 4px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
     }
     .attendance-btn {
-      padding: 8px 2px;
-      font-size: 0.65rem;
+      padding: 10px 8px;
+      font-size: 0.75rem;
+      flex-direction: row;
+      justify-content: center;
     }
-    .card-body.p-4 {
-      padding: 16px !important;
+    .card-body.p-0 {
+      padding: 0 !important;
     }
-    .card.shadow-sm {
-      border-radius: 20px !important;
+    .table-responsive {
+      border: none;
+    }
+    .table thead {
+      display: none;
+    }
+    .table tr {
+      display: block;
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .table tr td {
+      display: block;
+      width: 100% !important;
+      padding: 8px 0 !important;
+      border: none;
+      text-align: left !important;
+    }
+    .student-avatar {
+      width: 36px;
+      height: 36px;
+      font-size: 0.9rem;
+    }
+    .attendance-btn-group.mx-auto {
+      max-width: 100% !important;
+      margin: 10px 0 !important;
+    }
+    /* Tabs Navigation Mobile */
+    .d-flex.gap-2.mb-4.p-1.bg-white.rounded-4.border.shadow-sm.w-fit-content {
+      width: 100% !important;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      padding: 6px !important;
+      gap: 4px !important;
+    }
+    .d-flex.gap-2.mb-4.p-1.bg-white.rounded-4.border.shadow-sm.w-fit-content button {
+      padding: 8px 16px !important;
+      font-size: 0.85rem;
+      flex-shrink: 0;
     }
   }
 `;

@@ -18,7 +18,7 @@ export default function CmsBannersPage({ hideHeader = false }) {
     const [editData, setEditData] = useState(null)
 
     // Form state
-    const [form, setForm] = useState({ title: '', image_url: '', link_url: '', is_active: true, display_order: 0 })
+    const [form, setForm] = useState({ title: '', subtitle: '', image_url: '', cta_text: '', cta_link: '', is_active: true, sort_order: 0 })
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
@@ -47,13 +47,15 @@ export default function CmsBannersPage({ hideHeader = false }) {
         if (banner) {
             setForm({
                 title: banner.title,
+                subtitle: banner.subtitle || '',
                 image_url: banner.image_url,
-                link_url: banner.link_url || '',
+                cta_text: banner.cta_text || '',
+                cta_link: banner.cta_link || '',
                 is_active: banner.is_active === 1,
-                display_order: banner.display_order
+                sort_order: banner.sort_order
             })
         } else {
-            setForm({ title: '', image_url: '', link_url: '', is_active: true, display_order: 0 })
+            setForm({ title: '', subtitle: '', image_url: '', cta_text: '', cta_link: '', is_active: true, sort_order: 0 })
         }
         setShowModal(true)
     }
@@ -157,7 +159,7 @@ export default function CmsBannersPage({ hideHeader = false }) {
                         <tbody>
                             {banners.map(b => (
                                 <tr key={b.id}>
-                                    <td className="text-center"><strong>{b.display_order}</strong></td>
+                                    <td className="text-center"><strong>{b.sort_order}</strong></td>
                                     <td>
                                         <div style={{ width: 100, height: 50, background: '#eee', borderRadius: 4, overflow: 'hidden' }}>
                                             <img src={getDirectDriveUrl(b.image_url)} alt={b.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -165,7 +167,7 @@ export default function CmsBannersPage({ hideHeader = false }) {
                                     </td>
                                     <td>
                                         <div style={{ fontWeight: 600 }}>{b.title}</div>
-                                        {b.link_url && <a href={b.link_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--primary-600)' }}>{b.link_url}</a>}
+                                        {b.cta_link && <a href={b.cta_link} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--primary-600)' }}>{b.cta_link}</a>}
                                     </td>
                                     <td>
                                         <span className={`badge ${b.is_active ? 'badge-success' : 'badge-secondary'}`}>
@@ -219,16 +221,37 @@ export default function CmsBannersPage({ hideHeader = false }) {
                                             required
                                         />
                                     </div>
-                                    <div className="form-group">
-                                        <label className="input-label">URL Link (Opsional)</label>
+                                    <div className="form-group mb-4">
+                                        <label className="input-label">Subtitle / Teks Kecil</label>
                                         <input
-                                            type="url"
+                                            type="text"
                                             className="form-control modern-input"
-                                            value={form.link_url}
-                                            onChange={e => setForm({ ...form, link_url: e.target.value })}
-                                            placeholder="https://sekolah.sch.id/ppdb"
+                                            placeholder="Penjelasan singkat di bawah judul"
+                                            value={form.subtitle}
+                                            onChange={e => setForm({ ...form, subtitle: e.target.value })}
                                         />
-                                        <small className="input-hint text-muted">Aksi saat banner diklik</small>
+                                    </div>
+                                    <div className="grid-2-custom">
+                                        <div className="form-group">
+                                            <label className="input-label">Teks Tombol (CTA)</label>
+                                            <input
+                                                type="text"
+                                                className="form-control modern-input"
+                                                placeholder="Contoh: Daftar Sekarang"
+                                                value={form.cta_text}
+                                                onChange={e => setForm({ ...form, cta_text: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="input-label">URL Link (Opsional)</label>
+                                            <input
+                                                type="url"
+                                                className="form-control modern-input"
+                                                value={form.cta_link}
+                                                onChange={e => setForm({ ...form, cta_link: e.target.value })}
+                                                placeholder="https://..."
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -252,8 +275,8 @@ export default function CmsBannersPage({ hideHeader = false }) {
                                             <input
                                                 type="number"
                                                 className="form-control modern-input"
-                                                value={form.display_order}
-                                                onChange={e => setForm({ ...form, display_order: parseInt(e.target.value) || 0 })}
+                                                value={form.sort_order}
+                                                onChange={e => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })}
                                             />
                                         </div>
                                         <div className="form-group">
