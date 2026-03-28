@@ -63,4 +63,4 @@ npm run dev
 - `/public`: Aset statis public.
 
 ---
-*Dikembangkan dengan ❤️ untuk SMK PPRQ.*
+*Dikembangkan dengan ❤️ oleh **[Amrul Al Syaif'Fu](https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/)** untuk SMK PPRQ.*
