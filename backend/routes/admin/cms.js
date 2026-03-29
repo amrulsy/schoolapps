@@ -699,4 +699,45 @@ router.delete('/identity-logos/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ==================== AGENDA ====================
+
+router.get('/agenda', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM cms_agenda ORDER BY event_date ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/agenda', async (req, res) => {
+    try {
+        const { title, description, event_date, time, location, is_active } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO cms_agenda (title, description, event_date, time, location, is_active) VALUES (?, ?, ?, ?, ?, ?)',
+            [title, description || null, event_date, time || null, location || null, is_active ?? 1]
+        );
+        invalidateCache('/api/public/agenda');
+        res.status(201).json({ id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/agenda/:id', async (req, res) => {
+    try {
+        const { title, description, event_date, time, location, is_active } = req.body;
+        await pool.query(
+            'UPDATE cms_agenda SET title = ?, description = ?, event_date = ?, time = ?, location = ?, is_active = ? WHERE id = ?',
+            [title, description || null, event_date, time || null, location || null, is_active ?? 1, req.params.id]
+        );
+        invalidateCache('/api/public/agenda');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/agenda/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cms_agenda WHERE id = ?', [req.params.id]);
+        invalidateCache('/api/public/agenda');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

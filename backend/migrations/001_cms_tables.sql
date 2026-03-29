@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS cms_posts (
     status ENUM('draft', 'published', 'archived') DEFAULT 'draft',
     is_pinned BOOLEAN DEFAULT FALSE,
     author_id INT,
+    views INT DEFAULT 0,
     published_at DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -82,5 +83,24 @@ CREATE TABLE IF NOT EXISTS cms_contacts (
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. VISITOR STATS
+CREATE TABLE IF NOT EXISTS cms_visitor_stats (
+    visit_date DATE PRIMARY KEY,
+    visits INT DEFAULT 0
+);
+
+-- 8. AGENDA TERDEKAT
+CREATE TABLE IF NOT EXISTS cms_agenda (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    event_date DATE NOT NULL,
+    time VARCHAR(50),
+    location VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 

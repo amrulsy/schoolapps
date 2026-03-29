@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { Eye } from 'lucide-react'
 import { usePortal } from '../context/PortalContext'
 import { getDirectDriveUrl } from '../../utils/urlHelper'
 
@@ -99,8 +100,11 @@ export default function PortalAnnouncements() {
                                                 <span className="portal-card-category">{post.category}</span>
                                                 <h3 className="portal-card-title">{post.title}</h3>
                                                 <p className="portal-card-text">{post.excerpt}</p>
-                                                <div className="portal-card-meta">
-                                                    📅 {formatDate(post.published_at || post.created_at)}
+                                                <div className="portal-card-meta" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>📅 {formatDate(post.published_at || post.created_at)}</span>
+                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Eye size={14} /> {post.views || 0}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>

@@ -26,23 +26,52 @@ export default function PortalFooter() {
                         </p>
                     </div>
 
-                    <div>
+                    <div className="portal-footer-nav-col">
                         <h4>Navigasi</h4>
-                        <ul className="portal-footer-links">
-                            <li><Link to="/">Beranda</Link></li>
-                            <li><Link to="/pengumuman">Pengumuman</Link></li>
-                            <li><Link to="/informasi">Profil Sekolah</Link></li>
-                            <li><Link to="/ppdb">PPDB</Link></li>
-                            <li><Link to="/cek-tagihan">Cek Tagihan</Link></li>
+                        <ul className={`portal-footer-links ${[
+                            { to: '/', label: 'Beranda' },
+                            { to: '/jurusan', label: 'Jurusan' },
+                            { to: '/pengumuman', label: 'Pengumuman' },
+                            { to: '/informasi', label: 'Informasi' },
+                            { to: '/ppdb', label: 'PPDB' },
+                            { to: '/cek-tagihan', label: 'Cek Tagihan' },
+                            { to: '/kontak', label: 'Kontak' }
+                        ].length > 3 ? 'grid-cols-split' : ''}`}>
+                            {[
+                                { to: '/', label: 'Beranda' },
+                                { to: '/jurusan', label: 'Jurusan' },
+                                { to: '/pengumuman', label: 'Pengumuman' },
+                                { to: '/informasi', label: 'Informasi' },
+                                { to: '/ppdb', label: 'PPDB' },
+                                { to: '/cek-tagihan', label: 'Cek Tagihan' },
+                                { to: '/kontak', label: 'Kontak' }
+                            ].map((link, idx) => (
+                                <li key={idx}><Link to={link.to}>{link.label}</Link></li>
+                            ))}
                         </ul>
                     </div>
 
-                    <div>
+                    <div className="portal-footer-contact-col">
                         <h4>Kontak</h4>
                         <ul className="portal-footer-links">
-                            <li><a href={`tel:${settings.contact_phone?.replace(/\D/g, '') || ''}`}>📞 {settings.contact_phone || '021-XXXXXXX'}</a></li>
-                            <li><a href={`mailto:${settings.contact_email || 'info@smkpprq.sch.id'}`}>✉️ {settings.contact_email || 'info@smkpprq.sch.id'}</a></li>
-                            <li><span>📍 {settings.contact_address || 'Jl. Pendidikan No. 1, Jakarta'}</span></li>
+                            <li>
+                                <a href={`tel:${settings.contact_phone?.replace(/\D/g, '') || ''}`}>
+                                    <span className="contact-icon">📞</span>
+                                    <span>{settings.contact_phone || '021-XXXXXXX'}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href={`mailto:${settings.contact_email || 'info@smkpprq.sch.id'}`}>
+                                    <span className="contact-icon">✉️</span>
+                                    <span>{settings.contact_email || 'info@smkpprq.sch.id'}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <span className="contact-item">
+                                    <span className="contact-icon">📍</span>
+                                    <span>{settings.contact_address || 'Jl. Pendidikan No. 1, Jakarta'}</span>
+                                </span>
+                            </li>
                         </ul>
                     </div>
                 </div>

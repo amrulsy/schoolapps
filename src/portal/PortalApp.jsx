@@ -26,6 +26,7 @@ import PortalBilling from './pages/PortalBilling'
 import PortalContact from './pages/PortalContact'
 import PortalLogin from './pages/PortalLogin'
 import PortalNotFound from './pages/PortalNotFound'
+import MaintenancePage from '../pages/public/MaintenancePage'
 
 function ScrollToTop() {
     const { pathname } = useLocation()
@@ -36,13 +37,17 @@ function ScrollToTop() {
 }
 
 function PortalLayout() {
-    const { fetchSettings } = usePortal()
+    const { settings, fetchSettings } = usePortal()
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const toggleMobileOpen = () => setMobileMenuOpen(!mobileMenuOpen)
 
     useEffect(() => {
         fetchSettings()
     }, [fetchSettings])
+
+    if (settings && settings.maintenance_mode === 'true') {
+        return <MaintenancePage />
+    }
 
     return (
         <div className="portal-root">

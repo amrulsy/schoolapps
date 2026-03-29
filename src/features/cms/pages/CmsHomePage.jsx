@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../../../context/AppContext'
-import { Save, Plus, Edit2, Trash2, Eye, Layout, Monitor, Handshake, GraduationCap, Megaphone, RefreshCw, Image as ImageIcon, FileText, Building2, Globe, Mail, Type, Star, PlayCircle, AlignLeft, HelpCircle, MessageSquare, Camera, Shield } from 'lucide-react'
+import { Save, Plus, Edit2, Trash2, Eye, Layout, Monitor, Handshake, GraduationCap, Megaphone, RefreshCw, Image as ImageIcon, FileText, Building2, Globe, Mail, Type, Star, PlayCircle, AlignLeft, HelpCircle, MessageSquare, Camera, Shield, Calendar } from 'lucide-react'
 import { useCustomAlert } from '../../../hooks/useCustomAlert'
 import { getDirectDriveUrl } from '../../../utils/urlHelper'
 import MediaUploadField from '../../../components/MediaUploadField'
@@ -8,11 +8,13 @@ import MediaUploadField from '../../../components/MediaUploadField'
 import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../../../services/api'
 import CmsBannersPage from './CmsBannersPage'
 import CmsPostsPage from './CmsPostsPage'
+import CmsAgendaPage from './CmsAgendaPage'
 
 const TABS = [
     { key: 'hero', label: 'Hero Section', icon: Monitor },
     { key: 'identity', label: 'Logo Identitas', icon: Shield },
     { key: 'banners', label: 'Banners', icon: ImageIcon },
+    { key: 'agenda', label: 'Agenda Sekolah', icon: Calendar },
     { key: 'posts', label: 'Pengumuman / Berita', icon: FileText },
     { key: 'programs', label: 'Program Keahlian', icon: GraduationCap },
     { key: 'partners', label: 'Mitra / Partner', icon: Handshake },
@@ -410,6 +412,7 @@ export default function CmsHomePage() {
                 {activeTab === 'hero' && renderHeroTab()}
                 {activeTab === 'identity' && renderIdentityTab()}
                 {activeTab === 'banners' && <CmsBannersPage hideHeader={true} />}
+                {activeTab === 'agenda' && <CmsAgendaPage hideHeader={true} />}
                 {activeTab === 'posts' && <CmsPostsPage hideHeader={true} />}
                 {activeTab === 'programs' && renderProgramsTab()}
                 {activeTab === 'partners' && renderPartnersTab()}

@@ -5,7 +5,7 @@ const AdmZip = require('adm-zip');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const upload = multer({ dest: 'temp_uploads/', limits: { fileSize: 100 * 1024 * 1024 } });
+const upload = multer({ dest: 'temp_uploads/', limits: { fileSize: 500 * 1024 * 1024 } }); // Limit diubah menjadi 500MB
 
 // Helper to get all tables
 async function getAllTables() {
@@ -124,7 +124,10 @@ router.post('/import', upload.single('backup'), async (req, res) => {
 
         // Validate table names against actual DB schema to prevent injection
         const [dbTableRows] = await connection.query('SHOW TABLES');
-        const validTables = new Set(dbTableRows.map(row => Object.values(row)[0]));
+        const validTablesArray = dbTableRows.map(row => Object.values(row)[0])
+            .filter(t => !t.startsWith('mysql') && !t.startsWith('information_schema') && !t.startsWith('performance_schema'));
+        const validTables = new Set(validTablesArray);
+        
         for (const table of tables) {
             if (!validTables.has(table)) {
                 throw new Error(`Tabel tidak valid dalam file backup: ${table}`);
@@ -135,10 +138,16 @@ router.post('/import', upload.single('backup'), async (req, res) => {
         console.log('[BACKUP] Disabling foreign key checks...');
         await connection.query('SET FOREIGN_KEY_CHECKS = 0');
 
+        // Pertama, bersihkan (truncate) seluruh tabel valid di database saat ini
+        // Ini memastikan tidak ada data lama yang tersisa jika tabel tersebut tidak ada di dalam file backup
+        for (const validTable of validTables) {
+            console.log(`[BACKUP] Mengosongkan tabel: ${validTable}...`);
+            await connection.query(`TRUNCATE TABLE \`${validTable}\``);
+        }
+
         for (const table of tables) {
             console.log(`[BACKUP] Restoring table: ${table}...`);
-            await connection.query(`TRUNCATE TABLE \`${table}\``);
-
+            
             const rows = backupData[table];
             if (!rows || rows.length === 0) continue;
 
@@ -148,14 +157,19 @@ router.post('/import', upload.single('backup'), async (req, res) => {
             const columns = Object.keys(rows[0]).filter(c => validColumns.has(c));
             if (columns.length === 0) continue;
 
-            // Bulk INSERT
-            const rowPlaceholders = `(${columns.map(() => '?').join(', ')})`;
-            const allPlaceholders = rows.map(() => rowPlaceholders).join(', ');
-            const allValues = rows.flatMap(row => columns.map(col => row[col]));
-            await connection.query(
-                `INSERT INTO \`${table}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES ${allPlaceholders}`,
-                allValues
-            );
+            // Bulk INSERT dengan sistem "Chunking" (dicicil) untuk mencegah error "ER_PS_MANY_PARAM"
+            const CHUNK_SIZE = 500; // maksimal baris per eksekusi insert
+            for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+                const chunk = rows.slice(i, i + CHUNK_SIZE);
+                const rowPlaceholders = `(${columns.map(() => '?').join(', ')})`;
+                const allPlaceholders = chunk.map(() => rowPlaceholders).join(', ');
+                const allValues = chunk.flatMap(row => columns.map(col => row[col]));
+                
+                await connection.query(
+                    `INSERT INTO \`${table}\` (${columns.map(c => `\`${c}\``).join(', ')}) VALUES ${allPlaceholders}`,
+                    allValues
+                );
+            }
         }
 
         await connection.query('SET FOREIGN_KEY_CHECKS = 1');
@@ -164,6 +178,12 @@ router.post('/import', upload.single('backup'), async (req, res) => {
 
         // 2. Process Uploads
         const uploadsPath = path.join(__dirname, '../../uploads');
+        
+        // Hapus folder uploads saat ini beserta isinya untuk mencegah adanya orphaned files (file usang)
+        if (fs.existsSync(uploadsPath)) {
+            console.log('[BACKUP] Membersihkan folder uploads saat ini...');
+            fs.rmSync(uploadsPath, { recursive: true, force: true });
+        }
         fs.mkdirSync(uploadsPath, { recursive: true });
 
         // Extract uploads entry if it exists

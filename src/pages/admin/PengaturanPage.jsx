@@ -5,6 +5,7 @@ import {
     MessageSquare, Database, Shield, Layout,
     CheckCircle, XCircle, RefreshCw, Trash2, Plus, FileText
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import api, { API_BASE } from '../../services/api'
 
 export default function PengaturanPage() {
@@ -27,9 +28,12 @@ export default function PengaturanPage() {
     const [masterDokumen, setMasterDokumen] = useState([])
     const [newDokumen, setNewDokumen] = useState({ kode: '', nama: '', is_required: true, keterangan: '' })
 
+    const [maintenanceMode, setMaintenanceMode] = useState(false)
+
     // Initialize local profile from context
     useEffect(() => {
         if (schoolSettings) {
+            setMaintenanceMode(schoolSettings.maintenance_mode === 'true')
             setLocalProfile({
                 nama: schoolSettings.school_name || '',
                 alamat: schoolSettings.school_address || '',
@@ -40,6 +44,12 @@ export default function PengaturanPage() {
             })
         }
     }, [schoolSettings])
+
+    const handleToggleMaintenance = async (e) => {
+        const isChecked = e.target.checked
+        setMaintenanceMode(isChecked)
+        await updateSchoolSettings({ maintenance_mode: isChecked ? 'true' : 'false' })
+    }
 
     // Load other settings when tab changes
     useEffect(() => {
@@ -526,6 +536,40 @@ export default function PengaturanPage() {
 
                     {activeTab === 'sistem' && (
                         <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                            <div className="card fade-in" style={{ gridColumn: '1 / -1' }}>
+                                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <AlertTriangle size={20} color={maintenanceMode ? "var(--warning-500)" : "var(--slate-400)"} /> 
+                                        Mode Pemeliharaan (Maintenance)
+                                    </h3>
+                                    <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontWeight: 600, color: maintenanceMode ? 'var(--danger-600)' : 'var(--slate-500)', fontSize: '0.9rem' }}>
+                                            {maintenanceMode ? 'Sistem Terkunci' : 'Publik Terbuka'}
+                                        </span>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={maintenanceMode} 
+                                            onChange={handleToggleMaintenance}
+                                            style={{ width: 44, height: 24, cursor: 'pointer', accentColor: 'var(--danger-500)' }} 
+                                        />
+                                    </label>
+                                </div>
+                                <div style={{ paddingTop: 16 }}>
+                                    <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>
+                                        Nyalakan fitur ini sebelum Anda melakukan pembaruan struktur masif atau melakukan proses Restore (*rollback*) data. Mode pemeliharaan akan secara otomatis memblokir arus masuk data baru dari murid, pendaftar PPDB, maupun wali murid yang mengakses portal publik.
+                                    </p>
+                                    {maintenanceMode && (
+                                        <div className="alert alert-warning" style={{ marginTop: 16, border: '1px solid var(--warning-200)', background: 'var(--warning-50)', color: 'var(--warning-800)', display: 'flex', gap: 12 }}>
+                                            <AlertTriangle size={20} />
+                                            <div>
+                                                <strong>Mode Pemeliharaan Saat Ini Aktif!</strong>
+                                                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>Pengunjung publik hanya melihat halaman "Sedang dalam Perbaikan", namun Anda tetap bisa beraktivitas penuh sebagai Admin di layar ini.</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="card fade-in">
                                 <div className="card-header">
                                     <h3>📱 Koneksi WhatsApp</h3>
@@ -570,9 +614,11 @@ export default function PengaturanPage() {
                                             <Database size={18} /> Export Backup (.zip)
                                         </button>
                                         <div style={{ borderTop: '1px dashed var(--slate-200)', margin: '10px 0' }}></div>
-                                        <button className="btn btn-ghost text-danger" style={{ justifyContent: 'center', padding: 12 }}>
-                                            <Shield size={18} /> Restore Data
-                                        </button>
+                                        <Link to="/admin/backup" style={{ textDecoration: 'none' }}>
+                                            <button className="btn btn-ghost text-danger" style={{ width: '100%', justifyContent: 'center', padding: 12 }}>
+                                                <Shield size={18} /> Menu Restore Data
+                                            </button>
+                                        </Link>
                                     </div>
                                 </div>
                             </div>

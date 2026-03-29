@@ -13,6 +13,7 @@ import TabunganPage from './pages/TabunganPage'
 import PengumumanPage from './pages/PengumumanPage'
 import BKPage from './pages/BKPage'
 import PesanPage from './pages/PesanPage'
+import MaintenancePage from '../pages/public/MaintenancePage'
 import './student.css'
 
 const StudentContext = createContext()
@@ -32,6 +33,7 @@ export default function StudentApp() {
     const [bkData, setBkData] = useState({ poin: { pelanggaran: 0, prestasi: 0, netPoin: 0 }, pelanggaran: [], prestasi: [], tatatertib: [] })
     const [nilaiData, setNilaiData] = useState({ currentSemester: {}, subjects: { muatanNasional: [], muatanKewilayahan: [], muatanPeminatan: [] } })
     const [pesanList, setPesanList] = useState([])
+    const [maintenanceMode, setMaintenanceMode] = useState(false)
     const [loading, setLoading] = useState(true)
 
     const authHeaders = useCallback(() => ({
@@ -42,7 +44,7 @@ export default function StudentApp() {
     const fetchStudentData = useCallback(async () => {
         if (!token) { setLoading(false); return }
         try {
-            const [profileRes, billsRes, txRes, announcementsRes, menusRes, attendanceRes, attendanceDocsRes, tabunganRes, bkRes, nilaiRes, pesanRes] = await Promise.all([
+            const [profileRes, billsRes, txRes, announcementsRes, menusRes, attendanceRes, attendanceDocsRes, tabunganRes, bkRes, nilaiRes, pesanRes, settingsRes] = await Promise.all([
                 fetch(`${API_BASE}/student/profile`, { headers: authHeaders() }),
                 fetch(`${API_BASE}/student/bills`, { headers: authHeaders() }),
                 fetch(`${API_BASE}/student/transactions`, { headers: authHeaders() }),
@@ -53,7 +55,8 @@ export default function StudentApp() {
                 fetch(`${API_BASE}/student/tabungan`, { headers: authHeaders() }),
                 fetch(`${API_BASE}/student/bk`, { headers: authHeaders() }),
                 fetch(`${API_BASE}/student/nilai`, { headers: authHeaders() }),
-                fetch(`${API_BASE}/student/pesan`, { headers: authHeaders() })
+                fetch(`${API_BASE}/student/pesan`, { headers: authHeaders() }),
+                fetch(`${API_BASE}/public/settings`)
             ])
             if (!profileRes.ok) { handleLogout(); return }
             setProfile(await profileRes.json())
@@ -67,6 +70,12 @@ export default function StudentApp() {
             try { setBkData(await bkRes.json()) } catch { setBkData({ poin: { pelanggaran: 0, prestasi: 0, netPoin: 0 }, pelanggaran: [], prestasi: [], tatatertib: [] }) }
             try { setNilaiData(await nilaiRes.json()) } catch { setNilaiData({ currentSemester: {}, subjects: { muatanNasional: [], muatanKewilayahan: [], muatanPeminatan: [] } }) }
             try { setPesanList(await pesanRes.json()) } catch { setPesanList([]) }
+            try { 
+                const pubSet = await settingsRes.json();
+                if(pubSet && pubSet.maintenance_mode === 'true') {
+                    setMaintenanceMode(true);
+                }
+            } catch { }
         } catch (err) {
             console.error('Student data fetch error:', err)
         } finally {
@@ -115,6 +124,10 @@ export default function StudentApp() {
 
     if (!token || !student) {
         return <StudentLoginPage onLogin={handleLogin} />
+    }
+
+    if (maintenanceMode) {
+        return <MaintenancePage />
     }
 
     return (

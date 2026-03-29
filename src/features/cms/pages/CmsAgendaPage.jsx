@@ -1,0 +1,248 @@
+import React, { useState, useEffect } from 'react';
+import { useApp } from '../../../context/AppContext';
+import { useCustomAlert } from '../../../hooks/useCustomAlert';
+import { Plus, Edit2, Trash2, Calendar as CalendarIcon, RefreshCw, Layout } from 'lucide-react';
+import { API_BASE_CMS as API_BASE, getAuthHeaders } from '../../../services/api';
+
+export default function CmsAgendaPage({ hideHeader = false }) {
+    const { addToast } = useApp();
+    const { confirmDelete } = useCustomAlert();
+    const [agendas, setAgendas] = useState([]);
+    const [loading, setLoading] = useState(true);
+    
+    const [showModal, setShowModal] = useState(false);
+    const [editItem, setEditItem] = useState(null);
+    const [formData, setFormData] = useState({
+        title: '', description: '', event_date: '', time: '', location: '', is_active: 1
+    });
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => { loadAgendas(); }, []);
+
+    const loadAgendas = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/agenda`, { headers: getAuthHeaders() });
+            if (res.ok) setAgendas(await res.json());
+        } catch (err) {
+            addToast('danger', 'Error', 'Gagal memuat data agenda.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const openModal = (item = null) => {
+        setEditItem(item);
+        if (item) {
+            // Format YYYY-MM-DD for date input
+            const d = new Date(item.event_date);
+            const dateStr = !isNaN(d) ? d.toISOString().split('T')[0] : '';
+            setFormData({
+                title: item.title,
+                description: item.description || '',
+                event_date: dateStr,
+                time: item.time || '',
+                location: item.location || '',
+                is_active: item.is_active
+            });
+        } else {
+            setFormData({ title: '', description: '', event_date: '', time: '', location: '', is_active: 1 });
+        }
+        setShowModal(true);
+    };
+
+    const saveAgenda = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            const url = editItem ? `${API_BASE}/agenda/${editItem.id}` : `${API_BASE}/agenda`;
+            const method = editItem ? 'PUT' : 'POST';
+            const res = await fetch(url, {
+                method,
+                headers: getAuthHeaders(),
+                body: JSON.stringify(formData)
+            });
+            if (res.ok) {
+                addToast('success', 'Berhasil', `Agenda ${editItem ? 'diperbarui' : 'ditambahkan'}.`);
+                setShowModal(false);
+                loadAgendas();
+            } else {
+                const err = await res.json();
+                addToast('danger', 'Gagal', err.error || 'Terjadi kesalahan');
+            }
+        } catch (err) {
+            addToast('danger', 'Error', 'Gagal menyimpan agenda.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async (item) => {
+        if (await confirmDelete(`Hapus agenda "${item.title}"?`, 'Data akan dihapus permanen.')) {
+            try {
+                const res = await fetch(`${API_BASE}/agenda/${item.id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+                if (res.ok) {
+                    addToast('success', 'Berhasil', 'Agenda dihapus.');
+                    loadAgendas();
+                } else {
+                    addToast('danger', 'Gagal', 'Gagal menghapus agenda.');
+                }
+            } catch (err) {
+                addToast('danger', 'Error', 'Gagal menghapus agenda.');
+            }
+        }
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('id-ID', options);
+    };
+
+    return (
+        <div className={hideHeader ? '' : 'fade-in'}>
+            {!hideHeader && (
+                <div className="page-header">
+                    <h1><Layout size={24} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Manajemen Agenda</h1>
+                    <button className="btn btn-secondary" onClick={loadAgendas}>
+                        <RefreshCw size={16} /> Refresh
+                    </button>
+                </div>
+            )}
+
+            <div className="cms-section-card" style={hideHeader ? { padding: 0, boxShadow: 'none' } : {}}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div>
+                        <h3 className="cms-section-title" style={{ marginBottom: 4 }}>🗓️ Daftar Agenda Sekolah</h3>
+                        <p className="cms-section-desc">Acara mendatang akan ditampilkan secara publik di Halaman Utama Portal.</p>
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={() => openModal()}>
+                        <Plus size={14} /> Tambah Agenda
+                    </button>
+                </div>
+
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: 20 }}>Memuat...</div>
+                ) : agendas.length === 0 ? (
+                    <div className="cms-empty-state">Belum ada agenda bulan ini. Klik "Tambah Agenda" untuk membuat jadwal baru.</div>
+                ) : (
+                    <div className="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: 50 }}>No</th>
+                                    <th style={{ width: 150 }}>Tanggal Acara</th>
+                                    <th>Judul Acara</th>
+                                    <th>Waktu & Lokasi</th>
+                                    <th style={{ width: 80 }}>Status</th>
+                                    <th style={{ width: 90 }}>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {agendas.map((item, index) => (
+                                    <tr key={item.id}>
+                                        <td className="text-center">{index + 1}</td>
+                                        <td><strong>{formatDate(item.event_date)}</strong></td>
+                                        <td>
+                                            <div style={{ fontWeight: 600 }}>{item.title}</div>
+                                            {item.description && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.description}</div>}
+                                        </td>
+                                        <td>
+                                            <div style={{ fontSize: '0.85rem' }}>⏰ {item.time || '-'}</div>
+                                            <div style={{ fontSize: '0.85rem' }}>📍 {item.location || '-'}</div>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${item.is_active ? 'badge-success' : 'badge-secondary'}`}>
+                                                {item.is_active ? 'Aktif' : 'Off'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="action-group">
+                                                <button className="btn-icon btn-edit" title="Edit" onClick={() => openModal(item)}>
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button className="btn-icon btn-delete danger" title="Hapus" onClick={() => handleDelete(item)}>
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* Modal Form */}
+            {showModal && (
+                <div className="modal-overlay animate-fade-in">
+                    <div className="modal-content" style={{ maxWidth: 600 }}>
+                        <div className="modal-header">
+                            <h3>{editItem ? 'Edit Agenda' : 'Tambah Agenda'}</h3>
+                            <button className="btn-close" onClick={() => setShowModal(false)}>&times;</button>
+                        </div>
+                        <form onSubmit={saveAgenda}>
+                            <div className="modal-body">
+                                <div className="form-group mb-3">
+                                    <label>Judul Acara <span className="text-danger">*</span></label>
+                                    <input type="text" className="form-control" required
+                                        value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                    />
+                                </div>
+                                
+                                <div className="grid-2 gap-3 mb-3">
+                                    <div className="form-group">
+                                        <label>Tanggal Acara <span className="text-danger">*</span></label>
+                                        <input type="date" className="form-control" required
+                                            value={formData.event_date} onChange={e => setFormData({ ...formData, event_date: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Jam / Waktu</label>
+                                        <input type="text" className="form-control" placeholder="Cth: 08:00 - Selesai"
+                                            value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="form-group mb-3">
+                                    <label>Lokasi / Tempat</label>
+                                    <input type="text" className="form-control" placeholder="Cth: Aula Sekolah"
+                                        value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="form-group mb-3">
+                                    <label>Deskripsi Singkat</label>
+                                    <textarea className="form-control" rows={3}
+                                        value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                    ></textarea>
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input type="checkbox"
+                                            checked={formData.is_active === 1}
+                                            onChange={e => setFormData({ ...formData, is_active: e.target.checked ? 1 : 0 })}
+                                        />
+                                        <span>Tampilkan di Portal Publik</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Batal</button>
+                                <button type="submit" className="btn btn-primary" disabled={saving}>
+                                    {saving ? 'Menyimpan...' : 'Simpan Agenda'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

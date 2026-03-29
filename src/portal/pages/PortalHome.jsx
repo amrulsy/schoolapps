@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { 
     Play, X, ChevronLeft, ChevronRight, ArrowRight, CheckCircle, 
-    ChevronDown, MessageCircle, GraduationCap, Trophy, Briefcase 
+    ChevronDown, MessageCircle, GraduationCap, Trophy, Briefcase, Calendar, MapPin, Clock, Eye,
+    BarChart3, Users, Globe,
+    ChevronLeft as PrevIcon, ChevronRight as NextIcon
 } from 'lucide-react'
 import { usePortal } from '../context/PortalContext'
 import { getDirectDriveUrl } from '../../utils/urlHelper'
@@ -12,10 +14,14 @@ import '../styles/portal-home-partners.css'
 import '../styles/portal-programs.css'
 
 export default function PortalHome() {
-    const { fetchPublic } = usePortal()
+    const { fetchPublic, postPublic } = usePortal()
 
     const [stats, setStats] = useState(null)
     const [posts, setPosts] = useState([])
+    const [trendingPosts, setTrendingPosts] = useState([])
+    const [agendas, setAgendas] = useState([])
+    const [hoveredAgendaId, setHoveredAgendaId] = useState(null)
+    const [visitorStats, setVisitorStats] = useState(null)
     const [banners, setBanners] = useState([])
     const [programs, setPrograms] = useState([])
     const [partners, setPartners] = useState([])
@@ -39,6 +45,17 @@ export default function PortalHome() {
     const [lightboxImg, setLightboxImg] = useState(null)
     const [identityLogos, setIdentityLogos] = useState([])
     const [hoveredCard, setHoveredCard] = useState(null)
+    const [currentMonthDate, setCurrentMonthDate] = useState(new Date())
+    const [activeAgendaTab, setActiveAgendaTab] = useState('upcoming')
+    const [selectedAgendasForModal, setSelectedAgendasForModal] = useState(null)
+
+    const handlePrevMonth = () => {
+        setCurrentMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+    }
+
+    const handleNextMonth = () => {
+        setCurrentMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+    }
     // ----------------------------------
 
     // --- Event Listeners for Parallax & Tilt ---
@@ -94,9 +111,25 @@ export default function PortalHome() {
     useEffect(() => {
         async function loadData() {
             setLoading(true)
-            const [statsData, postsData, bannersData, programsData, partnersData, settingsData, testimonialsData, galleryData, faqData, identityData] = await Promise.all([
+            
+            // 1. First, optimistic track visit if not visited this session
+            if (!sessionStorage.getItem('visited_today')) {
+                postPublic('/visit', {}).then(res => {
+                    if (res && res.success) sessionStorage.setItem('visited_today', 'true')
+                }).catch(() => {})
+            }
+
+            // 2. Load all initial data in parallel
+            const [
+                statsData, postsData, trendingData, agendaData, visitStatsData,
+                bannersData, programsData, partnersData, settingsData, 
+                testimonialsData, galleryData, faqData, identityData
+            ] = await Promise.all([
                 fetchPublic('/stats'),
                 fetchPublic('/posts?limit=3'),
+                fetchPublic('/posts/trending'),
+                fetchPublic('/agenda'),
+                fetchPublic('/visitor-stats'),
                 fetchPublic('/banners'),
                 fetchPublic('/programs'),
                 fetchPublic('/partners'),
@@ -106,8 +139,13 @@ export default function PortalHome() {
                 fetchPublic('/faq'),
                 fetchPublic('/identity-logos')
             ])
+
             if (statsData) setStats(statsData)
-            if (postsData) setPosts(postsData.data || [])
+            if (postsData && postsData.data) setPosts(postsData.data)
+            if (trendingData) setTrendingPosts(trendingData)
+            if (agendaData) setAgendas(agendaData)
+            if (visitStatsData && !visitStatsData.error) setVisitorStats(visitStatsData)
+            
             if (bannersData) setBanners(bannersData)
             if (programsData) setPrograms(programsData)
             if (partnersData) setPartners(partnersData)
@@ -130,6 +168,49 @@ export default function PortalHome() {
             setActivePartner(prev => (prev + 1) % total)
         }
     }
+
+    const formatLocalDateISO = (date) => {
+        if (!date) return "";
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    // Helper for Modern Calendar
+    const getCalendarDays = (targetDate = new Date()) => {
+        const year = targetDate.getFullYear();
+        const month = targetDate.getMonth();
+        const start = new Date(year, month, 1);
+        const end = new Date(year, month + 1, 0);
+        
+        const days = [];
+        const firstDayOfMonth = new Date(year, month, 1);
+        
+        // Pad start with previous month days
+        const prevDaysCount = firstDayOfMonth.getDay(); 
+        for (let i = prevDaysCount - 1; i >= 0; i--) {
+            days.push({ 
+                date: new Date(year, month, -i), 
+                current: false 
+            });
+        }
+        
+        // Current month
+        for (let i = 1; i <= end.getDate(); i++) {
+            days.push({ date: new Date(year, month, i), current: true });
+        }
+        
+        // Pad end
+        const remaining = 42 - days.length;
+        for (let i = 1; i <= remaining; i++) {
+            days.push({ date: new Date(year, month + 1, i), current: false });
+        }
+        return days;
+    }
+
+    const calendarDays = getCalendarDays(currentMonthDate);
+    const currentMonthName = currentMonthDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
 
     const formatDate = (dateStr) => {
         if (!dateStr) return ''
@@ -518,7 +599,243 @@ export default function PortalHome() {
             )}
 
             {/* ═══════════════════════════════════════════
-                 6. PENGUMUMAN TERBARU
+                 6A. AGENDA SEKOLAH (SPLIT LAYOUT)
+               ═══════════════════════════════════════════ */}
+            {agendas.length > 0 && (
+                <section className="portal-agenda-section">
+                    <div className="portal-container">
+                        <div className="portal-section-header" style={{ marginBottom: '50px' }}>
+                            <span className="portal-section-label">Jadwal Penting</span>
+                            <h2 className="portal-section-title">Agenda Utama Sekolah</h2>
+                            <p className="portal-section-subtitle">Aktivitas dan kegiatan mendatang untuk seluruh warga sekolah.</p>
+                        </div>
+                        
+                        <div className="portal-agenda-split">
+                            {/* Left: Interactive List (Desktop Only) */}
+                            <div className="agenda-list-side desktop-only-agenda">
+                                <div className="agenda-tabs">
+                                    <div className={`agenda-tab-indicator ${activeAgendaTab}`} />
+                                    <button 
+                                        className={`agenda-tab-btn ${activeAgendaTab === 'upcoming' ? 'active' : ''}`}
+                                        onClick={() => setActiveAgendaTab('upcoming')}
+                                    >
+                                        <Calendar size={18} /> Yang Akan Datang
+                                    </button>
+                                    <button 
+                                        className={`agenda-tab-btn ${activeAgendaTab === 'finished' ? 'active' : ''}`}
+                                        onClick={() => setActiveAgendaTab('finished')}
+                                    >
+                                        <CheckCircle size={18} /> Sudah Selesai
+                                    </button>
+                                </div>
+
+                                {(() => {
+                                    const today = new Date();
+                                    today.setHours(0,0,0,0);
+                                    
+                                    const filtered = agendas.filter(item => {
+                                        const eventDate = new Date(item.event_date);
+                                        const eventISO = formatLocalDateISO(eventDate);
+                                        const todayISO = formatLocalDateISO(new Date());
+                                        return activeAgendaTab === 'upcoming' ? eventISO >= todayISO : eventISO < todayISO;
+                                    });
+
+                                    // Sort logic: Upcoming ASC (nearest first), Finished DESC (latest completed first)
+                                    filtered.sort((a, b) => {
+                                        const dateA = new Date(a.event_date);
+                                        const dateB = new Date(b.event_date);
+                                        return activeAgendaTab === 'upcoming' ? dateA - dateB : dateB - dateA;
+                                    });
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="empty-agenda-tab">
+                                                <Calendar size={40} />
+                                                <p>Tidak ada agenda {activeAgendaTab === 'upcoming' ? 'mendatang' : 'lampau'}.</p>
+                                            </div>
+                                        )
+                                    }
+
+                                    return filtered.map((item, idx) => {
+                                        const eventDate = new Date(item.event_date);
+                                        const eventISO = formatLocalDateISO(eventDate);
+                                        const todayISO = formatLocalDateISO(new Date());
+                                        const isPastItem = eventISO < todayISO;
+    
+                                        const isHovered = hoveredAgendaId === item.id;
+                                        return (
+                                            <div 
+                                                key={item.id} 
+                                                className={`agenda-item-modern stagger-item ${isHovered ? 'active' : ''} ${isPastItem ? 'is-past' : ''}`}
+                                                onMouseEnter={() => setHoveredAgendaId(item.id)}
+                                                onMouseLeave={() => setHoveredAgendaId(null)}
+                                                onClick={() => setHoveredAgendaId(isHovered ? null : item.id)}
+                                                style={{ animationDelay: `${idx * 0.1}s` }}
+                                            >
+                                                <div className="agenda-list-date">
+                                                    <span className="month">{eventDate.toLocaleString('id-ID', { month: 'short' })}</span>
+                                                    <span className="day">{eventDate.getDate()}</span>
+                                                </div>
+                                                <div className="agenda-info">
+                                                    <div className="agenda-header-row">
+                                                        <h4>{item.title}</h4>
+                                                        {isPastItem && <span className="past-badge-pill">Selesai</span>}
+                                                    </div>
+                                                    <p className="agenda-excerpt">{item.description || 'Agenda sekolah untuk mempererat tali silaturahmi dan pengembangan kreativitas siswa.'}</p>
+                                                    <div className="agenda-detail-hidden">
+                                                        <div className="agenda-meta-item"><Clock size={16}/> {item.time || '08:00 WIB'}</div>
+                                                        <div className="agenda-meta-item"><MapPin size={16}/> {item.location || 'Aula Utama'}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                })()}
+                            </div>
+
+                            {/* Right: Modern Calendar Widget */}
+                            <div className="agenda-calendar-side stagger-item" style={{ animationDelay: '0.4s' }}>
+                                <div className="calendar-mobile-hint">
+                                    <Calendar size={16} /> 
+                                    <span>Ketuk tanggal berwarna untuk detail</span>
+                                </div>
+                                <div className="modern-calendar-widget">
+                                    <div className="calendar-header">
+                                        <h5>{currentMonthName}</h5>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <PrevIcon 
+                                                size={18} 
+                                                style={{ cursor: 'pointer', color: 'var(--primary-color)' }} 
+                                                onClick={handlePrevMonth}
+                                            />
+                                            <NextIcon 
+                                                size={18} 
+                                                style={{ cursor: 'pointer', color: 'var(--primary-color)' }} 
+                                                onClick={handleNextMonth}
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="calendar-body">
+                                        <div className="calendar-grid">
+                                            {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (
+                                                <div key={day} className="calendar-day-label">{day}</div>
+                                            ))}
+                                            {calendarDays.map((dayObj, i) => {
+                                                const d = dayObj.date;
+                                                const dateStr = formatLocalDateISO(d);
+                                                
+                                                // Check if it's a past date
+                                                const todayISO = formatLocalDateISO(new Date());
+                                                const isPast = dateStr < todayISO;
+                                                
+                                                // Find matching agendas for this day
+                                                const matchingAgendas = agendas.filter(a => formatLocalDateISO(new Date(a.event_date)) === dateStr);
+                                                const hasActiveEvent = matchingAgendas.length > 0;
+                                                
+                                                // Color matching based on first event index in main list
+                                                const firstMatchingIdx = agendas.findIndex(a => formatLocalDateISO(new Date(a.event_date)) === dateStr);
+                                                const colorType = hasActiveEvent ? (firstMatchingIdx % 3) + 1 : 0;
+                                                
+                                                const isHighlighted = hoveredAgendaId && formatLocalDateISO(new Date(agendas.find(a => a.id === hoveredAgendaId)?.event_date)) === dateStr;
+                                                
+                                                return (
+                                                    <div 
+                                                        key={i} 
+                                                        className={`calendar-date ${dayObj.current ? 'current-month' : ''} ${hasActiveEvent ? `has-event event-type-${colorType} ${isPast ? 'is-past' : ''}` : ''} ${isHighlighted ? 'active-event' : ''}`}
+                                                        onMouseEnter={() => {
+                                                            if (hasActiveEvent) setHoveredAgendaId(matchingAgendas[0].id);
+                                                        }}
+                                                        onMouseLeave={() => setHoveredAgendaId(null)}
+                                                        onClick={() => {
+                                                            if (hasActiveEvent) {
+                                                                if (window.innerWidth <= 1024) {
+                                                                    setSelectedAgendasForModal({
+                                                                        items: matchingAgendas,
+                                                                        type: colorType
+                                                                    });
+                                                                } else {
+                                                                    setHoveredAgendaId(matchingAgendas[0].id);
+                                                                }
+                                                            }
+                                                        }}
+                                                    >
+                                                        {d.getDate()}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* Agenda Detail Modal (Mobile Only) */}
+            {selectedAgendasForModal && (
+                <div className="portal-agenda-modal-overlay" onClick={() => setSelectedAgendasForModal(null)}>
+                    <div className={`portal-agenda-modal-content event-type-${selectedAgendasForModal.type}`} onClick={e => e.stopPropagation()}>
+                        <button className="modal-close-btn" onClick={() => setSelectedAgendasForModal(null)}><X size={24}/></button>
+                        <div className="modal-scroll-area">
+                            <h3 className="modal-title">Agenda Sekolah</h3>
+                            <p className="modal-subtitle">Detail acara untuk tanggal {new Date(selectedAgendasForModal.items[0].event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                            
+                            <div className="modal-agendas-list">
+                                {selectedAgendasForModal.items.map(item => (
+                                    <div key={item.id} className="modal-agenda-card">
+                                        <div className="badge-wrapper">
+                                            <span className="agenda-type-badge">Event Utama</span>
+                                        </div>
+                                        <h4>{item.title}</h4>
+                                        <p>{item.description || 'Agenda sekolah untuk mempererat tali silaturahmi dan pengembangan kreativitas siswa.'}</p>
+                                        <div className="modal-meta-grid">
+                                            <div className="meta-item"><Clock size={16}/> {item.time || '08:00 WIB'}</div>
+                                            <div className="meta-item"><MapPin size={16}/> {item.location || 'Aula Utama'}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════
+                 6B. TRENDING POSTS (Hiden by User Request)
+               ═══════════════════════════════════════════ */}
+            {/* 
+            {trendingPosts.length > 0 && (
+                <section className="portal-section" style={{ background: '#ffffff', borderTop: '1px solid var(--border-color)' }}>
+                    <div className="portal-container">
+                        <div className="portal-section-header">
+                            <span className="portal-section-label" style={{ color: '#ef4444' }}>🔥 Sedang Hangat</span>
+                            <h2 className="portal-section-title">Paling Banyak Dibaca</h2>
+                            <p className="portal-section-subtitle">Topik dan informasi yang sedang ramai diperbincangkan minggu ini.</p>
+                        </div>
+                        <div className="trending-grid-modern">
+                            {trendingPosts.map((post, idx) => (
+                                <Link key={post.id} to={`/pengumuman/${post.slug}`} className="trending-card-modern stagger-item" style={{ animationDelay: `${idx * 0.1}s` }}>
+                                    <div className="trending-rank-number">{idx + 1}</div>
+                                    <div className="trending-content">
+                                        <span className="trending-category">{post.category}</span>
+                                        <h3 className="trending-title">{post.title}</h3>
+                                        <div className="trending-meta">
+                                            <span>{formatDate(post.published_at)}</span>
+                                            <span className="trending-views"><Eye size={14} /> {post.views}x Dibaca</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+            */}
+
+            {/* ═══════════════════════════════════════════
+                 6C. PENGUMUMAN TERBARU
                ═══════════════════════════════════════════ */}
             <section className="portal-section" style={{ background: 'var(--portal-bg-alt)' }}>
                 <div className="portal-container">
@@ -860,7 +1177,11 @@ export default function PortalHome() {
             )}
 
             {/* ═══════════════════════════════════════════
-                 8D. CTA SECTION
+                 8D. DATA PENGUNJUNG WEB (NEW)
+               ═══════════════════════════════════════════ */}
+
+            {/* ═══════════════════════════════════════════
+                 8E. CTA SECTION
                ═══════════════════════════════════════════ */}
             <section className="portal-cta">
                 <div className="portal-container">
@@ -873,6 +1194,50 @@ export default function PortalHome() {
                     </Link>
                 </div>
             </section>
+
+            {/* ═══════════════════════════════════════════
+                 8F. COMPACT VISITOR WIDGET
+               ═══════════════════════════════════════════ */}
+            {visitorStats && (
+                <section className="portal-visitor-compact">
+                    <div className="portal-container">
+                        <div className="visitor-widget-pills">
+                            <div className="visitor-pill">
+                                <div className="visitor-pill-icon">
+                                    <BarChart3 size={16} />
+                                </div>
+                                <div className="visitor-pill-info">
+                                    <span className="visitor-label">
+                                        <span className="live-indicator">
+                                            <span className="live-pulse"></span>
+                                        </span>
+                                        Hari Ini
+                                    </span>
+                                    <span className="visitor-value">{visitorStats.today}</span>
+                                </div>
+                            </div>
+                            <div className="visitor-pill">
+                                <div className="visitor-pill-icon">
+                                    <Users size={16} />
+                                </div>
+                                <div className="visitor-pill-info">
+                                    <span className="visitor-label">Bulan Ini</span>
+                                    <span className="visitor-value">{visitorStats.month}</span>
+                                </div>
+                            </div>
+                            <div className="visitor-pill">
+                                <div className="visitor-pill-icon">
+                                    <Globe size={16} />
+                                </div>
+                                <div className="visitor-pill-info">
+                                    <span className="visitor-label">Total Kunjungan</span>
+                                    <span className="visitor-value">{visitorStats.total}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
 
         </div>
     )

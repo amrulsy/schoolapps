@@ -20,7 +20,8 @@ const networkErrMsg = (err, detail = '') =>
         : err.message;
 
 const BackupPage = () => {
-    const { addToast } = useApp();
+    const { addToast, schoolSettings } = useApp();
+    const isMaintenanceActive = schoolSettings?.maintenance_mode === 'true';
     const [loading, setLoading] = useState(false);
     const [file, setFile] = useState(null);
     const [serverStatus, setServerStatus] = useState('checking'); // 'checking', 'online', 'offline'
@@ -159,14 +160,35 @@ const BackupPage = () => {
 
                 {/* Import Section */}
                 <div className="card">
-                    <div className="card-header">
-                        <h3><Upload size={20} className="mr-2" /> Restore Data</h3>
+                    <div className="card-header" style={{ display: 'flex', alignItems: 'center' }}>
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center' }}><Upload size={20} className="mr-2" /> Restore Data</h3>
+                        {!isMaintenanceActive && (
+                            <span className="badge badge-warning" style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 600 }}>TERKUNCI</span>
+                        )}
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 20 }}>
-                        Pulihkan sistem ke keadaan sebelumnya dengan mengunggah file arsip backup (.zip).
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 20, marginTop: 12 }}>
+                        Pulihkan sistem ke keadaan sebelumnya dengan mengunggah file arsip backup (.zip). 
+                        Aksi ini akan menghapus seluruh data dan media saat ini secara permanen.
                     </p>
 
-                    <form onSubmit={handleImport}>
+                    {!isMaintenanceActive ? (
+                        <div className="alert alert-warning fade-in" style={{ 
+                            background: '#fffbeb', border: '1px solid #fef3c7', color: '#92400e', 
+                            padding: '16px', borderRadius: '8px', display: 'flex', gap: '16px', alignItems: 'flex-start' 
+                        }}>
+                            <AlertTriangle size={24} style={{ flexShrink: 0, marginTop: 2 }} />
+                            <div>
+                                <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 700 }}>Akses Restore Terkunci</h4>
+                                <p style={{ fontSize: '0.85rem', margin: '0 0 12px 0', lineHeight: 1.6 }}>
+                                    Demi menghindari kehilangan atau tabrakan data (*data collision*), Anda <strong>wajib mengaktifkan Mode Maintenance</strong> untuk memblokir interaksi dari guru maupun murid sebelum fitur Restore ini diizinkan untuk digunakan.
+                                </p>
+                                <a href="/admin/pengaturan" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#b45309', textDecoration: 'underline' }}>
+                                    → Nyalakan Mode Maintenance di Pengaturan Sistem
+                                </a>
+                            </div>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleImport} className="fade-in">
                         <div className="form-group">
                             <label>Pilih File Backup (.zip)</label>
                             <input
@@ -193,6 +215,7 @@ const BackupPage = () => {
                             {loading ? 'Memulihkan...' : 'Mulai Restore Data'}
                         </button>
                     </form>
+                    )}
                 </div>
             </div>
 

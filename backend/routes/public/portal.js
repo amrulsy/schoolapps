@@ -18,7 +18,7 @@ router.get('/banners', cacheMiddleware(600), async (req, res) => {
 });
 
 // GET /api/public/posts — Published posts with pagination
-router.get('/posts', cacheMiddleware(300), async (req, res) => {
+router.get('/posts', cacheMiddleware(5), async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = Math.min(parseInt(req.query.limit) || 10, 50);
@@ -39,7 +39,7 @@ router.get('/posts', cacheMiddleware(300), async (req, res) => {
         const total = countRows[0].total;
 
         const [rows] = await pool.query(
-            `SELECT id, slug, title, excerpt, cover_image, category, is_pinned, published_at, created_at
+            `SELECT id, slug, title, excerpt, cover_image, category, is_pinned, published_at, created_at, views
              FROM cms_posts ${where}
              ORDER BY is_pinned DESC, published_at DESC
              LIMIT ? OFFSET ?`,
@@ -58,8 +58,22 @@ router.get('/posts', cacheMiddleware(300), async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /api/public/posts/trending — Top 4 trending posts
+router.get('/posts/trending', cacheMiddleware(300), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT id, slug, title, excerpt, cover_image, category, is_pinned, published_at, created_at, views 
+             FROM cms_posts 
+             WHERE status = 'published' 
+             ORDER BY views DESC, published_at DESC
+             LIMIT 4`
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // GET /api/public/posts/:slug — Single post by slug
-router.get('/posts/:slug', cacheMiddleware(300), async (req, res) => {
+router.get('/posts/:slug', cacheMiddleware(5), async (req, res) => {
     try {
         const [rows] = await pool.query(
             `SELECT p.*, u.nama as author_name 
@@ -69,7 +83,31 @@ router.get('/posts/:slug', cacheMiddleware(300), async (req, res) => {
             [req.params.slug]
         );
         if (rows.length === 0) return res.status(404).json({ error: 'Artikel tidak ditemukan' });
-        res.json(rows[0]);
+
+        const post = rows[0];
+
+        // Fetch Next & Prev Post
+        const [prevRows] = await pool.query(
+            "SELECT slug, title FROM cms_posts WHERE status = 'published' AND published_at < ? ORDER BY published_at DESC LIMIT 1",
+            [post.published_at]
+        );
+        const [nextRows] = await pool.query(
+            "SELECT slug, title FROM cms_posts WHERE status = 'published' AND published_at > ? ORDER BY published_at ASC LIMIT 1",
+            [post.published_at]
+        );
+
+        post.prev_post = prevRows[0] || null;
+        post.next_post = nextRows[0] || null;
+
+        res.json(post);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/public/posts/:slug/view — Increment view count
+router.post('/posts/:slug/view', async (req, res) => {
+    try {
+        await pool.query("UPDATE cms_posts SET views = views + 1 WHERE slug = ?", [req.params.slug]);
+        res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -90,6 +128,13 @@ router.get('/settings', cacheMiddleware(60), async (req, res) => {
         const [rows] = await pool.query('SELECT setting_key, setting_value FROM cms_settings');
         const settings = {};
         rows.forEach(r => { settings[r.setting_key] = r.setting_value; });
+        
+        // Include maintenance_mode from school_settings
+        const [schoolRows] = await pool.query("SELECT `value` FROM school_settings WHERE `key` = 'maintenance_mode'");
+        if(schoolRows.length > 0) {
+            settings.maintenance_mode = schoolRows[0].value;
+        }
+
         res.json(settings);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -364,6 +409,54 @@ router.get('/identity-logos', cacheMiddleware(600), async (req, res) => {
             'SELECT * FROM cms_identity_logos WHERE is_active = 1 ORDER BY sort_order ASC'
         );
         res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/agenda — Latest Events (Past & Upcoming)
+router.get('/agenda', cacheMiddleware(300), async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM cms_agenda WHERE is_active = 1 ORDER BY event_date ASC LIMIT 10'
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/public/visit — Track daily visitor
+router.post('/visit', async (req, res) => {
+    try {
+        await pool.query(`
+            INSERT INTO cms_visitor_stats (visit_date, visits) 
+            VALUES (DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+07:00')), 1) 
+            ON DUPLICATE KEY UPDATE visits = visits + 1
+        `);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/public/visitor-stats — Get visitor metrics
+router.get('/visitor-stats', cacheMiddleware(60), async (req, res) => {
+    try {
+        // Current local date in WIB as STRING "YYYY-MM-DD"
+        const [dateRows] = await pool.query("SELECT DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+07:00'), '%Y-%m-%d') as today");
+        const todayDate = dateRows[0].today;
+        
+        // Use string date for comparison
+        const todayQuery = `SELECT visits FROM cms_visitor_stats WHERE visit_date = ?`;
+        const monthQuery = `SELECT SUM(visits) as month_visits FROM cms_visitor_stats WHERE MONTH(visit_date) = MONTH(?) AND YEAR(visit_date) = YEAR(?)`;
+        const totalQuery = `SELECT SUM(visits) as total_visits FROM cms_visitor_stats`;
+
+        const [todayRows] = await pool.query(todayQuery, [todayDate]);
+        const [monthRows] = await pool.query(monthQuery, [todayDate, todayDate]);
+        const [totalRows] = await pool.query(totalQuery);
+        
+        const result = {
+            today: todayRows[0]?.visits || 0,
+            month: Number(monthRows[0]?.month_visits) || 0,
+            total: Number(totalRows[0]?.total_visits) || 0
+        };
+
+        res.json(result);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
