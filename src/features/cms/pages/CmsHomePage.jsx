@@ -2002,38 +2002,51 @@ export default function CmsHomePage() {
 
     function renderIdentityModal() {
         return (
-            <div className="modal-overlay" onClick={() => setShowIdentityModal(false)}>
-                <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="modal-backdrop glass" onClick={() => setShowIdentityModal(false)}>
+                <div className="modal glass-modal slide-up" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
                     <div className="modal-header">
-                        <h3>{editIdentity ? 'Edit Logo Identitas' : 'Tambah Logo Identitas'}</h3>
+                        <div className="d-flex align-items-center gap-2">
+                            <Shield size={20} className="text-primary" />
+                            <h3 className="m-0">{editIdentity ? 'Edit Logo Identitas' : 'Tambah Logo Identitas'}</h3>
+                        </div>
+                        <button className="btn-close-round" onClick={() => setShowIdentityModal(false)}>×</button>
                     </div>
                     <div className="modal-body">
                         <form id="identityForm" onSubmit={saveIdentity}>
                             <div className="grid-2 gap-4 mb-4">
                                 <div className="form-group">
-                                    <label>Label <span className="text-danger">*</span></label>
+                                    <label className="cms-label">
+                                        <Type size={14} className="text-primary" /> Label 
+                                        <span className="text-danger ml-1">*</span>
+                                    </label>
                                     <input type="text" className="form-control" value={identityForm.label}
                                         onChange={e => setIdentityForm({ ...identityForm, label: e.target.value })} required
-                                        placeholder="Yayasan / Sekolah / Pramuka" />
+                                        placeholder="Misal: Yayasan / Sekolah" />
                                 </div>
                                 <div className="form-group">
-                                    <label>Nama <span className="text-danger">*</span></label>
+                                    <label className="cms-label">
+                                        <Building2 size={14} className="text-primary" /> Nama Lengkap
+                                        <span className="text-danger ml-1">*</span>
+                                    </label>
                                     <input type="text" className="form-control" value={identityForm.name}
                                         onChange={e => setIdentityForm({ ...identityForm, name: e.target.value })} required
-                                        placeholder="Yayasan Pendidikan PPRQ" />
+                                        placeholder="Nama institusi..." />
                                 </div>
                             </div>
-                            <div className="form-group mb-4">
-                                <label>URL Logo</label>
-                                <MediaUploadField
-                                    value={identityForm.logo_url}
-                                    onChange={val => setIdentityForm({ ...identityForm, logo_url: val })}
-                                    label="Logo"
-                                />
-                            </div>
-                            <div className="grid-2 gap-4 mb-4">
+
+                            <MediaUploadField
+                                label="Logo Identitas"
+                                value={identityForm.logo_url}
+                                onChange={val => setIdentityForm({ ...identityForm, logo_url: val })}
+                                helperText="Gunakan logo format PNG transparan untuk hasil terbaik."
+                                previewStyle={{ height: '140px' }}
+                            />
+
+                            <div className="grid-2 gap-4">
                                 <div className="form-group">
-                                    <label>Warna Tema</label>
+                                    <label className="cms-label">
+                                        <Star size={14} className="text-warning" /> Warna Tema
+                                    </label>
                                     <select className="form-control" value={identityForm.color_class}
                                         onChange={e => setIdentityForm({ ...identityForm, color_class: e.target.value })}>
                                         <option value="yayasan">🏛️ Biru (Yayasan)</option>
@@ -2044,17 +2057,25 @@ export default function CmsHomePage() {
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label>Urutan Tampil</label>
+                                    <label className="cms-label">
+                                        <RefreshCw size={14} className="text-slate" /> Urutan
+                                    </label>
                                     <input type="number" className="form-control" value={identityForm.sort_order}
                                         onChange={e => setIdentityForm({ ...identityForm, sort_order: parseInt(e.target.value) || 0 })} />
                                 </div>
                             </div>
                         </form>
                     </div>
-                    <div className="modal-footer">
-                        <button className="btn btn-secondary" onClick={() => setShowIdentityModal(false)} disabled={savingIdentity}>Batal</button>
+                    <div className="modal-footer bg-light-soft">
+                        <button className="btn btn-secondary" onClick={() => setShowIdentityModal(false)} disabled={savingIdentity}>
+                            Batal
+                        </button>
                         <button type="submit" form="identityForm" className="btn btn-primary" disabled={savingIdentity}>
-                            {savingIdentity ? 'Menyimpan...' : 'Simpan Logo'}
+                            {savingIdentity ? (
+                                <><RefreshCw size={16} className="animate-spin" /> Menyimpan...</>
+                            ) : (
+                                <><Save size={16} /> Simpan Logo</>
+                            )}
                         </button>
                     </div>
                 </div>

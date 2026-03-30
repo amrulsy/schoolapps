@@ -323,6 +323,23 @@
     }
 }
 
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+.bg-light-soft {
+    background-color: var(--gray-50);
+}
+
+.ml-1 { margin-left: 4px; }
+.mr-1 { margin-right: 4px; }
+.mr-2 { margin-right: 8px; }
+
 @keyframes slideUp {
     from {
         opacity: 0;
