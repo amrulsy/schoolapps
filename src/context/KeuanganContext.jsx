@@ -80,7 +80,7 @@ export function KeuanganProvider({ children }) {
             const logData = {
                 tipe: 'bulk',
                 keterangan: `Generate ${category.nama} untuk ${kelasIds.length} kelas`,
-                operator: currentUser.nama
+                operator: currentUser?.nama || currentUser?.username || 'Admin'
             };
 
             const res = await fetch(`${API_BASE}/tagihan`, {
@@ -138,7 +138,7 @@ export function KeuanganProvider({ children }) {
             const logData = {
                 tipe: 'single',
                 keterangan: `Generate ${kategoriName} untuk ${student.nama}`,
-                operator: currentUser.nama
+                operator: currentUser?.nama || currentUser?.username || 'Admin'
             };
             const res = await fetch(`${API_BASE}/tagihan`, {
                 method: 'POST',
@@ -205,7 +205,7 @@ export function KeuanganProvider({ children }) {
                     total,
                     change: amountPaid - total,
                     partialPayMap,
-                    kasir: currentUser.nama,
+                    kasir: currentUser?.nama || currentUser?.username || 'Admin',
                     sendWA
                 })
             });

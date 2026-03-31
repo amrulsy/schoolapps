@@ -593,18 +593,8 @@ export default function PortalProgramDetail() {
                 </div>
             </section>
 
-            {/* ====== FLOATING CTA ====== */}
-            <div className="floating-cta-container">
-                <a href="https://wa.me/6281234567890" target="_blank" rel="noreferrer" className="floating-btn floating-btn-secondary">
-                    <MessageCircle size={20} />
-                    <span>Tanya Guru/Admin</span>
-                </a>
-                <Link to="/ppdb" className="floating-btn floating-btn-primary">
-                    <Award size={20} />
-                    <span>Daftar Jurusan Ini</span>
-                </Link>
-            </div>
 
         </div>
     )
 }
+

@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { 
     Save, Upload, AlertTriangle, Calendar, Clock, 
     MessageSquare, Database, Shield, Layout,
-    CheckCircle, XCircle, RefreshCw, Trash2, Plus, FileText
+    CheckCircle, XCircle, RefreshCw, Trash2, Plus, FileText, Printer
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import api, { API_BASE } from '../../services/api'
@@ -27,8 +27,9 @@ export default function PengaturanPage() {
     const [newHoliday, setNewHoliday] = useState({ tanggal: '', keterangan: '' })
     const [masterDokumen, setMasterDokumen] = useState([])
     const [newDokumen, setNewDokumen] = useState({ kode: '', nama: '', is_required: true, keterangan: '' })
-
     const [maintenanceMode, setMaintenanceMode] = useState(false)
+    const [receiptConfig, setReceiptConfig] = useState({})
+    const [previewSize, setPreviewSize] = useState('58mm')
 
     // Initialize local profile from context
     useEffect(() => {
@@ -41,6 +42,12 @@ export default function PengaturanPage() {
                 email: schoolSettings.school_email || '',
                 kepala_sekolah: schoolSettings.school_principal || '',
                 nip_kepsek: schoolSettings.school_principal_nip || ''
+            })
+            setReceiptConfig({
+                header1: schoolSettings.receipt_header1 || schoolSettings.school_name || '',
+                header2: schoolSettings.receipt_header2 || schoolSettings.school_address || '',
+                header3: schoolSettings.receipt_header3 || schoolSettings.school_phone || '',
+                footer: schoolSettings.receipt_footer || 'Terima kasih atas pembayarannya!'
             })
         }
     }, [schoolSettings])
@@ -104,6 +111,17 @@ export default function PengaturanPage() {
             school_email: localProfile.email,
             school_principal: localProfile.kepala_sekolah,
             school_principal_nip: localProfile.nip_kepsek
+        })
+        setLoading(false)
+    }
+
+    const handleSaveReceiptConfig = async () => {
+        setLoading(true)
+        await updateSchoolSettings({
+            receipt_header1: receiptConfig.header1,
+            receipt_header2: receiptConfig.header2,
+            receipt_header3: receiptConfig.header3,
+            receipt_footer: receiptConfig.footer
         })
         setLoading(false)
     }
@@ -186,6 +204,7 @@ export default function PengaturanPage() {
         { id: 'presensi', label: 'Presensi RFID', icon: <Clock size={18} /> },
         { id: 'infaq', label: 'Infaq Harian', icon: <MessageSquare size={18} /> },
         { id: 'berkas', label: 'Berkas Digital', icon: <FileText size={18} /> },
+        { id: 'struk', label: 'Cetak Nota', icon: <Printer size={18} /> },
         { id: 'sistem', label: 'Sistem', icon: <Database size={18} /> },
     ]
 
@@ -530,6 +549,101 @@ export default function PengaturanPage() {
                                         )}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'struk' && (
+                        <div className="card fade-in" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '24px', alignItems: 'start', backgroundColor: 'transparent', boxShadow: 'none', padding: 0 }}>
+                            <div className="card" style={{ height: '100%' }}>
+                                <div className="card-header" style={{ marginBottom: 16 }}>
+                                    <h3>🖨️ Pengaturan Cetak Nota</h3>
+                                    <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Atur teks identitas toko/sekolah dan pesan khusus yang akan keluar pada kertas struk thermal Bluetooth maupun PDF.</p>
+                                </div>
+                                <div className="form-group">
+                                    <label>Header Baris 1 (Nama Toko / Sekolah)</label>
+                                    <input className="form-control" value={receiptConfig.header1} onChange={e => setReceiptConfig(p => ({...p, header1: e.target.value}))} placeholder="Contoh: SMK PPRQ" />
+                                    <small className="text-muted">Ditampilkan dengan ukuran paling besar dan ditebalkan (bold).</small>
+                                </div>
+                                <div className="form-group">
+                                    <label>Header Baris 2 (Alamat)</label>
+                                    <input className="form-control" value={receiptConfig.header2} onChange={e => setReceiptConfig(p => ({...p, header2: e.target.value}))} placeholder="Contoh: Jl. Pesantren No.1, Kota" />
+                                </div>
+                                <div className="form-group">
+                                    <label>Header Baris 3 (Telepon / Kontak)</label>
+                                    <input className="form-control" value={receiptConfig.header3} onChange={e => setReceiptConfig(p => ({...p, header3: e.target.value}))} placeholder="Contoh: Telp: (021) 123-4567" />
+                                </div>
+                                <div className="form-group" style={{ marginTop: 24 }}>
+                                    <label>Pesan Penutup (Footer)</label>
+                                    <textarea className="form-control" rows="3" value={receiptConfig.footer} onChange={e => setReceiptConfig(p => ({...p, footer: e.target.value}))} placeholder="Contoh: Terima kasih atas pembayarannya!"></textarea>
+                                    <small className="text-muted">Pesan ini akan tercetak di bagian paling bawah struk.</small>
+                                </div>
+                                <div style={{ textAlign: 'right', marginTop: 32 }}>
+                                    <button className="btn btn-primary" onClick={handleSaveReceiptConfig} disabled={loading}>
+                                        <Save size={18} /> {loading ? 'Menyimpan...' : 'Simpan Pengaturan Nota'}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="card" style={{ background: '#f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'sticky', top: 20 }}>
+                                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Printer size={16} /> Live Preview
+                                    </div>
+                                    <select 
+                                        className="form-control" 
+                                        style={{ width: 'auto', padding: '4px 8px', height: 'auto', fontSize: '0.8rem', borderRadius: 8 }}
+                                        value={previewSize}
+                                        onChange={(e) => setPreviewSize(e.target.value)}
+                                    >
+                                        <option value="58mm">58mm</option>
+                                        <option value="80mm">80mm</option>
+                                        <option value="A4">A4</option>
+                                    </select>
+                                </div>
+                                
+                                <div style={{ 
+                                    width: previewSize === 'A4' ? '100%' : (previewSize === '80mm' ? '280px' : '200px'), 
+                                    background: 'white', 
+                                    padding: previewSize === 'A4' ? '32px' : '24px 16px', 
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
+                                    border: previewSize === 'A4' ? '1px solid #cbd5e1' : 'none',
+                                    borderTop: previewSize === 'A4' ? '1px solid #cbd5e1' : '4px dashed #cbd5e1', 
+                                    borderBottom: previewSize === 'A4' ? '1px solid #cbd5e1' : '4px dashed #cbd5e1', 
+                                    fontFamily: '"Courier New", Courier, monospace', 
+                                    fontSize: previewSize === 'A4' ? '1rem' : (previewSize === '80mm' ? '0.9rem' : '0.8rem'), 
+                                    color: '#000',
+                                    transition: 'all 0.3s ease'
+                                }}>
+                                    <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                                        <strong style={{ fontSize: '1.2rem', display: 'block' }}>{receiptConfig.header1 || 'NAMA TOKO'}</strong>
+                                        <div style={{ marginTop: 4 }}>{receiptConfig.header2 || 'Alamat Toko'}</div>
+                                        <div>{receiptConfig.header3 || 'Telp / Kontak'}</div>
+                                    </div>
+                                    <div style={{ borderTop: '1px dashed #94a3b8', borderBottom: '1px dashed #94a3b8', padding: '12px 0', marginBottom: 16 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Nota:</span> <span>INV-001</span></div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Tgl:</span> <span>{new Date().toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Kasir:</span> <span>Admin</span></div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Siswa:</span> <span>Ahmad Fulan</span></div>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ paddingRight: 8 }}>SPP Bulan Berjalan (10A)</span>
+                                            <span>150.000</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ borderTop: '1px dashed #94a3b8', paddingTop: 12 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginBottom: 6 }}><span>TOTAL:</span> <span>150.000</span></div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Tunai:</span> <span>150.000</span></div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Kembali:</span> <span>0</span></div>
+                                    </div>
+                                    <div style={{ textAlign: 'center', marginTop: 24 }}>
+                                        <div style={{ fontWeight: 700 }}>Metode: TUNAI</div>
+                                        <div style={{ marginTop: 8, whiteSpace: 'pre-wrap', opacity: 0.8 }}>
+                                            {receiptConfig.footer || 'Terima kasih atas pembayarannya!'}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

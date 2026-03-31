@@ -102,10 +102,12 @@ const styles = /*css*/`
   }
 `;
 
-export default function SiswaForm({ data, allKelas, onSave, onClose }) {
+export default function SiswaForm({ data, units, onSave, onClose }) {
     const { tahunAjaranList } = useApp()
     const activeTa = tahunAjaranList?.find(t => t.status === 'aktif')
     const defaultTglMulai = activeTa?.tanggal_mulai ? activeTa.tanggal_mulai.split('T')[0] : ''
+
+    const allKelas = units?.flatMap(u => u.kelas) || []
 
     const [form, setForm] = useState({
         nisn: data?.nisn || '',
@@ -122,6 +124,10 @@ export default function SiswaForm({ data, allKelas, onSave, onClose }) {
         angkatan: data?.angkatan || '',
         jenisPendaftaran: data?.jenisPendaftaran || 'Baru',
         tanggalMulaiSekolah: data?.tanggalMulaiSekolah || defaultTglMulai,
+        // New class fields
+        isNewKelas: false,
+        newKelasNama: '',
+        newKelasUnitId: units?.[0]?.id || ''
     })
 
     useEffect(() => {
@@ -135,6 +141,11 @@ export default function SiswaForm({ data, allKelas, onSave, onClose }) {
             let next = { ...prev, [field]: value }
             if (field === 'jenisPendaftaran' && value === 'Baru') {
                 next.tanggalMulaiSekolah = defaultTglMulai
+            }
+            if (field === 'kelasId' && value === '__new__') {
+                next.isNewKelas = true
+            } else if (field === 'kelasId') {
+                next.isNewKelas = false
             }
             return next
         })
@@ -174,14 +185,13 @@ export default function SiswaForm({ data, allKelas, onSave, onClose }) {
                             </div>
                             <div className="form-row">
                                 <div className="form-group flex-1">
-                                    <label>NISN <span className="text-danger">*</span></label>
+                                    <label>NISN <span className="cms-hint">(Opsional)</span></label>
                                     <input
                                         type="text"
                                         className="modern-input"
                                         placeholder="Nomor Induk Siswa Nasional"
                                         value={form.nisn}
                                         onChange={(e) => handleChange('nisn', e.target.value)}
-                                        required
                                     />
                                 </div>
                                 <div className="form-group flex-1">
@@ -283,7 +293,7 @@ export default function SiswaForm({ data, allKelas, onSave, onClose }) {
                                     <label>KELAS <span className="text-danger">*</span></label>
                                     <select
                                         className="modern-input"
-                                        value={form.kelasId}
+                                        value={form.isNewKelas ? '__new__' : form.kelasId}
                                         onChange={(e) => handleChange('kelasId', e.target.value)}
                                         required
                                     >
@@ -291,6 +301,7 @@ export default function SiswaForm({ data, allKelas, onSave, onClose }) {
                                         {allKelas.map(k => (
                                             <option key={k.id} value={k.id}>{k.nama}</option>
                                         ))}
+                                        <option value="__new__" style={{ fontWeight: 800, color: 'var(--primary-600)' }}>+ Tambah Kelas Baru</option>
                                     </select>
                                 </div>
                                 <div className="form-group flex-1">
@@ -308,6 +319,38 @@ export default function SiswaForm({ data, allKelas, onSave, onClose }) {
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Manual Class Entry */}
+                            {form.isNewKelas && (
+                                <div className="mt-3 p-3 border rounded-4 animate-fadeIn" style={{ background: 'var(--primary-50)', borderColor: 'var(--primary-200)' }}>
+                                    <div className="fw-bold text-primary small mb-3">KONFIGURASI KELAS BARU</div>
+                                    <div className="form-row mb-0">
+                                        <div className="form-group flex-1">
+                                            <label>UNIT / JURUSAN</label>
+                                            <select 
+                                                className="modern-input"
+                                                value={form.newKelasUnitId}
+                                                onChange={e => handleChange('newKelasUnitId', e.target.value)}
+                                            >
+                                                {units.map(u => (
+                                                    <option key={u.id} value={u.id}>{u.nama}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="form-group flex-1">
+                                            <label>NAMA KELAS BARU</label>
+                                            <input 
+                                                type="text"
+                                                className="modern-input"
+                                                placeholder="Contoh: X DKV 1"
+                                                value={form.newKelasNama}
+                                                onChange={e => handleChange('newKelasNama', e.target.value)}
+                                                required={form.isNewKelas}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* PRIBADI */}

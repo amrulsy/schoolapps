@@ -38,6 +38,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const multer = require('multer');
+const xlsx = require('xlsx');
+
+const uploadTemp = multer({ dest: 'temp_uploads/' });
 
 const storageDokumen = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -458,18 +461,21 @@ app.get('/api/siswa/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/siswa', async (req, res) => {
+    app.post('/api/siswa', async (req, res) => {
     try {
         const {
-            nisn, nama, jk, status, tempatLahir, tglLahir, telp, alamat, wali, kelasId,
+            nisn, nis, nama, jk, status, tempatLahir, tglLahir, telp, alamat, wali, kelasId,
             angkatan, jenis_pendaftaran, tanggal_mulai_sekolah
         } = req.body;
 
+        const nisnVal = nisn || null;
+        const nisVal = nis || null;
+
         const [result] = await pool.query(`
             INSERT INTO siswa 
-            (nisn, nama, jk, status, tempat_lahir, tgl_lahir, telp, alamat, wali, kelas_id, angkatan, jenis_pendaftaran, tanggal_mulai_sekolah) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [nisn, nama, jk, status || 'aktif', tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null]);
+            (nisn, nis, nama, jk, status, tempat_lahir, tgl_lahir, telp, alamat, wali, kelas_id, angkatan, jenis_pendaftaran, tanggal_mulai_sekolah) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [nisnVal, nisVal, nama, jk, status || 'aktif', tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null]);
 
         res.status(201).json({ id: result.insertId });
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -478,20 +484,23 @@ app.post('/api/siswa', async (req, res) => {
 app.put('/api/siswa/:id', async (req, res) => {
     try {
         const {
-            nisn, nama, jk, status, tempatLahir, tglLahir, telp, alamat, wali, kelasId,
+            nisn, nis, nama, jk, status, tempatLahir, tglLahir, telp, alamat, wali, kelasId,
             angkatan, jenis_pendaftaran, tanggal_mulai_sekolah,
             ayah, ibu, wali_detail
         } = req.body;
 
+        const nisnVal = nisn || null;
+        const nisVal = nis || null;
+
         // 1. Update Siswa Dasar
         await pool.query(`
             UPDATE siswa SET 
-                nisn = ?, nama = ?, jk = ?, status = ?, 
+                nisn = ?, nis = ?, nama = ?, jk = ?, status = ?, 
                 tempat_lahir = ?, tgl_lahir = ?, telp = ?, 
                 alamat = ?, wali = ?, kelas_id = ?,
                 angkatan = ?, jenis_pendaftaran = ?, tanggal_mulai_sekolah = ?
             WHERE id = ?
-        `, [nisn, nama, jk, status, tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null, req.params.id]);
+        `, [nisnVal, nisVal, nama, jk, status, tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null, req.params.id]);
 
         // 2. Update/Insert Orang Tua (Ayah, Ibu, Wali)
         const updateParent = async (jenis, p) => {
@@ -518,10 +527,186 @@ app.put('/api/siswa/:id', async (req, res) => {
 });
 
 app.delete('/api/siswa/:id', async (req, res) => {
+    const { id } = req.params;
+    const { force } = req.query;
+
+    const connection = await pool.getConnection();
     try {
-        await pool.query('DELETE FROM siswa WHERE id = ?', [req.params.id]);
+        await connection.beginTransaction();
+
+        // 1. Cek apakah ada riwayat penting yang memblokir (Transaksi, Absensi, Infaq, Nilai)
+        // Kita hitung total record di tabel-tabel yang berpotensi memiliki RESTRICT constraint
+        const [trans] = await connection.query('SELECT COUNT(*) as count FROM transaksi WHERE siswa_id = ?', [id]);
+        const [att] = await connection.query('SELECT COUNT(*) as count FROM attendances WHERE student_id = ?', [id]);
+        
+        let extraConflicts = 0;
+        try {
+            const [inf] = await connection.query('SELECT COUNT(*) as count FROM infaq_pembayaran WHERE siswa_id = ?', [id]);
+            extraConflicts += inf[0].count;
+        } catch(e) {}
+
+        const totalConflicts = trans[0].count + att[0].count + extraConflicts;
+        const hasConflicts = totalConflicts > 0;
+
+        if (hasConflicts && force !== 'true') {
+            await connection.rollback();
+            return res.status(409).json({ 
+                error: 'conflict_transactions', 
+                message: `Siswa memiliki ${totalConflicts} riwayat (Transaksi/Absensi/Infaq). Hapus paksa untuk menghilangkan seluruh data terkait?` 
+            });
+        }
+
+        // 2. Jika force=true, lakukan pembersihan manual pada tabel-tabel yang memblokir (RESTRICT)
+        if (hasConflicts && force === 'true') {
+            await connection.query('DELETE FROM transaksi WHERE siswa_id = ?', [id]);
+            await connection.query('DELETE FROM attendances WHERE student_id = ?', [id]);
+            
+            // Hapus dari tabel lain yang mungkin ada (graceful fail jika tabel tidak ada)
+            const otherTables = [
+                { table: 'infaq_pembayaran', col: 'siswa_id' },
+                { table: 'nilai_tp', col: 'siswa_id' },
+                { table: 'in_pembayaran_infaq', col: 'siswa_id' }
+            ];
+
+            for (const t of otherTables) {
+                try {
+                    await connection.query(`DELETE FROM ${t.table} WHERE ${t.col} = ?`, [id]);
+                } catch(e) {}
+            }
+        }
+
+        // 3. Hapus siswa (memicu CASCADE DELETE pada tabel: orangtua, tagihan, presensi_sesi, siswa_presensi, dll)
+        const [result] = await connection.query('DELETE FROM siswa WHERE id = ?', [id]);
+        
+        if (result.affectedRows === 0) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Siswa tidak ditemukan' });
+        }
+
+        await connection.commit();
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        await connection.rollback();
+        console.error('Delete Siswa Error:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// --- BULK IMPORT SISWA ---
+app.post('/api/siswa/import', uploadTemp.single('file'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'Tidak ada file yang diunggah' });
+
+        const workbook = xlsx.readFile(req.file.path);
+        let sheetName = workbook.SheetNames[0];
+        
+        // Cek dulu apakah sheet "Data Siswa" ada (dari format baru), jika tidak ambil sheet pertama
+        if (workbook.SheetNames.includes('Data Siswa')) {
+            sheetName = 'Data Siswa';
+        }
+
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Autodetect header row
+        // If cell A1 contains 'Aplikasi', headers are at row 3 (range: 2)
+        // Otherwise, assume headers are at top (range: 0)
+        let headerRowIndex = 0;
+        const a1Val = worksheet['A1'] ? worksheet['A1'].v : '';
+        if (typeof a1Val === 'string' && a1Val.includes('APLIKASI SISTEM INFORMASI')) {
+            headerRowIndex = 2; // Row 3
+        }
+
+        // Terapkan parsing berdasarkan range header
+        const data = xlsx.utils.sheet_to_json(worksheet, { range: headerRowIndex });
+        
+        const fs = require('fs');
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
+        if (!data || data.length === 0) return res.status(400).json({ error: 'Data kosong / Sheet pertama kosong' });
+
+        // Ambil data kelas untuk mapping
+        const [kelasRows] = await pool.query('SELECT id, nama FROM kelas');
+        const kelasMap = {};
+        kelasRows.forEach(k => kelasMap[k.nama.toLowerCase().trim()] = k.id);
+
+        const connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            let successCount = 0;
+
+            for (const row of data) {
+                const nama = row['Nama'] || 'Nama Tidak Diketahui';
+                const nisn = row['NISN'] || null;
+                const nis = row['NIS'] || null;
+                const tempatLahir = row['Tempat Lahir'] || null;
+                
+                let tglLahir = null;
+                if (row['Tanggal Lahir']) {
+                    const rawDate = row['Tanggal Lahir'];
+                    if (typeof rawDate === 'number') {
+                        // Excel serial date to JS Date (epoch start 1900)
+                        const jsDate = new Date(Math.round((rawDate - 25569) * 86400 * 1000));
+                        tglLahir = jsDate.toISOString().split('T')[0];
+                    } else if (typeof rawDate === 'string') {
+                        try {
+                            tglLahir = new Date(rawDate).toISOString().split('T')[0];
+                        } catch(e) { /* ignore invalid dates */ }
+                    }
+                }
+
+                const jkStr = row['Jenis Kelamin'] || '';
+                const jk = jkStr.toLowerCase().startsWith('p') ? 'P' : 'L';
+
+                const agama = row['Agama'] || null;
+                const alamat = row['Alamat'] || null;
+                const rt = row['RT']?.toString() || null;
+                const rw = row['RW']?.toString() || null;
+                const dusun = row['Dusun'] || null;
+                const kelurahan = row['Kelurahan'] || null;
+                const kecamatan = row['Kecamatan'] || null;
+                const kodepos = row['Kode Pos']?.toString() || null;
+                const jenisTinggal = row['Jenis Tinggal'] || null;
+                const nik = row['NIK']?.toString() || null;
+                const rombelStr = row['Rombel Saat Ini']?.toString().toLowerCase().trim() || '';
+                const kelas_id = kelasMap[rombelStr] || null;
+
+                const [siswaRes] = await connection.query(`
+                    INSERT INTO siswa 
+                    (nama, nisn, nis, tempat_lahir, tgl_lahir, jk, agama, alamat, rt, rw, dusun, kelurahan, kecamatan, kodepos, jenis_tinggal, nik, kelas_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [nama, nisn, nis, tempatLahir, tglLahir, jk, agama, alamat, rt, rw, dusun, kelurahan, kecamatan, kodepos, jenisTinggal, nik, kelas_id]);
+
+                const siswa_id = siswaRes.insertId;
+
+                const insertParent = async (jenis, namaOrtu, tahunLahir, pendidikan, pekerjaan, penghasilan, nikOrtu) => {
+                    if (!namaOrtu) return;
+                    await connection.query(`
+                        INSERT INTO siswa_orangtua (siswa_id, jenis, nama, tahun_lahir, pendidikan, pekerjaan, penghasilan, nik)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    `, [siswa_id, jenis, namaOrtu, tahunLahir?.toString() || null, pendidikan || null, pekerjaan || null, penghasilan?.toString() || null, nikOrtu?.toString() || null]);
+                };
+
+                await insertParent('ayah', row['Nama Ayah'], row['Tahun Lahir Ayah'], row['Jenjang Pendidikan Ayah'], row['Pekerjaan Ayah'], row['Penghasilan Ayah'], row['NIK Ayah']);
+                await insertParent('ibu', row['Nama Ibu'], row['Tahun Lahir Ibu'], row['Jenjang Pendidikan Ibu'], row['Pekerjaan Ibu'], row['Penghasilan Ibu'], row['NIK Ibu']);
+
+                successCount++;
+            }
+
+            await connection.commit();
+            res.json({ success: true, count: successCount });
+        } catch (txnErr) {
+            await connection.rollback();
+            res.status(500).json({ error: 'Gagal import (Rollback): ' + txnErr.message });
+        } finally {
+            connection.release();
+        }
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // --- MASTER DOKUMEN & SISWA DOKUMEN ROUTES ---

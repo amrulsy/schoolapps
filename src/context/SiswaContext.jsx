@@ -43,7 +43,7 @@ export function SiswaProvider({ children }) {
             });
             if (res.ok) {
                 const data = await res.json();
-                const kelasName = units.flatMap(u => u.kelas).find(k => k.id === student.kelasId)?.nama || '';
+                const kelasName = units.flatMap(u => u.kelas).find(k => k.id == student.kelasId)?.nama || '';
                 setStudents(prev => [...prev, { ...student, id: data.id, kelas: kelasName }]);
                 addToast('success', 'Berhasil', `Siswa ${student.nama} ditambahkan`);
             }
@@ -58,7 +58,7 @@ export function SiswaProvider({ children }) {
                 body: JSON.stringify(data)
             });
             if (res.ok) {
-                const kelasName = units.flatMap(u => u.kelas).find(k => k.id === data.kelasId)?.nama || '';
+                const kelasName = units.flatMap(u => u.kelas).find(k => k.id == data.kelasId)?.nama || '';
                 setStudents(prev => prev.map(s => s.id === id ? {
                     ...s, ...data, kelas: kelasName,
                     ayah: { ...(s.ayah || {}), ...(data.ayah || {}) },
@@ -70,14 +70,61 @@ export function SiswaProvider({ children }) {
         } catch (err) { addToast('danger', 'Error', 'Gagal memperbarui siswa'); }
     }, [addToast, units]);
 
-    const deleteStudent = useCallback(async (id) => {
+    const deleteStudent = useCallback(async (id, force = false) => {
         try {
-            const res = await fetch(`${API_BASE}/siswa/${id}`, { method: 'DELETE' });
+            const url = force ? `${API_BASE}/siswa/${id}?force=true` : `${API_BASE}/siswa/${id}`;
+            const res = await fetch(url, { method: 'DELETE' });
+            
             if (res.ok) {
                 setStudents(prev => prev.filter(s => s.id !== id));
                 addToast('success', 'Berhasil', 'Data siswa dihapus');
+                return { success: true };
+            } else {
+                const data = await res.json();
+                if (res.status === 409) {
+                    return { success: false, conflict: true, message: data.message };
+                }
+                throw new Error(data.error || 'Gagal menghapus siswa');
             }
-        } catch (err) { addToast('danger', 'Error', 'Gagal menghapus siswa'); }
+        } catch (err) { 
+            addToast('danger', 'Error', err.message); 
+            return { success: false, error: err.message };
+        }
+    }, [addToast]);
+
+    const importStudents = useCallback(async (formData) => {
+        try {
+            const res = await fetch(`${API_BASE}/siswa/import`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok) {
+                // Refresh list
+                const sRes = await fetch(`${API_BASE}/siswa`);
+                if (sRes.ok) {
+                    const sData = await sRes.json();
+                    const mappedStudents = sData.map(s => ({
+                        ...s,
+                        kelasId: s.kelas_id,
+                        kelas: s.kelas_nama,
+                        tempatLahir: s.tempat_lahir,
+                        tglLahir: s.tgl_lahir,
+                        jenisTinggal: s.jenis_tinggal,
+                        jenisPendaftaran: s.jenis_pendaftaran,
+                        tanggalMulaiSekolah: s.tanggal_mulai_sekolah
+                    }));
+                    setStudents(mappedStudents);
+                }
+                addToast('success', 'Import Berhasil', `${data.count} data siswa berhasil diimpor`);
+                return { success: true, count: data.count };
+            } else {
+                throw new Error(data.error || 'Server error');
+            }
+        } catch (err) {
+            addToast('danger', 'Import Gagal', err.message);
+            return { success: false, error: err.message };
+        }
     }, [addToast]);
 
     const addUnit = useCallback(async (nama) => {
@@ -175,7 +222,7 @@ export function SiswaProvider({ children }) {
     }));
 
     const value = {
-        students, setStudents, addStudent, updateStudent, deleteStudent,
+        students, setStudents, addStudent, updateStudent, deleteStudent, importStudents,
         units: unitsWithDynamicCount, setUnits, addUnit, updateUnit, deleteUnit,
         addKelas, updateKelas, deleteKelas
     };

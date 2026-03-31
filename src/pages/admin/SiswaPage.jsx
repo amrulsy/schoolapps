@@ -228,8 +228,8 @@ const styles = /*css*/`
 `;
 
 export default function SiswaPage() {
-    const { students, addStudent, updateStudent, deleteStudent, units, formatRupiah, addToast } = useApp()
-    const { confirmDelete } = useCustomAlert()
+    const { students, addStudent, updateStudent, deleteStudent, importStudents, units, addKelas, formatRupiah, addToast } = useApp()
+    const { confirmDelete, confirmAction } = useCustomAlert()
     const [search, setSearch] = useState('')
     const [filterKelas, setFilterKelas] = useState('')
     const [filterStatus, setFilterStatus] = useState('semua')
@@ -249,11 +249,42 @@ export default function SiswaPage() {
 
     const { page, setPage, totalPages, paginated, resetPage, perPage: PER_PAGE } = usePagination(filtered, 10)
 
-    const handleSave = (data) => {
+    const handleSave = async (data) => {
+        let finalKelasId = data.kelasId;
+
+        if (data.isNewKelas && data.newKelasNama) {
+            try {
+                // creating new class
+                const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/kelas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ unit_id: data.newKelasUnitId, nama: data.newKelasNama })
+                });
+                
+                if (res.ok) {
+                    const newKelas = await res.json();
+                    finalKelasId = newKelas.id;
+                    // We don't necessarily need to update the global state here because addStudent will 
+                    // be called and the context will refresh or we can just rely on the next fetch.
+                    // But for immediate UI consistency, addStudent needs the correct ID.
+                    addToast('success', 'Kelas Dibuat', `Kelas ${data.newKelasNama} berhasil dibuat.`);
+                } else {
+                    addToast('danger', 'Gagal', 'Gagal membuat kelas baru.');
+                    return;
+                }
+            } catch (err) {
+                console.error("Error creating class:", err);
+                addToast('danger', 'Error', 'Terjadi kesalahan saat membuat kelas.');
+                return;
+            }
+        }
+
+        const studentData = { ...data, kelasId: finalKelasId };
+
         if (editData) {
-            updateStudent(editData.id, data)
+            updateStudent(editData.id, studentData)
         } else {
-            addStudent(data)
+            addStudent(studentData)
         }
         setShowModal(false)
         setEditData(null)
@@ -267,45 +298,58 @@ export default function SiswaPage() {
     const handleDelete = async (student) => {
         const isConfirmed = await confirmDelete(
             `Hapus Siswa "${student.nama}"?`,
-            "Data profil dan seluruh riwayat tagihan siswa ini akan dihapus secara permanen."
+            "Data profil siswa ini akan dihapus secara permanen."
         )
-        if (isConfirmed) {
-            deleteStudent(student.id)
+        if (!isConfirmed) return
+
+        const res = await deleteStudent(student.id)
+        
+        // Jika ada konflik transaksi (Opsi B ke A)
+        if (!res.success && res.conflict) {
+            const isForceConfirmed = await confirmAction({
+                title: 'Siswa Memiliki Transaksi',
+                text: res.message,
+                confirmText: 'Ya, Hapus Paksa',
+                cancelText: 'Batal',
+                icon: 'warning'
+            })
+            
+            if (isForceConfirmed) {
+                await deleteStudent(student.id, true) // force=true
+            }
         }
     }
 
     const [showImportModal, setShowImportModal] = useState(false)
 
-    const doImportRows = useCallback((rows) => {
-        let added = 0
-        rows.forEach(row => {
-            if (row.Nama && row.NISN) {
-                addStudent({
-                    nisn: String(row.NISN),
-                    nama: row.Nama,
-                    kelas: row.Kelas || allKelas[0]?.nama,
-                    kelasId: allKelas.find(k => k.nama === String(row.Kelas))?.id || allKelas[0]?.id || 0,
-                    jk: row.JK === 'P' ? 'P' : 'L',
-                    status: 'aktif',
-                    tempatLahir: row['Tempat Lahir'] || '',
-                    tglLahir: row['Tgl Lahir'] || '',
-                    telp: String(row.Telp || ''),
-                    alamat: row.Alamat || '',
-                    wali: row.Wali || ''
-                })
-                added++
+    const [isImporting, setIsImporting] = useState(false)
+
+    const handleImportConfirm = async (file) => {
+        if (!file) {
+            addToast('warning', 'Tidak Ada File', 'Pilih file terlebih dahulu');
+            return;
+        }
+        setIsImporting(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await importStudents(formData);
+            if (res.success) {
+                setShowImportModal(false);
             }
-        })
-        return added
-    }, [addStudent, allKelas])
+        } finally {
+            setIsImporting(false);
+        }
+    }
 
     const handleExportExcel = async () => {
         try {
             const sheetData = filtered.map((s, i) => ({
                 No: i + 1,
+                'ID Kelas': s.kelasId,
+                Kelas: s.kelas,
                 NISN: s.nisn,
                 Nama: s.nama,
-                Kelas: s.kelas,
                 JK: s.jk,
                 Status: s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1) : '-',
                 'Tempat Lahir': s.tempatLahir,
@@ -316,7 +360,7 @@ export default function SiswaPage() {
             }))
             const ws = XLSX.utils.json_to_sheet(sheetData)
             ws['!cols'] = [
-                { wch: 5 }, { wch: 15 }, { wch: 25 }, { wch: 12 }, { wch: 6 },
+                { wch: 5 }, { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 6 },
                 { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 30 },
             ]
             const wb = XLSX.utils.book_new()
@@ -614,7 +658,7 @@ export default function SiswaPage() {
             {showModal && (
                 <SiswaForm
                     data={editData}
-                    allKelas={allKelas}
+                    units={units}
                     onSave={handleSave}
                     onClose={() => { setShowModal(false); setEditData(null) }}
                 />
@@ -622,13 +666,9 @@ export default function SiswaPage() {
 
             {showImportModal && (
                 <ImportDropzoneModal
-                    onConfirm={(rows) => {
-                        const added = doImportRows(rows)
-                        if (added > 0) addToast('success', 'Import Berhasil', `${added} data siswa berhasil diimport dari Excel`)
-                        else addToast('warning', 'Tidak Ada Data', 'Tidak ada baris valid. Pastikan kolom Nama dan NISN terisi.')
-                        setShowImportModal(false)
-                    }}
+                    onConfirm={handleImportConfirm}
                     onClose={() => setShowImportModal(false)}
+                    isUploading={isImporting}
                 />
             )}
         </div>

@@ -155,7 +155,7 @@ export default function RiwayatTransaksiPage() {
                                                 {tx.items?.length || 0} item tagihan
                                             </div>
                                         </td>
-                                        <td data-label="Kasir">{tx.kasir || 'Admin'}</td>
+                                        <td data-label="Kasir">{(tx.kasir && tx.kasir !== 'undefined' && tx.kasir !== 'null') ? tx.kasir : 'Admin'}</td>
                                         <td data-label="Total" className="mono" style={{ fontWeight: 600 }}>{formatRupiah(tx.total)}</td>
                                         <td data-label="Status">
                                             {(tx.status === 'void' || tx.status === 'voided') ? (

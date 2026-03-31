@@ -5,7 +5,7 @@ import { useCustomAlert } from '../../hooks/useCustomAlert'
 
 export default function AttendanceSettings() {
     const { addToast } = useCustomAlert()
-    const [settings, setSettings] = useState(null)
+    const [settings, setSettings] = useState({})
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
 
@@ -74,7 +74,7 @@ export default function AttendanceSettings() {
                                     <label className="form-label small fw-bold text-muted text-uppercase">Jam Mulai Absen</label>
                                     <input 
                                         type="time" className="form-control form-control-lg rounded-3 border-light bg-light"
-                                        value={settings.entry_start_time} onChange={e => handleChange('entry_start_time', e.target.value)}
+                                        value={settings.entry_start_time || ''} onChange={e => handleChange('entry_start_time', e.target.value)}
                                     />
                                     <div className="form-text small">Siswa diperbolehkan tap kartu mulai jam ini.</div>
                                 </div>
@@ -82,7 +82,7 @@ export default function AttendanceSettings() {
                                     <label className="form-label small fw-bold text-muted text-uppercase">Batas Jam Terlambat</label>
                                     <input 
                                         type="time" className="form-control form-control-lg rounded-3 border-light bg-light"
-                                        value={settings.late_threshold_time} onChange={e => handleChange('late_threshold_time', e.target.value)}
+                                        value={settings.late_threshold_time || ''} onChange={e => handleChange('late_threshold_time', e.target.value)}
                                     />
                                     <div className="form-text small">Lewat dari jam ini siswa dicatat sebagai "Terlambat".</div>
                                 </div>
@@ -91,7 +91,7 @@ export default function AttendanceSettings() {
                                     <div className="input-group">
                                         <input 
                                             type="number" className="form-control form-control-lg rounded-start-3 border-light bg-light"
-                                            value={settings.exit_min_gap_minutes} onChange={e => handleChange('exit_min_gap_minutes', e.target.value)}
+                                            value={settings.exit_min_gap_minutes || ''} onChange={e => handleChange('exit_min_gap_minutes', e.target.value)}
                                         />
                                         <span className="input-group-text border-light bg-light font-bold">Menit</span>
                                     </div>
@@ -101,7 +101,7 @@ export default function AttendanceSettings() {
                                     <label className="form-label small fw-bold text-muted text-uppercase">Jam Mulai Pulang Aktif</label>
                                     <input 
                                         type="time" className="form-control form-control-lg rounded-3 border-light bg-light"
-                                        value={settings.exit_start_time} onChange={e => handleChange('exit_start_time', e.target.value)}
+                                        value={settings.exit_start_time || ''} onChange={e => handleChange('exit_start_time', e.target.value)}
                                     />
                                     <div className="form-text small">Jam dimana siswa diperbolehkan mulai absen pulang.</div>
                                 </div>
@@ -109,7 +109,7 @@ export default function AttendanceSettings() {
                                     <label className="form-label small fw-bold text-muted text-uppercase">Mode Validasi Pulang</label>
                                     <select 
                                         className="form-select form-control-lg rounded-3 border-light bg-light"
-                                        value={settings.exit_rule_type} onChange={e => handleChange('exit_rule_type', e.target.value)}
+                                        value={settings.exit_rule_type || 'gap_only'} onChange={e => handleChange('exit_rule_type', e.target.value)}
                                     >
                                         <option value="gap_only">Berdasarkan Jeda Menit Saja</option>
                                         <option value="time_only">Berdasarkan Jadwal Jam Saja</option>
@@ -142,7 +142,7 @@ export default function AttendanceSettings() {
                                     <label className="form-label small fw-bold text-muted text-uppercase">Template WA Masuk</label>
                                     <textarea 
                                         className="form-control rounded-3 border-light bg-light" rows="3"
-                                        value={settings.wa_template_masuk} onChange={e => handleChange('wa_template_masuk', e.target.value)}
+                                        value={settings.wa_template_masuk || ''} onChange={e => handleChange('wa_template_masuk', e.target.value)}
                                         placeholder="Gunakan [nama] dan [jam] sebagai variabel..."
                                     />
                                 </div>
@@ -150,14 +150,16 @@ export default function AttendanceSettings() {
                                     <label className="form-label small fw-bold text-muted text-uppercase">Template WA Terlambat</label>
                                     <textarea 
                                         className="form-control rounded-3 border-light bg-light" rows="3"
-                                        value={settings.wa_template_terlambat} onChange={e => handleChange('wa_template_terlambat', e.target.value)}
+                                        value={settings.wa_template_terlambat || ''} onChange={e => handleChange('wa_template_terlambat', e.target.value)}
+                                        placeholder="Gunakan [nama] dan [jam] sebagai variabel..."
                                     />
                                 </div>
                                 <div className="mb-0">
                                     <label className="form-label small fw-bold text-muted text-uppercase">Template WA Pulang</label>
                                     <textarea 
                                         className="form-control rounded-3 border-light bg-light" rows="3"
-                                        value={settings.wa_template_pulang} onChange={e => handleChange('wa_template_pulang', e.target.value)}
+                                        value={settings.wa_template_pulang || ''} onChange={e => handleChange('wa_template_pulang', e.target.value)}
+                                        placeholder="Gunakan [nama] dan [jam] sebagai variabel..."
                                     />
                                 </div>
                                 <div className="mt-3 p-3 rounded-3 bg-primary-50 text-primary-700 small">

@@ -225,8 +225,8 @@ class AttendanceController {
         try {
             for (const key in settings) {
                 await pool.query(
-                    'UPDATE attendance_settings SET value = ? WHERE \`key\` = ?',
-                    [settings[key].toString(), key]
+                    'INSERT INTO attendance_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
+                    [key, settings[key].toString()]
                 );
             }
             res.json({ success: true, message: 'Pengaturan berhasil diperbarui' });
