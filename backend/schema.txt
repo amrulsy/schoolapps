@@ -1,0 +1,11 @@
+CREATE TABLE `siswa_presensi` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `siswa_id` int NOT NULL,
+  `tanggal` date NOT NULL,
+  `status` enum('hadir','sakit','izin','alpha') NOT NULL,
+  `keterangan` text DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
+  UNIQUE KEY `siswa_id` (`siswa_id`,`tanggal`),
+  CONSTRAINT `fk_1` FOREIGN KEY (`siswa_id`) REFERENCES `siswa` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin AUTO_INCREMENT=480001

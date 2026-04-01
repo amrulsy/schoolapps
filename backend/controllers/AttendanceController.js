@@ -44,7 +44,7 @@ class AttendanceController {
         try {
             // 1. Cari siswa berdasarkan RFID UID
             const [students] = await pool.query(
-                'SELECT s.id, s.nama, s.nisn, s.telp, k.nama as kelas_nama FROM siswa s LEFT JOIN kelas k ON s.kelas_id = k.id WHERE s.rfid_uid = ? AND s.status = "aktif"',
+                'SELECT s.id, s.nama, s.nisn, s.telp, s.jk, k.nama as kelas_nama FROM siswa s LEFT JOIN kelas k ON s.kelas_id = k.id WHERE s.rfid_uid = ? AND s.status = "aktif"',
                 [rfid_uid]
             );
 
@@ -53,11 +53,25 @@ class AttendanceController {
             }
 
             const student = students[0];
-            const today = new Date().toISOString().split('T')[0];
-            const now = new Date();
-            const nowTime = now.toTimeString().split(' ')[0]; // HH:MM:SS
-            const nowDateTime = now.toISOString().slice(0, 19).replace('T', ' '); // YYYY-MM-DD HH:MM:SS
 
+            // Dapatkan waktu persis di Jakarta mengabaikan timezone OS Server
+            const rawNow = new Date();
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            });
+            const parts = formatter.formatToParts(rawNow);
+            const p = {};
+            parts.forEach(part => p[part.type] = part.value);
+
+            const today = `${p.year}-${p.month}-${p.day}`; // YYYY-MM-DD (WIB)
+            const h = p.hour === '24' ? '00' : p.hour;
+            const nowTime = `${h}:${p.minute}:${p.second}`; // HH:MM:SS (WIB)
+            const nowDateTime = `${today} ${nowTime}`; // YYYY-MM-DD HH:MM:SS
+            
+            // Epoch WIB murni untuk komputasi komparasi
+            const now = new Date(`${today}T${nowTime}+07:00`);
             // 0. Ambil Pengaturan dari Database
             const [settingsRows] = await pool.query('SELECT * FROM attendance_settings');
             const settings = {};
@@ -73,17 +87,34 @@ class AttendanceController {
             );
 
             let status_tap = '';
+            let current_status = ''; // diangkat untuk keperluan Notifikasi WA
 
             if (existing.length === 0) {
+                // --- VALIDASI JAM MULAI ABSEN ---
+                const entryStartTimeStr = settings['entry_start_time'] || '06:00';
+                const [entH, entM] = entryStartTimeStr.split(':');
+                const limitBukaAbsen = new Date(`${today}T${entH}:${entM}:00+07:00`);
+                
+                if (now < limitBukaAbsen) {
+                    const infoData = {
+                        student: { nama: student.nama, kelas: student.kelas_nama, nisn: student.nisn },
+                        message: 'Absen masuk belum dibuka.',
+                        subMessage: `Jadwal absen masuk dimulai pukul ${entryStartTimeStr}.`,
+                        type: 'warning'
+                    };
+                    io.emit('scan_info', infoData);
+                    return res.status(400).json({ error: infoData.message });
+                }
+
                 // --- KONDISI MASUK ---
                 // Tentukan status (Hadir/Terlambat) - Gunakan threshold dari settings
                 const [h, m] = lateThreshold.split(':');
-                const limitMasuk = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(h), parseInt(m), 0);
-                const status = now > limitMasuk ? 'Terlambat' : 'Hadir';
+                const limitMasuk = new Date(`${today}T${h}:${m}:00+07:00`);
+                current_status = now > limitMasuk ? 'Terlambat' : 'Hadir';
 
                 await pool.query(
                     'INSERT INTO attendances (student_id, tanggal, jam_masuk, status) VALUES (?, ?, ?, ?)',
-                    [student.id, today, nowDateTime, status]
+                    [student.id, today, nowDateTime, current_status]
                 );
 
                 // SYNC: Update/Insert ke siswa_presensi (tabel lama)
@@ -117,7 +148,7 @@ class AttendanceController {
                 const diffMin = Math.floor(diffMs / 60000);
 
                 const [exH, exM] = exitStartTimeStr.split(':');
-                const exitTimeRef = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(exH), parseInt(exM), 0);
+                const exitTimeRef = new Date(`${today}T${exH}:${exM}:00+07:00`);
 
                 let isAllowed = false;
                 let reason = '';
@@ -161,25 +192,35 @@ class AttendanceController {
                 status_tap = 'pulang';
             }
 
+            // Ambil Foto Siswa, jika ada
+            const [fotoRows] = await pool.query(
+                'SELECT file_path FROM siswa_dokumen WHERE siswa_id = ? AND kode_dokumen LIKE "%FOTO%" LIMIT 1',
+                [student.id]
+            );
+            const foto = fotoRows.length > 0 ? fotoRows[0].file_path : null;
+
             // Emit real-time event ke Gate Monitor
             const responseData = {
                 student: {
                     id: student.id,
                     nama: student.nama,
                     nisn: student.nisn,
-                    kelas: student.kelas_nama
+                    kelas: student.kelas_nama,
+                    jk: student.jk,
+                    foto: foto
                 },
                 status: status_tap,
+                keterangan: current_status,
                 time: nowTime
             };
 
             io.emit('scan_success', responseData);
 
             // --- KIRIM WA OTOMATIS (Jika diaktifkan) ---
-            if (settings.wa_notification_enabled === 'true' && student.telp) {
+            if (settings.wa_notification_enabled === 'true') {
                 let template = '';
                 if (status_tap === 'masuk') {
-                    template = status === 'Terlambat' ? settings.wa_template_terlambat : settings.wa_template_masuk;
+                    template = current_status === 'Terlambat' ? settings.wa_template_terlambat : settings.wa_template_masuk;
                 } else if (status_tap === 'pulang') {
                     template = settings.wa_template_pulang;
                 }
@@ -189,7 +230,17 @@ class AttendanceController {
                         .replace(/\[nama\]/g, student.nama)
                         .replace(/\[jam\]/g, nowTime);
                     
-                    waService.sendMessage(student.telp, waMessage);
+                    // Ambil kontak orang tua
+                    const [ortuRows] = await pool.query('SELECT hp FROM siswa_orangtua WHERE siswa_id = ? AND hp IS NOT NULL AND hp != ""', [student.id]);
+                    const phoneTargets = [];
+                    if (student.telp) phoneTargets.push(student.telp);
+                    ortuRows.forEach(o => phoneTargets.push(o.hp));
+
+                    const uniquePhones = [...new Set(phoneTargets)];
+                    
+                    for (const phone of uniquePhones) {
+                        waService.sendMessage(phone, waMessage).catch(err => console.error('[Presensi WA] Gagal kirim notifikasi:', err.message));
+                    }
                 }
             }
 

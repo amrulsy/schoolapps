@@ -11,7 +11,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recha
 import { getAuthHeaders } from '../../services/api'
 import RfidEnrollment from './RfidEnrollment'
 import AttendanceSettings from './AttendanceSettings'
-
+import AttendanceRecap from './AttendanceRecap'
 // --- STYLES ---
 const styles = /*css*/`
   .attendance-header {
@@ -263,7 +263,7 @@ export default function AttendancePage() {
     const { units } = useApp()
     const { showSuccess, showError } = useCustomAlert()
 
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+    const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }))
     const [selectedKelasId, setSelectedKelasId] = useState('')
     const [students, setStudents] = useState([])
     const [loading, setLoading] = useState(false)
@@ -470,12 +470,20 @@ export default function AttendancePage() {
                 >
                     Pengaturan
                 </button>
+                <button 
+                    className={`btn px-4 py-2 rounded-3 fw-bold transition-all ${activeTab === 'rekap' ? 'btn-primary' : 'btn-link text-decoration-none text-muted'}`}
+                    onClick={() => setActiveTab('rekap')}
+                >
+                    Rekapitulasi
+                </button>
             </div>
 
             {activeTab === 'rfid' ? (
                 <RfidEnrollment hideHeader={true} />
             ) : activeTab === 'pengaturan' ? (
                 <AttendanceSettings />
+            ) : activeTab === 'rekap' ? (
+                <AttendanceRecap />
             ) : (
                 <>
                 {/* BENTO GRID (7/5 Split) for Stats & Controls */}

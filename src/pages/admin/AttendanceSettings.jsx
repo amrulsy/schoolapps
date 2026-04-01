@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Save, Settings, Clock, MessageCircle, Bell, Loader2 } from 'lucide-react'
 import api from '../../services/api'
-import { useCustomAlert } from '../../hooks/useCustomAlert'
+import Swal from 'sweetalert2'
 
 export default function AttendanceSettings() {
-    const { addToast } = useCustomAlert()
     const [settings, setSettings] = useState({})
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -15,7 +14,7 @@ export default function AttendanceSettings() {
 
     const fetchSettings = async () => {
         try {
-            const { data } = await api.get('/admin/presensi/settings')
+            const { data } = await api.get('/admin/attendance/settings')
             setSettings(data)
         } catch (err) {
             console.error(err)
@@ -32,10 +31,20 @@ export default function AttendanceSettings() {
         e.preventDefault()
         setSaving(true)
         try {
-            await api.post('/admin/presensi/settings', settings)
-            addToast('success', 'Berhasil', 'Pengaturan presensi telah diperbarui.')
+            await api.post('/admin/attendance/settings', settings)
+            Swal.fire({
+                icon: 'success',
+                title: 'Tersimpan!',
+                text: 'Pengaturan presensi berhasil diperbarui.',
+                timer: 2000,
+                showConfirmButton: false
+            })
         } catch (err) {
-            addToast('danger', 'Gagal', err.response?.data?.error || 'Gagal menyimpan pengaturan')
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: err.response?.data?.error || 'Gagal menyimpan pengaturan'
+            })
         } finally {
             setSaving(false)
         }

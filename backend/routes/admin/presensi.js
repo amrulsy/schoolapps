@@ -47,6 +47,98 @@ router.get('/', async (req, res) => {
     }
 });
 
+// GET /api/admin/presensi/rekap?kelasId=ID&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+// Fetch aggregated attendance records for a specific date range and class
+router.get('/rekap', async (req, res) => {
+    try {
+        const { kelasId, startDate, endDate } = req.query;
+        if (!kelasId || !startDate || !endDate) {
+            return res.status(400).json({ error: 'Kelas, Start Date, dan End Date wajib diisi' });
+        }
+
+        // 1. Get all students in the class
+        const [students] = await pool.query(
+            'SELECT id, nisn, nama FROM siswa WHERE kelas_id = ? AND status = "aktif" ORDER BY nama ASC',
+            [kelasId]
+        );
+
+        if (students.length === 0) return res.json([]);
+
+        // 2. Get attendance aggregation for these students
+        const [attendance] = await pool.query(
+            `SELECT siswa_id, 
+                    SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN status = 'alpha' THEN 1 ELSE 0 END) as alpha
+             FROM siswa_presensi 
+             WHERE DATE(tanggal) BETWEEN ? AND ? 
+               AND siswa_id IN (SELECT id FROM siswa WHERE kelas_id = ?)
+             GROUP BY siswa_id`,
+            [startDate, endDate, kelasId]
+        );
+
+        // 3. Get raw attendance records for export details
+        const [rawLogs] = await pool.query(
+            `SELECT siswa_id, 
+                    DATE_FORMAT(tanggal, '%Y-%m-%d') as tgl, 
+                    UNIX_TIMESTAMP(created_at) * 1000 as created_at_ms,
+                    status
+             FROM siswa_presensi 
+             WHERE DATE(tanggal) BETWEEN ? AND ? 
+               AND siswa_id IN (SELECT id FROM siswa WHERE kelas_id = ?)`,
+            [startDate, endDate, kelasId]
+        );
+
+        const detailsMap = {};
+        rawLogs.forEach(row => {
+            if (!detailsMap[row.siswa_id]) detailsMap[row.siswa_id] = {};
+            
+            let jamStr = '-';
+            if (row.created_at_ms) {
+                // Parse UNIX timestamp to get Local Time explicitly in WIB (+07:00)
+                try {
+                    jamStr = new Date(row.created_at_ms).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false });
+                } catch(e) {
+                    jamStr = new Date(row.created_at_ms).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+                }
+            }
+
+            detailsMap[row.siswa_id][row.tgl] = {
+                status: row.status,
+                jam: jamStr
+            };
+        });
+
+        // 4. Map attendance to students
+        const attendanceMap = {};
+        attendance.forEach(a => {
+            attendanceMap[a.siswa_id] = { 
+                hadir: parseInt(a.hadir) || 0, 
+                sakit: parseInt(a.sakit) || 0, 
+                izin: parseInt(a.izin) || 0, 
+                alpha: parseInt(a.alpha) || 0 
+            };
+        });
+
+        const result = students.map(s => {
+            const stats = attendanceMap[s.id] || { hadir: 0, sakit: 0, izin: 0, alpha: 0 };
+            const total = stats.hadir + stats.sakit + stats.izin + stats.alpha;
+            return {
+                ...s,
+                ...stats,
+                total,
+                persentase: total > 0 ? parseFloat(((stats.hadir / total) * 100).toFixed(1)) : 0,
+                details: detailsMap[s.id] || {}
+            };
+        });
+
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/admin/presensi/bulk
 // Batch insert/update attendance
 router.post('/bulk', async (req, res) => {
