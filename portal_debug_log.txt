@@ -1,0 +1,9 @@
+{
+  "time": "2026-04-02T07:30:04.215Z",
+  "dbResult": [
+    {
+      "setting_value": "1"
+    }
+  ],
+  "type": "string"
+}

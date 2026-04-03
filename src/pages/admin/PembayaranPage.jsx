@@ -21,7 +21,7 @@ export default function PembayaranPage() {
     const [partialPay, setPartialPay] = useState({})
     const [amountPaid, setAmountPaid] = useState('')
     const [receipt, setReceipt] = useState(null)
-    const [sendWA, setSendWA] = useState(false)
+    const [sendWA, setSendWA] = useState(true)
     const searchRef = useRef(null)
     const amountRef = useRef(null)
     const payBtnRef = useRef(null)

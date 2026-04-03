@@ -22,17 +22,18 @@ import PortalAnnouncementDetail from './pages/PortalAnnouncementDetail'
 import PortalProgramDetail from './pages/PortalProgramDetail'
 import PortalInfo from './pages/PortalInfo'
 import PortalPPDB from './pages/PortalPPDB'
+import PortalPPDBDashboard from './pages/PortalPPDBDashboard'
 import PortalBilling from './pages/PortalBilling'
 import PortalContact from './pages/PortalContact'
 import PortalLogin from './pages/PortalLogin'
+import PortalPPDBLogin from './pages/PortalPPDBLogin'
+import PortalPPDBTracker from './pages/PortalPPDBTracker'
 import PortalNotFound from './pages/PortalNotFound'
 import MaintenancePage from '../pages/public/MaintenancePage'
 
 function ScrollToTop() {
     const { pathname } = useLocation()
-    useEffect(() => {
-        window.scrollTo(0, 0)
-    }, [pathname])
+    useEffect(() => { window.scrollTo(0, 0) }, [pathname])
     return null
 }
 
@@ -41,13 +42,9 @@ function PortalLayout() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const toggleMobileOpen = () => setMobileMenuOpen(!mobileMenuOpen)
 
-    useEffect(() => {
-        fetchSettings()
-    }, [fetchSettings])
+    useEffect(() => { fetchSettings() }, [fetchSettings])
 
-    if (settings && settings.maintenance_mode === 'true') {
-        return <MaintenancePage />
-    }
+    if (settings && settings.maintenance_mode === 'true') return <MaintenancePage />
 
     return (
         <div className="portal-root">
@@ -61,9 +58,11 @@ function PortalLayout() {
                 <Route path="jurusan/:slug" element={<PortalProgramDetail />} />
                 <Route path="informasi" element={<PortalInfo />} />
                 <Route path="ppdb" element={<PortalPPDB />} />
+                <Route path="ppdb/track" element={<PortalPPDBTracker />} />
                 <Route path="cek-tagihan" element={<PortalBilling />} />
                 <Route path="kontak" element={<PortalContact />} />
                 <Route path="login" element={<PortalLogin />} />
+                <Route path="ppdb/login" element={<PortalPPDBLogin />} />
                 <Route path="*" element={<PortalNotFound />} />
             </Routes>
             <PortalFooter />
@@ -76,7 +75,12 @@ function PortalLayout() {
 export default function PortalApp() {
     return (
         <PortalProvider>
-            <PortalLayout />
+            <Routes>
+                {/* Standalone: PPDB Dashboard has its own navbar — no portal layout */}
+                <Route path="ppdb/dashboard" element={<PortalPPDBDashboard />} />
+                {/* All portal pages with standard navbar/footer */}
+                <Route path="*" element={<PortalLayout />} />
+            </Routes>
         </PortalProvider>
     )
 }

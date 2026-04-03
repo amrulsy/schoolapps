@@ -14,35 +14,38 @@ export default function PortalPPDB() {
     const [searchQuery, setSearchQuery] = useState('')
     const [steps, setSteps] = useState([])
     const [requirements, setRequirements] = useState([])
+    const [gelombangList, setGelombangList] = useState([])
+    const [selectedGelombang, setSelectedGelombang] = useState(null)
 
     // Form State
     const [formData, setFormData] = useState({
-        nisn: '',
         nama_lengkap: '',
         tempat_lahir: '',
         tgl_lahir: '',
         jenis_kelamin: 'L',
         agama: '',
         asal_sekolah: '',
-        telepon_siswa: '',
-        telepon_ortu: '',
+        no_whatsapp: '',
         alamat_lengkap: ''
     })
+    const [printData, setPrintData] = useState(null)
 
     useEffect(() => {
         async function loadData() {
             setLoading(true)
             try {
-                const [page, settingsData, stepsData, reqsData] = await Promise.all([
+                const [page, settingsData, stepsData, reqsData, gelData] = await Promise.all([
                     fetchPublic('/pages/syarat-pendaftaran'),
                     fetchPublic('/settings'),
                     fetchPublic('/ppdb-steps'),
-                    fetchPublic('/ppdb-requirements')
+                    fetchPublic('/ppdb-requirements'),
+                    fetchPublic('/ppdb/gelombang')
                 ])
                 if (page && !page.error) setPageContent(page)
                 if (settingsData) setSettings(settingsData)
                 if (stepsData && !stepsData.error) setSteps(stepsData)
                 if (reqsData && !reqsData.error) setRequirements(reqsData)
+                if (Array.isArray(gelData)) setGelombangList(gelData)
             } catch (err) {
                 console.error("Failed to load PPDB data", err)
             } finally {
@@ -63,37 +66,50 @@ export default function PortalPPDB() {
     const handleSubmit = async (e) => {
         e.preventDefault()
 
-        if (!formData.nisn || !formData.nama_lengkap || !formData.asal_sekolah || !formData.telepon_ortu || !formData.alamat_lengkap) {
+        if (!formData.nama_lengkap || !formData.asal_sekolah || !formData.no_whatsapp || !formData.alamat_lengkap) {
             Swal.fire('Peringatan', 'Mohon lengkapi semua data wajib yang bertanda (*)', 'warning')
             return
         }
 
         setSubmitting(true)
         try {
-            const data = await postPublic('/ppdb', formData)
+            const data = await postPublic('/ppdb', { ...formData, gelombang_id: selectedGelombang })
 
             if (!data.error) {
+                // Show Confetti
+                try {
+                    const confetti = (await import('canvas-confetti')).default;
+                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+                } catch(e) {}
+
+                setPrintData(data.data);
+
                 Swal.fire({
                     title: 'Pendaftaran Berhasil!',
                     html: `
                         <div style="text-align: center; background: rgba(99, 102, 241, 0.05); padding: 25px; border-radius: 20px; margin-top: 20px; border: 2px dashed var(--portal-primary);">
                             <p style="margin-bottom: 10px; font-weight: 500; color: #64748b;">Nomor Registrasi Anda:</p>
-                            <h2 style="color: var(--portal-primary); margin: 5px 0; font-size: 2.2rem; letter-spacing: 2px; font-weight: 900;">${data.registration_number}</h2>
-                            <p style="font-size: 0.85rem; color: #666; margin-top: 15px; line-height: 1.5;">Harap simpan nomor ini atau screenshot layar ini untuk verifikasi selanjutnya.<br/>Panitia akan menghubungi Anda melalui WhatsApp.</p>
+                            <h2 style="color: var(--portal-primary); margin: 5px 0; font-size: 2.2rem; letter-spacing: 2px; font-weight: 900;">${data.data.registration_number}</h2>
+                            <p style="font-size: 0.85rem; color: #666; margin-top: 15px; line-height: 1.5;">Harap simpan nomor ini untuk masuk Dasbor Pendaftar.<br/>Username & PIN telah dikirim ke WhatsApp Anda.</p>
                         </div>
                     `,
                     icon: 'success',
-                    confirmButtonText: 'Selesai',
+                    confirmButtonText: 'Unduh PDF & Selesai',
                     confirmButtonColor: 'var(--portal-primary)',
                     customClass: {
                         popup: 'portal-swal-popup'
                     }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        setTimeout(() => window.print(), 500);
+                    }
                 })
                 setFormData({
-                    nisn: '', nama_lengkap: '', tempat_lahir: '', tgl_lahir: '',
+                    nama_lengkap: '', tempat_lahir: '', tgl_lahir: '',
                     jenis_kelamin: 'L', agama: '', asal_sekolah: '',
-                    telepon_siswa: '', telepon_ortu: '', alamat_lengkap: ''
+                    no_whatsapp: '', alamat_lengkap: ''
                 })
+                setSelectedGelombang(null)
             } else {
                 Swal.fire('Gagal', data.error || 'Terjadi kesalahan saat mengirim data.', 'error')
             }
@@ -212,6 +228,19 @@ export default function PortalPPDB() {
                 <meta name="description" content="Penerimaan Peserta Didik Baru (PPDB) SMK PPRQ. Segera daftarkan diri Anda dan raih masa depan yang gemilang bersama kami." />
             </Helmet>
             <style>{`
+                @media print {
+                    body * { visibility: hidden; }
+                    .print-card-container, .print-card-container * {
+                        visibility: visible;
+                    }
+                    .print-card-container {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                    }
+                    .no-print { display: none !important; }
+                }
                 .hero-glass {
                     background: var(--portal-gradient-hero);
                     padding: 100px 0 120px;
@@ -591,14 +620,39 @@ export default function PortalPPDB() {
                                 ) : (
                                     <div className="form-container-glass">
                                         <form onSubmit={handleSubmit}>
+                                            {/* Gelombang Selection */}
+                                            {gelombangList.length > 0 && (
+                                                <div style={{ marginBottom: '24px' }}>
+                                                    <div className="portal-form-title-group" style={{ marginBottom: '14px' }}>
+                                                        <GraduationCap size={22} strokeWidth={2.5} />
+                                                        <h3>Pilih Gelombang Pendaftaran</h3>
+                                                    </div>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                                                        {gelombangList.map(g => {
+                                                            const pct = g.kuota > 0 ? Math.min(((g.terisi || 0) / g.kuota) * 100, 100) : 0
+                                                            const isFull = (g.terisi || 0) >= g.kuota
+                                                            const isSelected = selectedGelombang === g.id
+                                                            return (
+                                                                <button type="button" key={g.id} disabled={isFull} onClick={() => setSelectedGelombang(isSelected ? null : g.id)}
+                                                                    style={{ padding: '16px', borderRadius: '14px', border: isSelected ? '2px solid var(--portal-primary)' : '1px solid #e2e8f0', background: isSelected ? 'var(--portal-gradient-soft)' : 'white', cursor: isFull ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: isFull ? 0.5 : 1, transition: 'all 0.2s' }}>
+                                                                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: isSelected ? 'var(--portal-primary)' : '#1e293b', marginBottom: '8px' }}>{g.nama}</div>
+                                                                    <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '6px' }}>
+                                                                        <div style={{ height: '100%', width: `${pct}%`, background: isFull ? '#ef4444' : 'var(--portal-primary)', borderRadius: '3px' }} />
+                                                                    </div>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                                                                        <span>{isFull ? 'PENUH' : `${g.terisi || 0}/${g.kuota} terisi`}</span>
+                                                                        <span>Rp {Number(g.biaya_daftar_ulang || 0).toLocaleString('id-ID')}</span>
+                                                                    </div>
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <div className="portal-form-title-group">
                                                 <User size={22} strokeWidth={2.5} />
                                                 <h3>Identitas Calon Siswa</h3>
-                                            </div>
-
-                                            <div className="portal-form-group">
-                                                <label className="portal-form-label">NISN <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
-                                                <input type="text" name="nisn" className="portal-form-input" value={formData.nisn} onChange={handleInputChange} placeholder="10 Digit NISN Aktif" required />
                                             </div>
 
                                             <div className="portal-form-group">
@@ -650,15 +704,9 @@ export default function PortalPPDB() {
                                                 <input type="text" name="asal_sekolah" className="portal-form-input" value={formData.asal_sekolah} onChange={handleInputChange} placeholder="Contoh: SMP Negeri 1 Jakarta" required />
                                             </div>
 
-                                            <div className="form-row form-row-2">
-                                                <div className="portal-form-group">
-                                                    <label className="portal-form-label">No. WhatsApp Siswa</label>
-                                                    <input type="tel" name="telepon_siswa" className="portal-form-input" value={formData.telepon_siswa} onChange={handleInputChange} placeholder="08xxxx" />
-                                                </div>
-                                                <div className="portal-form-group">
-                                                    <label className="portal-form-label">WhatsApp Orang Tua <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
-                                                    <input type="tel" name="telepon_ortu" className="portal-form-input" value={formData.telepon_ortu} onChange={handleInputChange} placeholder="Wajib untuk konfirmasi" required />
-                                                </div>
+                                            <div className="portal-form-group">
+                                                <label className="portal-form-label">No. WhatsApp <span style={{ color: 'var(--portal-danger)' }}>*</span></label>
+                                                <input type="tel" name="no_whatsapp" className="portal-form-input" value={formData.no_whatsapp} onChange={handleInputChange} placeholder="08xxxxxxxxxx (Wajib ada WA Aktif)" required />
                                             </div>
 
                                             <div className="portal-form-group">
@@ -745,6 +793,51 @@ export default function PortalPPDB() {
                     </div>
                 </div>
             </section>
+
+            {/* Hidden Print Container */}
+            {printData && (
+                <div className="print-card-container" style={{ display: 'none' }}>
+                    <div style={{ display: 'block', padding: '40px', fontFamily: 'sans-serif', maxWidth: '800px', margin: '0 auto', border: '5px solid #1e293b', borderRadius: '20px', background: 'white' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #e2e8f0', paddingBottom: '20px', marginBottom: '20px' }}>
+                            <div>
+                                <h1 style={{ margin: 0, fontSize: '28px', color: '#1e293b' }}>KARTU PENDAFTARAN PPDB</h1>
+                                <p style={{ margin: '5px 0 0 0', color: '#64748b' }}>Tahun Ajaran {settings.ppdb_year || '2025/2026'}</p>
+                            </div>
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${printData.username}`} alt="QR Code" style={{ width: '80px', height: '80px' }} />
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+                            <div>
+                                <p style={{ fontWeight: 600, color: '#94a3b8', margin: '0 0 5px 0', fontSize: '14px', textTransform: 'uppercase' }}>Nomor Registrasi</p>
+                                <p style={{ margin: 0, fontWeight: 800, fontSize: '20px', color: '#1e293b' }}>{printData.registration_number}</p>
+                            </div>
+                            <div>
+                                <p style={{ fontWeight: 600, color: '#94a3b8', margin: '0 0 5px 0', fontSize: '14px', textTransform: 'uppercase' }}>Nama Lengkap</p>
+                                <p style={{ margin: 0, fontWeight: 700, fontSize: '18px', color: '#334155' }}>{printData.nama_lengkap}</p>
+                            </div>
+                            <div>
+                                <p style={{ fontWeight: 600, color: '#94a3b8', margin: '0 0 5px 0', fontSize: '14px', textTransform: 'uppercase' }}>Asal Sekolah</p>
+                                <p style={{ margin: 0, fontWeight: 700, fontSize: '18px', color: '#334155' }}>{printData.asal_sekolah}</p>
+                            </div>
+                        </div>
+
+                        <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                            <h3 style={{ margin: '0 0 15px 0', color: '#1e293b' }}>KREDENSIAL LOGIN DASBOR PPDB</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                                <div>
+                                    <p style={{ margin: '0 0 5px 0', color: '#64748b', fontSize: '14px' }}>Username:</p>
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: '18px', color: '#4f46e5' }}>{printData.username}</p>
+                                </div>
+                                <div>
+                                    <p style={{ margin: '0 0 5px 0', color: '#64748b', fontSize: '14px' }}>PIN Rahasia:</p>
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: '18px', color: '#ef4444' }}>{printData.pin}</p>
+                                </div>
+                            </div>
+                            <p style={{ margin: '20px 0 0 0', fontSize: '13px', color: '#ef4444' }}>* PENTING: Gunakan akun di atas untuk login ke Dasbor PPDB dan melengkapi berkas. Jangan berikan PIN kepada orang lain.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

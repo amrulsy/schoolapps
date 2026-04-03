@@ -5,6 +5,7 @@ import EmptyState from '../../components/EmptyState'
 import * as XLSX from 'xlsx'
 import { downloadFile } from '../../utils/downloadHelper'
 import { Search, Plus, TrendingUp, TrendingDown, Wallet, BookOpen, Download } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 // Features
 import ExpenseForm from '../../features/transaksi/ExpenseForm'
@@ -19,6 +20,38 @@ export default function ArusKasPage() {
     const totalIncome = cashFlow.filter(c => c.tipe === 'masuk').reduce((s, c) => s + Number(c.nominal), 0)
     const totalExpense = cashFlow.filter(c => c.tipe === 'keluar').reduce((s, c) => s + Number(c.nominal), 0)
     const saldo = totalIncome - totalExpense
+
+    // --- CHART DATA PREPARATION ---
+    const chartDataMap = {}
+    cashFlow.forEach(c => {
+        if (!c.tanggal) return
+        const d = new Date(c.tanggal)
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        const label = d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })
+        
+        if (!chartDataMap[k]) chartDataMap[k] = { key: k, month: label, masuk: 0, keluar: 0 }
+        chartDataMap[k][c.tipe] += Number(c.nominal)
+    })
+    const chartData = Object.values(chartDataMap).sort((a, b) => a.key.localeCompare(b.key)).slice(-6)
+
+    // Custom Tooltip for Recharts
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div style={{ background: 'var(--bg-card)', padding: '12px 16px', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: 'var(--shadow-md)' }}>
+                    <p style={{ margin: '0 0 8px', fontWeight: 800, color: 'var(--text-primary)' }}>{label}</p>
+                    {payload.map((entry, index) => (
+                        <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, fontSize: '0.85rem' }}>
+                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: entry.color }} />
+                            <span style={{ color: 'var(--text-secondary)', width: 80 }}>{entry.name}</span>
+                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formatRupiah(entry.value)}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    }
 
     const filtered = cashFlow.filter(c => filterTipe === 'semua' || c.tipe === filterTipe)
     const totalPages = Math.ceil(filtered.length / PER_PAGE)
@@ -89,6 +122,28 @@ export default function ArusKasPage() {
                     <div className="cf-value">{formatRupiah(saldo)}</div>
                 </div>
             </div>
+
+            {/* Visual Analytics Dashboard */}
+            {chartData.length > 0 && (
+                <div style={{ background: 'var(--bg-card)', padding: '24px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', marginBottom: '24px' }}>
+                    <h3 style={{ margin: '0 0 20px', fontWeight: 800, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <TrendingUp size={22} style={{ color: '#0ea5e9' }} /> Visualisasi Arus Kas (6 Bulan Terakhir)
+                    </h3>
+                    <div style={{ height: 300, width: '100%' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} tickFormatter={(value) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M` : `${value/1000}k`} />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--border-color)', opacity: 0.4 }} />
+                                <Legend wrapperStyle={{ paddingTop: 20, fontSize: '0.85rem', fontWeight: 600 }} iconType="circle" />
+                                <Bar dataKey="masuk" name="Pemasukan" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                                <Bar dataKey="keluar" name="Pengeluaran" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
 
             {/* Filter */}
             <div className="filter-bar">

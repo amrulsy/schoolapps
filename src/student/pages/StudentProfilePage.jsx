@@ -3,13 +3,14 @@ import { User, MapPin, Phone, Mail, Calendar, FileText, Shield, ChevronRight, Lo
 import { useState } from 'react'
 
 export default function StudentProfilePage() {
-    const { student, profile, handleLogout } = useStudent()
+const { student, profile, stuTheme, changeTheme, handleLogout } = useStudent()
     const data = profile || student || {}
     const [activeSection, setActiveSection] = useState('personal')
 
     const sections = [
         { id: 'personal', label: 'Data Pribadi', icon: User },
         { id: 'parents', label: 'Orang Tua', icon: Shield },
+        { id: 'settings', label: 'Pengaturan', icon: Shield }, // Will use Shield for now, or add Settings icon
         { id: 'documents', label: 'Dokumen', icon: FileText },
     ]
 
@@ -66,6 +67,32 @@ export default function StudentProfilePage() {
                     <InfoRow label="Alamat" value={data.alamat} />
                     <InfoRow label="Jurusan" value={data.jurusan || data.unit_nama} />
                     <InfoRow label="Angkatan" value={data.angkatan} />
+                </div>
+            )}
+
+            {/* Settings & Theme */}
+            {activeSection === 'settings' && (
+                <div className="stu-card">
+                    <h4 className="stu-card-title">🎨 Pilih Tema Warna</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--stu-text-sec)', marginBottom: '12px' }}>
+                        Personalisasi dashboard sesuai keinginanmu.
+                    </p>
+                    <div className="stu-theme-grid">
+                        {[
+                            { id: 'blue', color: '#6366F1' },
+                            { id: 'rose', color: '#F43F5E' },
+                            { id: 'emerald', color: '#10B981' },
+                            { id: 'violet', color: '#8B5CF6' },
+                            { id: 'orange', color: '#F59E0B' }
+                        ].map(t => (
+                            <div 
+                                key={t.id}
+                                className={`stu-theme-option ${stuTheme === t.id ? 'active' : ''}`}
+                                style={{ color: t.color }}
+                                onClick={() => changeTheme(t.id)}
+                            />
+                        ))}
+                    </div>
                 </div>
             )}
 

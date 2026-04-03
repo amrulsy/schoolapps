@@ -3,8 +3,9 @@ import { API_BASE, getAuthHeaders } from '../../services/api'
 import {
     Wifi, WifiOff, RefreshCw, LogOut, Send,
     QrCode, MessageCircle, CheckCircle, AlertCircle, Clock, History as HistoryIcon,
-    ShieldCheck, ChevronRight
+    ShieldCheck, ChevronRight, FileText
 } from 'lucide-react'
+import { useSettings } from '../../context/SettingsContext'
 
 const styles = `
   .wa-page { max-width: 900px; margin: 0 auto; }
@@ -77,6 +78,23 @@ export default function WhatsAppConfigPage() {
     const [configWizardStep, setConfigWizardStep] = useState(0) // 0: idle, 1: input, 2: confirm
     const [newHourlyLimit, setNewHourlyLimit] = useState(50)
     const intervalRef = useRef(null)
+
+    const { schoolSettings, updateSchoolSettings } = useSettings()
+    const defaultTemplate = `*📋 NOTA PEMBAYARAN*\n*SMK PPRQ - SIAS*\n\nNo. Invoice: *{invoiceNo}*\nNama Siswa: *{siswaNama}*\n\n*Rincian Pembayaran:*\n{rincian}\n\n*Total: {total}*\nDibayar: {dibayar}\nKembali: {kembali}\n\nTerima kasih atas pembayarannya. 🙏`
+    const [waTemplate, setWaTemplate] = useState(defaultTemplate)
+    const [isSavingTemplate, setIsSavingTemplate] = useState(false)
+
+    useEffect(() => {
+        if (schoolSettings?.wa_template_pembayaran) {
+            setWaTemplate(schoolSettings.wa_template_pembayaran)
+        }
+    }, [schoolSettings])
+
+    const handleSaveTemplate = async () => {
+        setIsSavingTemplate(true)
+        await updateSchoolSettings({ wa_template_pembayaran: waTemplate })
+        setIsSavingTemplate(false)
+    }
 
     const fetchStatus = useCallback(async () => {
         try {
@@ -356,6 +374,43 @@ export default function WhatsAppConfigPage() {
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* Template Editor Section */}
+            <div className="wa-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <FileText size={22} style={{ color: '#0ea5e9' }} />
+                        Template Nota Pembayaran
+                    </h3>
+                    <button className="wa-btn wa-btn-primary" onClick={handleSaveTemplate} disabled={isSavingTemplate} style={{ height: 36, padding: '0 16px', fontSize: '0.8rem', background: '#0ea5e9', borderColor: '#0ea5e9' }}>
+                        {isSavingTemplate ? 'Menyimpan...' : 'Simpan Template'}
+                    </button>
+                </div>
+                <div className="wa-grid-responsive" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+                    <div>
+                        <textarea
+                            className="wa-test-input"
+                            style={{ width: '100%', height: '220px', fontFamily: 'monospace', fontSize: '0.85rem', resize: 'vertical' }}
+                            value={waTemplate}
+                            onChange={(e) => setWaTemplate(e.target.value)}
+                        />
+                    </div>
+                    <div style={{ background: 'var(--bg-stripe)', padding: 16, borderRadius: 16, border: '1px solid var(--border-color)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <h4 style={{ margin: '0 0 10px', fontWeight: 800, color: 'var(--text-primary)' }}>Variabel Dinamis:</h4>
+                        <ul style={{ paddingLeft: 16, margin: 0, lineHeight: 1.8 }}>
+                            <li><code>{`{invoiceNo}`}</code> : No. Invoice</li>
+                            <li><code>{`{siswaNama}`}</code> : Nama Lengkap Siswa</li>
+                            <li><code>{`{rincian}`}</code> : Daftar Item Dibayar</li>
+                            <li><code>{`{total}`}</code> : Total Tagihan (Rp)</li>
+                            <li><code>{`{dibayar}`}</code> : Nominal Dibayar (Rp)</li>
+                            <li><code>{`{kembali}`}</code> : Nominal Kembalian (Rp)</li>
+                        </ul>
+                        <div style={{ marginTop: 16, padding: '8px 12px', background: 'rgba(14, 165, 233, 0.1)', color: '#0ea5e9', borderRadius: 8, fontWeight: 600 }}>
+                            Gunakan *teks* untuk tulisan tebal (bold).
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* History Table */}

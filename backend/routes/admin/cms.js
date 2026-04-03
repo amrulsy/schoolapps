@@ -195,8 +195,10 @@ router.put('/settings', async (req, res) => {
 
         for (const item of updates) {
             await pool.query(
-                'UPDATE cms_settings SET setting_value = ? WHERE setting_key = ?',
-                [item.setting_value, item.setting_key]
+                `INSERT INTO cms_settings (setting_key, setting_value) 
+                 VALUES (?, ?) 
+                 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+                [item.setting_key, item.setting_value]
             );
         }
         invalidateCache('/api/public/settings');
@@ -213,16 +215,103 @@ router.get('/ppdb', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.get('/ppdb/qr/:qr', async (req, res) => {
+    try {
+        const identifier = req.params.qr;
+        const [rows] = await pool.query('SELECT * FROM ppdb_registrations WHERE registration_number = ? OR username = ? LIMIT 1', [identifier, identifier]);
+        if (rows.length === 0) return res.status(404).json({ error: 'Siswa tidak ditemukan' });
+        res.json(rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.patch('/ppdb/:id/status', async (req, res) => {
     try {
         const { status } = req.body;
-        if (!['pending', 'approved', 'rejected'].includes(status)) {
+        if (!['draft', 'pending_verification', 'wawancara', 'accepted', 'rejected'].includes(status)) {
             return res.status(400).json({ error: 'Status tidak valid' });
         }
-
         await pool.query('UPDATE ppdb_registrations SET status = ? WHERE id = ?', [status, req.params.id]);
-        res.json({ success: true });
+
+        // WA Notification on rejection
+        if (status === 'rejected') {
+            try {
+                const [pRows] = await pool.query('SELECT nama_lengkap, no_whatsapp FROM ppdb_registrations WHERE id = ?', [req.params.id]);
+                if (pRows.length > 0 && pRows[0].no_whatsapp) {
+                    const waService = require('../../services/whatsappService');
+                    await waService.sendMessage(pRows[0].no_whatsapp, `Mohon maaf, pendaftaran PPDB atas nama *${pRows[0].nama_lengkap}* belum dapat kami terima saat ini.\n\nSilakan hubungi panitia PPDB untuk informasi lebih lanjut. Terima kasih.`);
+                }
+            } catch(e) { console.error('WA reject notification error:', e); }
+        }
+
+        res.json({ success: true, status });
     } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/ppdb/:id/accept', async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        
+        // 1. Ambil data pendaftar
+        const [pRows] = await connection.query('SELECT * FROM ppdb_registrations WHERE id = ?', [req.params.id]);
+        if(pRows.length === 0) throw new Error('Data pendaftar tidak ditemukan');
+        const p = pRows[0];
+        if(p.status === 'accepted') throw new Error('Siswa ini sudah pernah diterima');
+        
+        // 2. Insert ke tabel Siswa Aktif
+        const { kelas_id } = req.body;
+        const [siswaRes] = await connection.query(`
+            INSERT INTO siswa (nisn, nama, jk, tempat_lahir, tgl_lahir, agama, alamat, telp, status, kelas_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)
+        `, [p.nisn || null, p.nama_lengkap, p.jenis_kelamin, p.tempat_lahir, p.tgl_lahir, p.agama, p.alamat_lengkap, p.no_whatsapp, kelas_id || null]);
+        
+        const siswaId = siswaRes.insertId;
+
+        // 3. Masukkan biodata ortu (jika ada di JSON)
+        let bio = {};
+        try { bio = typeof p.biodata_tambahan === 'string' ? JSON.parse(p.biodata_tambahan) : (p.biodata_tambahan || {}); } catch(e){}
+        if(bio.nama_ayah) {
+            await connection.query('INSERT INTO siswa_orangtua (siswa_id, jenis, nama, pekerjaan) VALUES (?, "ayah", ?, ?)', [siswaId, bio.nama_ayah, bio.pekerjaan_ayah || null]);
+        }
+        if(bio.nama_ibu) {
+            await connection.query('INSERT INTO siswa_orangtua (siswa_id, jenis, nama, pekerjaan) VALUES (?, "ibu", ?, ?)', [siswaId, bio.nama_ibu, bio.pekerjaan_ibu || null]);
+        }
+        
+        // 4. Buat kategori tagihan Daftar Ulang (jika belum ada)
+        const [katRows] = await connection.query('SELECT id, nominal FROM kategori_tagihan WHERE nama LIKE "%Daftar Ulang%" OR kode = "DU" LIMIT 1');
+        let kategoriId = null;
+        let nominalTagihan = 1500000; // default 1.5jt
+        if(katRows.length > 0) {
+            kategoriId = katRows[0].id;
+            nominalTagihan = katRows[0].nominal;
+        } else {
+            const [newKat] = await connection.query('INSERT INTO kategori_tagihan (kode, nama, nominal, tipe, keterangan) VALUES (?, ?, ?, ?, ?)', ['DU', 'Daftar Ulang', 1500000, 'sekali', 'Tagihan Daftar Ulang Siswa Baru']);
+            kategoriId = newKat.insertId;
+        }
+
+        // 5. Buat Tagihan ke modul Kasir
+        const d = new Date();
+        await connection.query('INSERT INTO tagihan (siswa_id, kelas_id, kategori_id, tahun_ajaran_id, bulan, tahun, nominal, nominal_asli, status) VALUES (?, NULL, ?, NULL, ?, ?, ?, ?, "belum")', [siswaId, kategoriId, d.getMonth()+1, d.getFullYear(), nominalTagihan, nominalTagihan]);
+        
+        // 6. Update status PPDB jadi 'accepted'
+        await connection.query('UPDATE ppdb_registrations SET status = "accepted" WHERE id = ?', [req.params.id]);
+
+        await connection.commit();
+
+        // 7. WA Notifikasi Auto-Billing & Sorak Sorai
+        const waMessage = `*KABAR GEMBIRA - PENGUMUMAN PPDB*\n\nAlhamdulillah, Ananda *${p.nama_lengkap}* dinyatakan *DITERIMA* di sekolah kami.\n\nSegera validasi kursi Anda dengan melunasi Tagihan Daftar Ulang senilai *Rp ${Number(nominalTagihan).toLocaleString('id-ID')}* ke Kasir Sekolah (atau transfer ke rekening resmi) sebelum batas waktu ditutup.\n\nSelamat bergabung!`;
+        try {
+            const waService = require('../../services/whatsappService');
+            await waService.sendMessage(p.no_whatsapp, waMessage);
+        } catch(e) { console.error('WA Notification Error:', e); }
+
+        res.json({ success: true, message: 'Siswa diterima, migrasi berhasil, dan tagihan terbit!' });
+    } catch(err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
 });
 
 router.delete('/ppdb/:id', async (req, res) => {
@@ -736,6 +825,132 @@ router.delete('/agenda/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM cms_agenda WHERE id = ?', [req.params.id]);
         invalidateCache('/api/public/agenda');
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== PPDB ANALYTICS ====================
+
+router.get('/ppdb/analytics', async (req, res) => {
+    try {
+        // 1. Daily registrations (last 14 days)
+        const [daily] = await pool.query(`
+            SELECT DATE(created_at) as date, COUNT(*) as count
+            FROM ppdb_registrations
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+            GROUP BY DATE(created_at) ORDER BY date ASC
+        `);
+
+        // 2. Gender ratio
+        const [gender] = await pool.query(`
+            SELECT jenis_kelamin as jk, COUNT(*) as count
+            FROM ppdb_registrations GROUP BY jenis_kelamin
+        `);
+
+        // 3. Top schools
+        const [schools] = await pool.query(`
+            SELECT asal_sekolah as sekolah, COUNT(*) as count
+            FROM ppdb_registrations
+            GROUP BY asal_sekolah ORDER BY count DESC LIMIT 10
+        `);
+
+        // 4. Funnel conversion
+        const [totalRow] = await pool.query('SELECT COUNT(*) as c FROM ppdb_registrations');
+        const [biodataRow] = await pool.query('SELECT COUNT(*) as c FROM ppdb_registrations WHERE completeness_pct >= 80');
+        const [verifiedRow] = await pool.query("SELECT COUNT(*) as c FROM ppdb_registrations WHERE status IN ('pending_verification','wawancara','accepted','rejected')");
+        const [acceptedRow] = await pool.query("SELECT COUNT(*) as c FROM ppdb_registrations WHERE status = 'accepted'");
+
+        const funnel = [
+            { stage: 'Pendaftaran', count: totalRow[0].c },
+            { stage: 'Biodata Lengkap', count: biodataRow[0].c },
+            { stage: 'Terverifikasi', count: verifiedRow[0].c },
+            { stage: 'Diterima', count: acceptedRow[0].c }
+        ];
+
+        // 5. Per-gelombang stats
+        const [gelombangStats] = await pool.query(`
+            SELECT g.nama, g.kuota, COUNT(r.id) as terisi
+            FROM ppdb_gelombang g
+            LEFT JOIN ppdb_registrations r ON r.gelombang_id = g.id
+            GROUP BY g.id ORDER BY g.id
+        `);
+
+        res.json({ daily, gender, schools, funnel, gelombangStats });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== PPDB GELOMBANG CRUD ====================
+
+router.get('/ppdb/gelombang', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT g.*, (SELECT COUNT(*) FROM ppdb_registrations WHERE gelombang_id = g.id) as terisi FROM ppdb_gelombang g ORDER BY g.id ASC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/ppdb/gelombang', async (req, res) => {
+    try {
+        const { nama, kuota, biaya_daftar_ulang, tanggal_buka, tanggal_tutup, is_active } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO ppdb_gelombang (nama, kuota, biaya_daftar_ulang, tanggal_buka, tanggal_tutup, is_active) VALUES (?, ?, ?, ?, ?, ?)',
+            [nama, kuota || 50, biaya_daftar_ulang || 1500000, tanggal_buka || null, tanggal_tutup || null, is_active ?? 1]
+        );
+        res.status(201).json({ success: true, id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/ppdb/gelombang/:id', async (req, res) => {
+    try {
+        const { nama, kuota, biaya_daftar_ulang, tanggal_buka, tanggal_tutup, is_active } = req.body;
+        await pool.query(
+            'UPDATE ppdb_gelombang SET nama=?, kuota=?, biaya_daftar_ulang=?, tanggal_buka=?, tanggal_tutup=?, is_active=? WHERE id=?',
+            [nama, kuota, biaya_daftar_ulang, tanggal_buka || null, tanggal_tutup || null, is_active ?? 1, req.params.id]
+        );
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/ppdb/gelombang/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM ppdb_gelombang WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ==================== PPDB ANNOUNCEMENTS CRUD ====================
+
+router.get('/ppdb/announcements', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM ppdb_announcements ORDER BY created_at DESC');
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/ppdb/announcements', async (req, res) => {
+    try {
+        const { judul, isi, tipe, is_active } = req.body;
+        const [result] = await pool.query(
+            'INSERT INTO ppdb_announcements (judul, isi, tipe, is_active) VALUES (?, ?, ?, ?)',
+            [judul, isi || null, tipe || 'info', is_active ?? 1]
+        );
+        res.status(201).json({ success: true, id: result.insertId });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/ppdb/announcements/:id', async (req, res) => {
+    try {
+        const { judul, isi, tipe, is_active } = req.body;
+        await pool.query(
+            'UPDATE ppdb_announcements SET judul=?, isi=?, tipe=?, is_active=? WHERE id=?',
+            [judul, isi || null, tipe || 'info', is_active ?? 1, req.params.id]
+        );
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/ppdb/announcements/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM ppdb_announcements WHERE id = ?', [req.params.id]);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });

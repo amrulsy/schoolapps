@@ -190,7 +190,13 @@ app.get('/api/student/tabungan', studentAuthMiddleware, async (req, res) => {
 app.get('/api/student/attendance', studentAuthMiddleware, async (req, res) => {
     try {
         const studentId = req.studentId;
-        const [rows] = await pool.query(`SELECT id, tanggal as date, status, keterangan FROM siswa_presensi WHERE siswa_id = ? ORDER BY tanggal DESC LIMIT 50`, [studentId]);
+        const [rows] = await pool.query(`
+            SELECT sp.id, sp.tanggal as date, sp.status, sp.keterangan, a.jam_masuk, a.jam_pulang 
+            FROM siswa_presensi sp
+            LEFT JOIN attendances a ON sp.siswa_id = a.student_id AND sp.tanggal = a.tanggal
+            WHERE sp.siswa_id = ? 
+            ORDER BY sp.tanggal DESC LIMIT 50
+        `, [studentId]);
         res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1014,7 +1020,19 @@ app.post('/api/pembayaran', async (req, res) => {
                     if (phoneTargets.length > 0) {
                         const formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
                         const itemList = paidItems.map(i => `• ${i.kategori} (${i.bulan} ${i.tahun}): ${formatRp(i.nominal)}`).join('\n');
-                        const message = `*📋 NOTA PEMBAYARAN*\n*SMK PPRQ - SIAS*\n\nNo. Invoice: *${invoiceNo}*\nNama Siswa: *${siswa?.nama || '-'}*\n\n*Rincian Pembayaran:*\n${itemList}\n\n*Total: ${formatRp(total)}*\nDibayar: ${formatRp(amountPaid)}\nKembali: ${formatRp(change)}\n\nTerima kasih atas pembayarannya. 🙏`;
+                        
+                        // Ambil template dari pengaturan sekolah
+                        const [settingRows] = await pool.query('SELECT `value` FROM school_settings WHERE `key` = "wa_template_pembayaran"');
+                        let template = settingRows.length > 0 ? settingRows[0].value : `*📋 NOTA PEMBAYARAN*\n*SMK PPRQ - SIAS*\n\nNo. Invoice: *{invoiceNo}*\nNama Siswa: *{siswaNama}*\n\n*Rincian Pembayaran:*\n{rincian}\n\n*Total: {total}*\nDibayar: {dibayar}\nKembali: {kembali}\n\nTerima kasih atas pembayarannya. 🙏`;
+                        
+                        // Ganti variabel dengan nilai dinamis
+                        const message = template
+                            .replace(/{invoiceNo}/g, invoiceNo)
+                            .replace(/{siswaNama}/g, siswa?.nama || '-')
+                            .replace(/{rincian}/g, itemList)
+                            .replace(/{total}/g, formatRp(total))
+                            .replace(/{dibayar}/g, formatRp(amountPaid))
+                            .replace(/{kembali}/g, formatRp(change));
 
                         // Kirim ke semua nomor (siswa + orang tua)
                         const uniquePhones = [...new Set(phoneTargets)];

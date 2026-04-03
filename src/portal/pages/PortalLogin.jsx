@@ -48,6 +48,20 @@ export default function PortalLogin() {
                             Mulai Bekerja <ArrowRight size={18} />
                         </div>
                     </Link>
+
+                    {/* --- Card 3: Pendaftar PPDB --- */}
+                    <Link to="/ppdb/login" className="login-role-card stagger-item" style={{ '--card-color': '#7c3aed', animationDelay: '0.5s' }}>
+                        <div className="login-role-icon">
+                            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '20px', borderRadius: '50%' }}>
+                                <GraduationCap size={60} />
+                            </div>
+                        </div>
+                        <h2>Pendaftar PPDB</h2>
+                        <p>Lengkapi biodata, unggah berkas pendaftaran, dan cek hasil seleksi secara mandiri.</p>
+                        <div className="login-role-btn">
+                            Masuk Dasbor <ArrowRight size={18} />
+                        </div>
+                    </Link>
                 </div>
             </div>
         </div>
