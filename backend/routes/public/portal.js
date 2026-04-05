@@ -36,7 +36,14 @@ const berkasStorage = multer.diskStorage({
         cb(null, `${type}_${req.ppdbUser.id}_${Date.now()}${path.extname(file.originalname)}`);
     }
 });
-const uploadPPDBBerkas = multer({ storage: berkasStorage, limits: { fileSize: 5 * 1024 * 1024 } });
+const uploadPPDBBerkas = multer({ 
+    storage: berkasStorage, 
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (['image/jpeg','image/png','image/webp','application/pdf'].includes(file.mimetype)) cb(null, true);
+        else cb(new Error('Hanya JPEG, PNG, WEBP, atau PDF yang diizinkan'), false);
+    }
+});
 
 // Helper: Calculate completeness percentage
 function calcCompleteness(row) {
@@ -141,40 +148,92 @@ router.get('/settings', cacheMiddleware(60), async (req, res) => {
 // ==================== PPDB REGISTRATION ====================
 
 router.post('/ppdb', async (req, res) => {
+    const { nama_lengkap, tempat_lahir, tgl_lahir, jenis_kelamin, agama, jurusan_pilihan, asal_sekolah, no_whatsapp, alamat_lengkap, gelombang_id } = req.body;
+    
+    const connection = await pool.getConnection();
     try {
-        const { nama_lengkap, tempat_lahir, tgl_lahir, jenis_kelamin, agama, asal_sekolah, no_whatsapp, alamat_lengkap, gelombang_id } = req.body;
-        const [settingsRows] = await pool.query("SELECT setting_value FROM cms_settings WHERE setting_key = 'ppdb_is_open'");
-        let isOpen = false;
-        if (settingsRows.length > 0) { const val = String(settingsRows[0].setting_value).trim().toLowerCase(); isOpen = (val === 'true' || val === '1'); }
-        if (!isOpen) return res.status(403).json({ error: 'Pendaftaran PPDB saat ini sedang ditutup.' });
-        if (!nama_lengkap || !asal_sekolah || !no_whatsapp || !alamat_lengkap) return res.status(400).json({ error: 'Mohon lengkapi semua data wajib.' });
+        await connection.beginTransaction();
 
-        // Validate gelombang quota
+        const [settingsRows] = await connection.query("SELECT setting_value FROM cms_settings WHERE setting_key = 'ppdb_is_open'");
+        let isOpen = false;
+        if (settingsRows.length > 0) { 
+            const val = String(settingsRows[0].setting_value).trim().toLowerCase(); 
+            isOpen = (val === 'true' || val === '1'); 
+        }
+        
+        if (!isOpen) throw new Error('Pendaftaran PPDB saat ini sedang ditutup.');
+        if (!nama_lengkap || !asal_sekolah || !no_whatsapp || !alamat_lengkap) throw new Error('Mohon lengkapi semua data wajib.');
+
+        // Validate gelombang quota & dates
         if (gelombang_id) {
-            const [gel] = await pool.query('SELECT id, kuota FROM ppdb_gelombang WHERE id = ? AND is_active = 1', [gelombang_id]);
-            if (gel.length === 0) return res.status(400).json({ error: 'Gelombang tidak valid atau tidak aktif.' });
-            const [cnt] = await pool.query('SELECT COUNT(*) as total FROM ppdb_registrations WHERE gelombang_id = ?', [gelombang_id]);
-            if (cnt[0].total >= gel[0].kuota) return res.status(403).json({ error: 'Kuota gelombang ini sudah penuh.' });
+            const [gel] = await connection.query('SELECT id, kuota, tanggal_buka, tanggal_tutup FROM ppdb_gelombang WHERE id = ? AND is_active = 1 FOR UPDATE', [gelombang_id]);
+            if (gel.length === 0) throw new Error('Gelombang tidak valid atau tidak aktif.');
+            
+            const now = new Date();
+            if (gel[0].tanggal_buka && now < new Date(gel[0].tanggal_buka)) throw new Error('Pendaftaran gelombang ini belum dibuka.');
+            if (gel[0].tanggal_tutup) {
+                const tutup = new Date(gel[0].tanggal_tutup);
+                tutup.setHours(23, 59, 59, 999);
+                if (now > tutup) throw new Error('Pendaftaran gelombang ini sudah berakhir.');
+            }
+
+            const [cnt] = await connection.query('SELECT COUNT(*) as total FROM ppdb_registrations WHERE gelombang_id = ?', [gelombang_id]);
+            if (cnt[0].total >= gel[0].kuota) throw new Error('Kuota pendaftaran gelombang ini sudah penuh.');
         }
 
-        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
-        const regNumber = `REG-${dateStr}-${randomStr}`;
-        const year = new Date().getFullYear();
-        const [countRow] = await pool.query(`SELECT COUNT(*) as total FROM ppdb_registrations WHERE YEAR(created_at) = ?`, [year]);
-        const username = `PPDB-${year}-${String(countRow[0].total + 1).padStart(3, '0')}`;
+        const [ppdbYearRows] = await connection.query("SELECT setting_value FROM cms_settings WHERE setting_key = 'ppdb_year'");
+        let acadYearPrefix = new Date().getFullYear().toString();
+        if (ppdbYearRows.length > 0) {
+            const match = String(ppdbYearRows[0].setting_value).match(/^\d{4}/);
+            if (match) acadYearPrefix = match[0];
+        }
+
+        // --- Prevent Duplicate Registration ---
+        const [existing] = await connection.query(
+            `SELECT id FROM ppdb_registrations 
+            WHERE registration_number LIKE ? AND no_whatsapp = ? AND LOWER(nama_lengkap) = LOWER(?)`,
+            [`PPDB-${acadYearPrefix}-%`, no_whatsapp, nama_lengkap.trim()]
+        );
+        if (existing.length > 0) {
+            throw new Error('Siswa dengan nama ini sudah terdaftar menggunakan nomor WhatsApp tersebut untuk periode ini.');
+        }
+        
+        // Generate sequence with LOCK to prevent collision
+        const [maxRow] = await connection.query(
+            `SELECT MAX(CAST(SUBSTRING_INDEX(registration_number, '-', -1) AS UNSIGNED)) as max_seq 
+             FROM ppdb_registrations 
+             WHERE registration_number LIKE ? FOR UPDATE`, 
+            [`PPDB-${acadYearPrefix}-%`]
+        );
+        
+        const seqNum = (maxRow[0].max_seq || 0) + 1;
+        const seq = String(seqNum).padStart(3, '0');
+        const unifiedId = `PPDB-${acadYearPrefix}-${seq}`;
+        
         const rawPin = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPin = await bcrypt.hash(rawPin, 10);
 
-        await pool.query(
-            `INSERT INTO ppdb_registrations (registration_number, username, pin_rahasia, nama_lengkap, tempat_lahir, tgl_lahir, jenis_kelamin, agama, asal_sekolah, no_whatsapp, alamat_lengkap, gelombang_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
-            [regNumber, username, hashedPin, nama_lengkap, tempat_lahir || null, tgl_lahir || null, jenis_kelamin || 'L', agama || null, asal_sekolah, no_whatsapp, alamat_lengkap, gelombang_id || null]
+        const [insertResult] = await connection.query(
+            `INSERT INTO ppdb_registrations (registration_number, username, pin_rahasia, nama_lengkap, tempat_lahir, tgl_lahir, jenis_kelamin, agama, jurusan_pilihan, asal_sekolah, no_whatsapp, alamat_lengkap, gelombang_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
+            [unifiedId, unifiedId, hashedPin, nama_lengkap, tempat_lahir || null, tgl_lahir || null, jenis_kelamin || 'L', agama || null, jurusan_pilihan || null, asal_sekolah, no_whatsapp, alamat_lengkap, gelombang_id || null]
         );
+        const newPpdbId = insertResult.insertId;
 
-        try { await waService.sendMessage(no_whatsapp, `*Pendaftaran PPDB Berhasil!*\n\nUsername: ${username}\nPIN: ${rawPin}\n\nLogin di Dasbor Pendaftar untuk melengkapi biodata.`); } catch (e) {}
+        await connection.commit();
 
-        res.status(201).json({ success: true, data: { registration_number: regNumber, username, pin: rawPin, nama_lengkap } });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        try { await waService.sendMessage(no_whatsapp, `*Pendaftaran PPDB Berhasil!*\n\nID Pendaftaran: ${unifiedId}\nPIN: ${rawPin}\n\nLogin di Dasbor Pendaftar untuk melengkapi biodata.`); } catch (e) {}
+
+        // Generate auto-login token so frontend can redirect straight to dashboard
+        const autoToken = jwt.sign({ id: newPpdbId, username: unifiedId, role: 'ppdb_student' }, JWT_SECRET, { expiresIn: '7d' });
+        res.status(201).json({ success: true, data: { registration_number: unifiedId, username: unifiedId, pin: rawPin, nama_lengkap, token: autoToken } });
+    } catch (err) {
+        if (connection) await connection.rollback();
+        const msg = err.message || 'Internal Server Error';
+        const status = (msg.includes('sudah terdaftar') || msg.includes('penuh') || msg.includes('ditutup')) ? 403 : 500;
+        res.status(status).json({ error: msg });
+    } finally {
+        if (connection) connection.release();
+    }
 });
 
 router.post('/ppdb/check', async (req, res) => {
@@ -217,7 +276,18 @@ router.get('/ppdb/track/:regNumber', async (req, res) => {
 router.get('/ppdb/gelombang', async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT g.*, (SELECT COUNT(*) FROM ppdb_registrations WHERE gelombang_id = g.id) as terisi FROM ppdb_gelombang g WHERE g.is_active = 1 ORDER BY g.id ASC');
-        res.json(rows);
+        const now = new Date();
+        const gelombangWithStatus = rows.map(g => {
+            let dateStatus = 'ongoing';
+            if (g.tanggal_buka && now < new Date(g.tanggal_buka)) dateStatus = 'not_yet_open';
+            if (g.tanggal_tutup) {
+                const tutup = new Date(g.tanggal_tutup);
+                tutup.setHours(23, 59, 59, 999);
+                if (now > tutup) dateStatus = 'ended';
+            }
+            return { ...g, date_status: dateStatus };
+        });
+        res.json(gelombangWithStatus);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -265,12 +335,12 @@ router.get('/ppdb/dashboard', ppdbAuthMiddleware, async (req, res) => {
     try {
         const [rows] = await pool.query(
             `SELECT r.id, r.registration_number, r.username, r.nisn, r.nama_lengkap, r.tempat_lahir, r.tgl_lahir,
-                    r.jenis_kelamin, r.agama, r.asal_sekolah, r.no_whatsapp, r.alamat_lengkap, r.biodata_tambahan,
+                    r.jenis_kelamin, r.agama, r.jurusan_pilihan, r.asal_sekolah, r.no_whatsapp, r.alamat_lengkap, r.biodata_tambahan,
                     r.status, r.foto_path, r.completeness_pct, r.gelombang_id, r.berkas_json,
                     g.nama as gelombang_nama, k.nama as kelas_nama
              FROM ppdb_registrations r
              LEFT JOIN ppdb_gelombang g ON r.gelombang_id = g.id
-             LEFT JOIN siswa s ON s.nisn = r.nisn AND r.status = 'accepted'
+             LEFT JOIN siswa s ON s.id = r.siswa_id
              LEFT JOIN kelas k ON s.kelas_id = k.id
              WHERE r.id = ?`, [req.ppdbUser.id]
         );
@@ -340,6 +410,15 @@ router.post('/ppdb/dashboard/upload-foto', ppdbAuthMiddleware, (req, res) => {
         if (err) return res.status(400).json({ error: err.message });
         if (!req.file) return res.status(400).json({ error: 'Tidak ada file.' });
         try {
+            // BUG FIX: Check if status is draft before allowing photo modification
+            const [checkRows] = await pool.query('SELECT status FROM ppdb_registrations WHERE id = ?', [req.ppdbUser.id]);
+            if (checkRows[0].status !== 'draft') {
+                // Delete the uploaded file since we reject the change
+                const tempPath = path.join(__dirname, '../../uploads/ppdb_photos', req.file.filename);
+                if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+                return res.status(403).json({ error: 'Data sudah terkunci.' });
+            }
+
             const fotoPath = `/uploads/ppdb_photos/${req.file.filename}`;
             await pool.query('UPDATE ppdb_registrations SET foto_path = ? WHERE id = ?', [fotoPath, req.ppdbUser.id]);
             // Recalculate completeness
@@ -356,7 +435,12 @@ router.post('/ppdb/dashboard/submit', ppdbAuthMiddleware, async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT * FROM ppdb_registrations WHERE id = ?', [req.ppdbUser.id]);
         if (rows[0].status !== 'draft') return res.status(403).json({ error: 'Data sudah dikunci sebelumnya.' });
-        await pool.query('UPDATE ppdb_registrations SET status = ? WHERE id = ?', ['pending_verification', req.ppdbUser.id]);
+        
+        // BUG FIX: Added Validation for Completeness Percentage
+        if (rows[0].completeness_pct < 100) return res.status(400).json({ error: 'Data belum lengkap 100%. Silakan lengkapi biodata dan berkas Anda.' });
+        
+        // BUG FIX: Change status to 'locked' (Terkirim) instead of directly skipping to 'pending_verification'
+        await pool.query('UPDATE ppdb_registrations SET status = ? WHERE id = ?', ['locked', req.ppdbUser.id]);
 
         // WA Notification
         try {

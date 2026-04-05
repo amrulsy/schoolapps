@@ -28,6 +28,8 @@ const menuSections = [
             { to: '/admin/akademik', icon: BookOpen, text: 'Nilai Akademik' },
             { to: '/admin/pesan', icon: MessageCircle, text: 'Manajemen Pesan' },
             { to: '/admin/gate-monitor', icon: Monitor, text: 'Gate Monitor' },
+            { to: '/admin/lab-inventaris', icon: Package, text: 'Inventaris Lab' },
+            { to: '/admin/lab-scan', icon: Monitor, text: 'Lab Scan Monitor' },
         ]
     },
     {

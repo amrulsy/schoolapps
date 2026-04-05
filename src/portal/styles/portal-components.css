@@ -1617,10 +1617,11 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: flex-start; /* CRITICAL: Force top alignment so all items start at the same pixel from top margin */
         text-align: center;
         gap: 8px;
         text-decoration: none;
-        padding: 12px 8px;
+        padding: 16px 8px; /* Standardize padding */
         border-radius: 18px;
         transition: all 0.3s var(--portal-ease);
         background: transparent;

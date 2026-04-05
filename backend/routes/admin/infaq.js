@@ -182,6 +182,36 @@ router.post('/pay', async (req, res) => {
         const activeDays = settings.active_days || [1, 2, 3, 4, 5, 6];
         const nominalDefault = Number(settings.nominal_default) || 2000;
 
+        // Cache snapshot siswa (nama + nis) agar tidak query berulang kali per siswa
+        const siswaSnapshotCache = {};
+        const getSiswaSnapshot = async (siswa_id) => {
+            if (!siswaSnapshotCache[siswa_id]) {
+                try {
+                    const [[s]] = await connection.query('SELECT nama, nis FROM siswa WHERE id = ?', [siswa_id]);
+                    siswaSnapshotCache[siswa_id] = s ? { nama: s.nama, nis: s.nis } : { nama: null, nis: null };
+                } catch (e) {
+                    siswaSnapshotCache[siswa_id] = { nama: null, nis: null };
+                }
+            }
+            return siswaSnapshotCache[siswa_id];
+        };
+
+        const insertInfaq = async (siswa_id, dateStr, nominalVal, userId, taId) => {
+            const snap = await getSiswaSnapshot(siswa_id);
+            try {
+                await connection.query(
+                    'INSERT INTO infaq_harian (siswa_id, tanggal, nominal, user_id, tahun_ajaran_id, nama_siswa, nis) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE nominal = VALUES(nominal)',
+                    [siswa_id, dateStr, nominalVal, userId, taId, snap.nama, snap.nis]
+                );
+            } catch (e) {
+                // Fallback jika kolom snapshot belum ada (sebelum migration 013)
+                await connection.query(
+                    'INSERT INTO infaq_harian (siswa_id, tanggal, nominal, user_id, tahun_ajaran_id) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE nominal = VALUES(nominal)',
+                    [siswa_id, dateStr, nominalVal, userId, taId]
+                );
+            }
+        };
+
         for (const p of payments) {
             const { siswa_id, date, nominal, days = 1, dates, ta_id, missed_dates } = p;
 
@@ -189,29 +219,20 @@ router.post('/pay', async (req, res) => {
             if (dates && Array.isArray(dates) && dates.length > 0) {
                 for (const d of dates) {
                     const taId = ta_id || await findTahunAjaranForDate(d, connection);
-                    await connection.query(
-                        'INSERT INTO infaq_harian (siswa_id, tanggal, nominal, user_id, tahun_ajaran_id) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE nominal = VALUES(nominal)',
-                        [siswa_id, d, nominal || nominalDefault, user_id, taId]
-                    );
+                    await insertInfaq(siswa_id, d, nominal || nominalDefault, user_id, taId);
                 }
             }
             // MODE 2: Quick Pay historical (missed_dates from a specific TA)
             else if (missed_dates && Array.isArray(missed_dates) && missed_dates.length > 0) {
                 for (const d of missed_dates) {
                     const taId = ta_id || await findTahunAjaranForDate(d, connection);
-                    await connection.query(
-                        'INSERT INTO infaq_harian (siswa_id, tanggal, nominal, user_id, tahun_ajaran_id) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE nominal = VALUES(nominal)',
-                        [siswa_id, d, nominal || nominalDefault, user_id, taId]
-                    );
+                    await insertInfaq(siswa_id, d, nominal || nominalDefault, user_id, taId);
                 }
             }
             // MODE 3: Single day payment
             else if (days === 1) {
                 const taId = await findTahunAjaranForDate(date, connection);
-                await connection.query(
-                    'INSERT INTO infaq_harian (siswa_id, tanggal, nominal, user_id, tahun_ajaran_id) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE nominal = VALUES(nominal)',
-                    [siswa_id, date, nominal || nominalDefault, user_id, taId]
-                );
+                await insertInfaq(siswa_id, date, nominal || nominalDefault, user_id, taId);
             }
             // MODE 4: Prepaid (future days)
             else if (days > 1) {
@@ -223,10 +244,7 @@ router.post('/pay', async (req, res) => {
                     const dStr = curr.toISOString().split('T')[0];
                     if (activeDays.includes(curr.getDay()) && !holidays.has(dStr)) {
                         const taId = await findTahunAjaranForDate(dStr, connection);
-                        await connection.query(
-                            'INSERT INTO infaq_harian (siswa_id, tanggal, nominal, user_id, tahun_ajaran_id) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE nominal = VALUES(nominal)',
-                            [siswa_id, dStr, nominal || nominalDefault, user_id, taId]
-                        );
+                        await insertInfaq(siswa_id, dStr, nominal || nominalDefault, user_id, taId);
                         found++;
                     }
                     curr.setDate(curr.getDate() + 1);
@@ -244,6 +262,7 @@ router.post('/pay', async (req, res) => {
         connection.release();
     }
 });
+
 
 // Summary for chart
 router.get('/summary', async (req, res) => {

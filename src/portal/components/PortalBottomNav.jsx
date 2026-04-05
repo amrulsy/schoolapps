@@ -34,15 +34,20 @@ export default function PortalBottomNav({ onShowMore }) {
                     </Link>
                 ))}
 
-                <button
+                <a
                     className="bottom-nav-item"
-                    onClick={onShowMore}
+                    onClick={(e) => {
+                        e.preventDefault()
+                        onShowMore()
+                    }}
+                    href="#"
+                    role="button"
                 >
                     <div className="bottom-nav-icon">
-                        <Menu size={22} />
+                        <Menu size={22} strokeWidth={2} />
                     </div>
                     <span className="bottom-nav-label">Lainnya</span>
-                </button>
+                </a>
             </div>
         </div>
     )

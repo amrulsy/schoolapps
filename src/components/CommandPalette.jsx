@@ -76,9 +76,16 @@ export default function CommandPalette() {
     }, [isOpen])
 
     // RBAC: only show items the current user is allowed to access
-    const allowedItems = navigationItems.filter(item =>
-        isPathAllowed(currentUser?.role, item.to)
-    )
+    const guruNavigationItems = [
+        { to: '/guru', text: 'Beranda Guru', category: 'Portal Guru' },
+        { to: '/guru/history', text: 'Riwayat Jurnal & Absensi', category: 'Portal Guru' },
+        { to: '/guru/rapor', text: 'Input Nilai Rapor', category: 'Portal Guru' },
+    ]
+
+    const allowedItems = currentUser?.role === 'guru'
+        ? guruNavigationItems
+        : navigationItems.filter(item => isPathAllowed(currentUser?.role, item.to))
+
 
     const filteredItems = query === ''
         ? allowedItems.slice(0, 5)

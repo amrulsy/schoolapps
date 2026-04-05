@@ -1,68 +1,117 @@
-import React, { useState, useEffect } from 'react'
-import { Outlet, Navigate, Link, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, createContext, useContext } from 'react'
+import { Outlet, Navigate, Link, useNavigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useApp } from '../context/AppContext'
-import { LogOut, BookOpen, Sun, Moon, History, FileSpreadsheet, Users, Layout } from 'lucide-react'
+import { LogOut, BookOpen, Sun, Moon, History, FileSpreadsheet, Users, Layout, Activity } from 'lucide-react'
 import { useUi } from '../context/UiContext'
+import CommandPalette from '../components/CommandPalette'
+import LoginPage from '../pages/admin/LoginPage'
+import LoadingSpinner from '../components/LoadingSpinner'
+import api from '../services/api'
+
+// Context untuk share session status dari Dashboard ke Layout
+export const GuruSessionContext = createContext({ sessionBadge: null })
+export const useGuruSession = () => useContext(GuruSessionContext)
 
 export default function GuruLayout() {
-    const { currentUser, logout } = useApp()
+    const { guruUser, isLoaded, login, logout } = useApp()
     const { theme, toggleTheme } = useUi()
     const navigate = useNavigate()
+    const location = useLocation()
 
-    if (!currentUser || currentUser.role !== 'guru') {
-        return <Navigate to="/admin" replace />
-    }
-
+    // ALL hooks MUST be declared before any conditional returns (Rules of Hooks)
     const [isWaliKelas, setIsWaliKelas] = React.useState(false)
+    const [sessionBadge, setSessionBadge] = React.useState(null)
 
     React.useEffect(() => {
+        if (!guruUser || guruUser.role !== 'guru') return
         const checkWali = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/guru/wali-kelas/check`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                })
-                const data = await res.json()
-                setIsWaliKelas(data.isWaliKelas)
-            } catch (err) { console.error(err) }
+                const res = await api.get('/guru/wali-kelas/check')
+                setIsWaliKelas(res.data.isWaliKelas)
+            } catch (err) { console.error('Gagal mengecek status wali kelas:', err) }
         }
         checkWali()
-    }, [])
+    }, [guruUser])
+
+    // Ninja Mode Global Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Alt + 1 : Beranda
+            if (e.altKey && e.key === '1') {
+                e.preventDefault(); navigate('/guru')
+            }
+            // Alt + 2 : Riwayat
+            if (e.altKey && e.key === '2') {
+                e.preventDefault(); navigate('/guru/history')
+            }
+            // Alt + 3 : Rapor
+            if (e.altKey && e.key === '3') {
+                e.preventDefault(); navigate('/guru/rapor')
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [navigate])
 
     const handleLogout = () => {
         logout()
-        navigate('/admin')
+        navigate('/guru')
     }
 
-    const navLinkStyle = (path) => ({
+    const isActive = (path) => {
+        if (path === '/guru') return location.pathname === '/guru'
+        return location.pathname.startsWith(path)
+    }
+
+    // --- Conditional returns AFTER all hooks ---
+
+    // Wait for auth verification to complete before deciding
+    if (!isLoaded) {
+        return <LoadingSpinner fullScreen message="Memverifikasi Sesi Guru..." />
+    }
+
+    // No guru logged in — show login page within guru portal
+    if (!guruUser) {
+        return <LoginPage onLogin={(data) => login(data.token, data.user)} />
+    }
+
+    // If the user who logged in is not a guru, redirect to admin
+    if (guruUser.role !== 'guru') {
+        return <Navigate to="/admin" replace />
+    }
+
+
+
+    const dockItemStyle = (path) => ({
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: '8px',
-        padding: '8px 16px',
-        borderRadius: '12px',
-        fontSize: '0.85rem',
-        fontWeight: 700,
-        color: window.location.pathname === path ? 'var(--primary-600)' : 'var(--text-secondary)',
-        background: window.location.pathname === path ? 'var(--primary-50)' : 'transparent',
+        justifyContent: 'center',
+        width: '56px',
+        height: '56px',
+        borderRadius: '16px',
+        color: isActive(path) ? 'var(--primary-600)' : 'var(--text-secondary)',
         textDecoration: 'none',
-        transition: 'all 0.2s'
+        position: 'relative',
+        transition: 'all 0.25s cubic-bezier(0.25, 1, 0.5, 1)'
     })
 
     return (
+        <GuruSessionContext.Provider value={{ sessionBadge, setSessionBadge }}>
         <div className="guru-layout" style={{ minHeight: '100vh', backgroundColor: 'var(--bg-body)', display: 'flex', flexDirection: 'column' }}>
             <Helmet>
                 <meta name="robots" content="noindex, nofollow" />
             </Helmet>
 
             {/* Premium Top Navbar */}
-            <header className="sticky-top no-print" style={{
+            <header className="sticky-top no-print px-3 px-md-4 py-2 py-md-3" style={{
                 background: 'var(--bg-header)',
                 backdropFilter: 'blur(12px)',
                 borderBottom: '1px solid var(--border-color)',
-                zIndex: 1050,
-                padding: '12px 32px'
+                zIndex: 1050
             }}>
-                <div className="container-fluid max-w-7xl mx-auto d-flex justify-content-between align-items-center">
+                <div className="container-fluid max-w-7xl mx-auto d-flex justify-content-between align-items-center p-0">
                     <div className="d-flex align-items-center gap-4">
                         <div className="d-flex align-items-center gap-3">
                             <div className="bg-primary text-white p-2 rounded-xl d-flex align-items-center justify-content-center shadow-sm" style={{ width: '42px', height: '42px' }}>
@@ -76,27 +125,26 @@ export default function GuruLayout() {
                             </div>
                         </div>
 
-                        {/* Navigation Menu */}
-                        <nav className="d-none d-md-flex align-items-center gap-2 ms-4">
-                            <Link to="/guru" style={navLinkStyle('/guru')}>
-                                <Layout size={18} /> Beranda
-                            </Link>
-                            <Link to="/guru/history" style={navLinkStyle('/guru/history')}>
-                                <History size={18} /> Riwayat
-                            </Link>
-                            <Link to="/guru/rapor" style={navLinkStyle('/guru/rapor')}>
-                                <FileSpreadsheet size={18} /> Rapor
-                            </Link>
-                            {isWaliKelas && (
-                                <Link to="/guru/wali-kelas" style={navLinkStyle('/guru/wali-kelas')}>
-                                    <Users size={18} /> Wali Kelas
-                                </Link>
-                            )}
-                        </nav>
+
                     </div>
 
+                    {/* Live Session Badge */}
+                    {sessionBadge && (
+                        <div className="d-none d-sm-flex" style={{
+                            alignItems: 'center', gap: 6,
+                            padding: '6px 14px', borderRadius: 100,
+                            background: sessionBadge.type === 'running' ? 'rgba(16,185,129,0.1)' : sessionBadge.type === 'remaining' ? 'rgba(251,191,36,0.1)' : 'rgba(16,185,129,0.1)',
+                            color: sessionBadge.type === 'running' ? 'var(--success-600)' : sessionBadge.type === 'remaining' ? '#b45309' : 'var(--success-600)',
+                            border: `1px solid ${sessionBadge.type === 'running' ? 'var(--success-200)' : sessionBadge.type === 'remaining' ? 'rgba(251,191,36,0.3)' : 'var(--success-200)'}`,
+                            fontSize: '0.72rem', fontWeight: 800, whiteSpace: 'nowrap'
+                        }}>
+                            <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'currentColor', animation: sessionBadge.type === 'running' ? 'pulse-dot 1.5s infinite' : 'none' }} />
+                            {sessionBadge.label}
+                        </div>
+                    )}
+
                     {/* Right Section: Theme + Profile + Logout */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                    <div className="d-flex align-items-center gap-2 gap-md-4">
                         {/* Theme Toggle Wrapper */}
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <div
@@ -117,11 +165,11 @@ export default function GuruLayout() {
                         {/* User Profile Wrapper (Desktop Only) */}
                         <div className="d-none d-md-flex" style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingRight: '24px', position: 'relative' }}>
                             <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-600)', lineHeight: '1.2' }}>{currentUser.nama}</div>
+                                <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-600)', lineHeight: '1.2' }}>{guruUser.nama}</div>
                                 <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '2px' }}>Guru Pengajar</div>
                             </div>
                             <div className="user-avatar-sm shadow-sm" style={{ flexShrink: 0 }}>
-                                {currentUser.nama?.charAt(0)}
+                                {guruUser.nama?.charAt(0)}
                             </div>
                             {/* Vertical Separator */}
                             <div style={{ position: 'absolute', right: 0, height: '32px', width: '1px', background: 'var(--border-color)', top: '50%', transform: 'translateY(-50%)' }}></div>
@@ -173,11 +221,81 @@ export default function GuruLayout() {
                         .guru-layout header > .container-fluid > .d-flex:last-child { gap: 10px !important; }
                         .guru-layout main .container-fluid { padding-left: 12px !important; padding-right: 12px !important; }
                     }
+                    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+
+                    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+
+                    /* macOS Floating Dock Styling */
+                    .mac-floating-dock {
+                        position: fixed;
+                        bottom: 24px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 10px 16px;
+                        background: rgba(255, 255, 255, 0.45);
+                        backdrop-filter: blur(24px);
+                        -webkit-backdrop-filter: blur(24px);
+                        border: 1px solid rgba(255, 255, 255, 0.6);
+                        border-radius: 32px;
+                        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+                        z-index: 1050;
+                        transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+                    }
+                    [data-bs-theme="dark"] .mac-floating-dock {
+                        background: rgba(30, 41, 59, 0.65);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+                    }
+                    .dock-item:hover {
+                        color: var(--primary-600) !important;
+                        transform: translateY(-8px) scale(1.15);
+                    }
+                    .dock-item-active {
+                        background: var(--primary-50);
+                    }
+                    .dock-item-active::after {
+                        content: '';
+                        position: absolute;
+                        bottom: -6px;
+                        width: 6px;
+                        height: 6px;
+                        background: var(--primary-500);
+                        border-radius: 50%;
+                    }
+                    .guru-layout main { padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important; }
+
                 ` }} />
                 <div className="container-fluid max-w-7xl mx-auto px-4">
                     <Outlet />
                 </div>
             </main>
+
+            {/* macOS Floating Dock */}
+            <nav className="mac-floating-dock">
+                <Link to="/guru" className={`dock-item ${isActive('/guru') ? 'dock-item-active' : ''}`} style={dockItemStyle('/guru')}>
+                    <Layout size={24} />
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: '4px' }}>Beranda</span>
+                </Link>
+                <Link to="/guru/history" className={`dock-item ${isActive('/guru/history') ? 'dock-item-active' : ''}`} style={dockItemStyle('/guru/history')}>
+                    <History size={24} />
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: '4px' }}>Riwayat</span>
+                </Link>
+                <Link to="/guru/rapor" className={`dock-item ${isActive('/guru/rapor') ? 'dock-item-active' : ''}`} style={dockItemStyle('/guru/rapor')}>
+                    <FileSpreadsheet size={24} />
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: '4px' }}>Rapor</span>
+                </Link>
+                {isWaliKelas && (
+                    <Link to="/guru/wali-kelas" className={`dock-item ${isActive('/guru/wali-kelas') ? 'dock-item-active' : ''}`} style={dockItemStyle('/guru/wali-kelas')}>
+                        <Users size={24} />
+                        <span style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: '4px' }}>Wali Kelas</span>
+                    </Link>
+                )}
+            </nav>
+            <CommandPalette />
         </div>
+        </GuruSessionContext.Provider>
     )
 }

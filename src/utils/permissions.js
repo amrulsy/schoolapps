@@ -11,6 +11,7 @@ export const ROLE_PERMISSIONS = {
         '/admin/siswa', '/admin/guru', '/admin/unit-kelas', '/admin/tahun-ajaran',
         '/admin/jadwal', '/admin/presensi', '/admin/bk', '/admin/akademik',
         '/admin/pesan', '/admin/gate-monitor',
+        '/admin/lab-inventaris', '/admin/lab-scan',
         '/admin/cms/home', '/admin/cms/ppdb', '/admin/cms/contacts',
     ],
     staf_keuangan: [

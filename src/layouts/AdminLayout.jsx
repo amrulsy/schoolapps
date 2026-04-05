@@ -15,7 +15,7 @@ import CommandPalette from '../components/CommandPalette'
 const MOBILE_BREAKPOINT = 768
 
 export default function AdminLayout() {
-    const { sidebarCollapsed, currentUser, isLoaded, login } = useApp()
+    const { sidebarCollapsed, adminUser, isLoaded, login } = useApp()
     const [isMobile, setIsMobile] = useState(window.innerWidth <= MOBILE_BREAKPOINT)
     const [drawerOpen, setDrawerOpen] = useState(false)
     const location = useLocation()
@@ -34,20 +34,20 @@ export default function AdminLayout() {
         return <LoadingSpinner fullScreen message="Memverifikasi Sesi Keamanan..." />
     }
 
-    if (!currentUser) {
+    if (!adminUser) {
         return <LoginPage onLogin={(data) => login(data.token, data.user)} />
     }
 
-    if (currentUser.role === 'guru') {
+    if (adminUser.role === 'guru') {
         return <Navigate to="/guru" replace />
     }
 
-    if (!STAFF_ROLES.includes(currentUser.role)) {
+    if (!STAFF_ROLES.includes(adminUser.role)) {
         return <Navigate to="/" replace />
     }
 
     // Route-level guard: redirect to dashboard if accessing unauthorized path
-    if (!isPathAllowed(currentUser.role, location.pathname)) {
+    if (!isPathAllowed(adminUser.role, location.pathname)) {
         return <Navigate to="/admin" replace />
     }
 

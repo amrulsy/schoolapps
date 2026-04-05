@@ -20,13 +20,32 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         const { siswa_id, tipe, nominal, note, user_id } = req.body;
-        const [result] = await pool.query(
-            'INSERT INTO tabungan (siswa_id, tanggal, tipe, nominal, note, user_id) VALUES (?, UTC_TIMESTAMP(), ?, ?, ?, ?)',
-            [siswa_id, tipe, nominal, note, user_id || null]
-        );
-        res.status(201).json({ id: result.insertId, success: true });
+
+        // Ambil snapshot nama siswa agar riwayat tetap terbaca walaupun nama berubah
+        let nama_siswa = null;
+        try {
+            const [[s]] = await pool.query('SELECT nama FROM siswa WHERE id = ?', [siswa_id]);
+            if (s) nama_siswa = s.nama;
+        } catch (e) { /* kolom snapshot mungkin belum ada (sebelum migration 013) */ }
+
+        // Coba insert dengan snapshot, fallback ke tanpa snapshot
+        try {
+            const [result] = await pool.query(
+                'INSERT INTO tabungan (siswa_id, tanggal, tipe, nominal, note, user_id, nama_siswa) VALUES (?, UTC_TIMESTAMP(), ?, ?, ?, ?, ?)',
+                [siswa_id, tipe, nominal, note, user_id || null, nama_siswa]
+            );
+            res.status(201).json({ id: result.insertId, success: true });
+        } catch (e) {
+            // Fallback jika kolom nama_siswa belum ada
+            const [result] = await pool.query(
+                'INSERT INTO tabungan (siswa_id, tanggal, tipe, nominal, note, user_id) VALUES (?, UTC_TIMESTAMP(), ?, ?, ?, ?)',
+                [siswa_id, tipe, nominal, note, user_id || null]
+            );
+            res.status(201).json({ id: result.insertId, success: true });
+        }
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
 
 // Delete tabungan transaction
 router.delete('/:id', async (req, res) => {

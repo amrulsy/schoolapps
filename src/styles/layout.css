@@ -1255,7 +1255,7 @@
     background: var(--bg-card);
     border-top: 1px solid var(--border-color);
     display: flex;
-    align-items: center;
+    align-items: stretch; /* Changed from center to stretch so all items fill height */
     justify-content: space-around;
     z-index: 200;
     padding: 0 4px;
@@ -1285,6 +1285,9 @@
     font-size: 0.62rem;
     font-weight: 600;
     letter-spacing: 0.02em;
+    line-height: 1.2; /* Explicit line-height to normalize <a> and <button> */
+    appearance: none;
+    -webkit-appearance: none;
     transition: color 0.18s ease, transform 0.15s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;

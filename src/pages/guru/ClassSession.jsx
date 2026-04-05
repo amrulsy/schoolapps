@@ -210,6 +210,23 @@ const styles = `
     border-color: var(--danger-500);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
   }
+  .btn-status-toggle.active-izin {
+    background: #f59e0b;
+    color: #fff;
+    border-color: #f59e0b;
+    box-shadow: 0 4px 12px rgba(245,158,11,0.25);
+  }
+  .btn-status-toggle.active-sakit {
+    background: #f97316;
+    color: #fff;
+    border-color: #f97316;
+    box-shadow: 0 4px 12px rgba(249,115,22,0.25);
+  }
+  .attendance-status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
 `
 
 export default function ClassSession() {
@@ -325,7 +342,7 @@ export default function ClassSession() {
         setSaving(true)
         try {
             // Bulk save attendance 
-            await fetch(`${API_BASE}/guru/session/attendance`, {
+            const attendRes = await fetch(`${API_BASE}/guru/session/attendance`, {
                 method: 'PUT',
                 headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -333,6 +350,8 @@ export default function ClassSession() {
                     attendanceList: students.map(s => ({ siswa_id: s.id, status: s.status }))
                 })
             })
+            if (!attendRes.ok) throw new Error('Gagal menyimpan data presensi. Perubahan batal disimpan.')
+
 
             // Update materi & timestamp
             const res = await fetch(`${API_BASE}/guru/session/${id}/edit`, {
@@ -363,8 +382,8 @@ export default function ClassSession() {
         if (!confirmed) return
         setSaving(true)
         try {
-            // Bulk save attendance 
-            await fetch(`${API_BASE}/guru/session/attendance`, {
+            // Bulk save attendance
+            const attendRes = await fetch(`${API_BASE}/guru/session/attendance`, {
                 method: 'PUT',
                 headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -372,6 +391,8 @@ export default function ClassSession() {
                     attendanceList: students.map(s => ({ siswa_id: s.id, status: s.status }))
                 })
             })
+            if (!attendRes.ok) throw new Error('Gagal menyimpan data presensi. Kelas batal diakhiri untuk mencegah kehilangan data.')
+
 
             // Finish Journal
             const res = await fetch(`${API_BASE}/guru/session/${id}/finish`, {
@@ -662,17 +683,19 @@ export default function ClassSession() {
                                                             {s.status?.toUpperCase() || 'BELUM ABSEN'}
                                                         </span>
                                                     ) : (
-                                                        <div className="d-flex gap-2">
+                                                        <div className="attendance-status-grid">
                                                             <button
                                                                 className={`btn-status-toggle ${isHadir ? 'active-hadir' : ''}`}
-                                                                onClick={() => setStatus(s.id, 'hadir')}>
-                                                                HADIR
-                                                            </button>
+                                                                onClick={() => setStatus(s.id, 'hadir')}>HADIR</button>
                                                             <button
                                                                 className={`btn-status-toggle ${isBolos ? 'active-bolos' : ''}`}
-                                                                onClick={() => setStatus(s.id, 'bolos')}>
-                                                                BOLOS
-                                                            </button>
+                                                                onClick={() => setStatus(s.id, 'bolos')}>BOLOS</button>
+                                                            <button
+                                                                className={`btn-status-toggle ${s.status === 'izin' ? 'active-izin' : ''}`}
+                                                                onClick={() => setStatus(s.id, 'izin')}>IZIN</button>
+                                                            <button
+                                                                className={`btn-status-toggle ${s.status === 'sakit' ? 'active-sakit' : ''}`}
+                                                                onClick={() => setStatus(s.id, 'sakit')}>SAKIT</button>
                                                         </div>
                                                     )}
                                                 </div>

@@ -334,7 +334,11 @@ export default function SiswaProfile({ data, onClose }) {
                     {/* ── Avatar + Info row ── */}
                     <div className="profile-header-row">
                         <div className="profile-avatar-wrapper">
-                            <div className="profile-avatar-inner">{p.nama?.charAt(0)}</div>
+                            <div className="profile-avatar-inner" style={p.foto_path ? { padding: 0, overflow: 'hidden' } : {}}>
+                                {p.foto_path ? (
+                                    <img src={`${API_BASE.replace('/api', '')}${p.foto_path}`} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+                                ) : p.nama?.charAt(0)}
+                            </div>
                         </div>
 
                         <div className="profile-header-info">

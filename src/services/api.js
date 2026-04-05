@@ -14,15 +14,22 @@ export const getMediaUrl = (path) => {
     return `${origin}${path}`;
 }
 
+export const getActiveToken = () => {
+    if (window.location.pathname.startsWith('/guru')) {
+        return localStorage.getItem('guru_token');
+    }
+    return localStorage.getItem('token');
+}
+
 /** JSON + Bearer auth headers for CMS admin requests */
 export const getAuthHeaders = () => ({
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${localStorage.getItem('token')}`
+    'Authorization': `Bearer ${getActiveToken()}`
 })
 
 /** Bearer-only header for requests that set their own Content-Type (e.g. FormData) */
 export const getBearerHeader = () => ({
-    'Authorization': `Bearer ${localStorage.getItem('token')}`
+    'Authorization': `Bearer ${getActiveToken()}`
 })
 
 // Lightweight axios-like wrapper using fetch

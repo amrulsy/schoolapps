@@ -204,6 +204,52 @@ router.post('/catatan', async (req, res) => {
 });
 
 // =============================================
+// EKSTRAKURIKULER: GET/POST
+// =============================================
+router.get('/ekskul', async (req, res) => {
+    try {
+        const { kelas_id, tahun_ajaran_id, semester } = req.query;
+        const [rows] = await pool.query(
+            'SELECT * FROM rapor_ekskul WHERE kelas_id = ? AND tahun_ajaran_id = ? AND semester = ?',
+            [kelas_id, tahun_ajaran_id, semester]
+        );
+        res.json(rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/ekskul', async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { kelas_id, tahun_ajaran_id, semester, ekskulList } = req.body;
+        // ekskulList = [{ siswa_id, nama_ekskul, keterangan }]
+
+        // Delete existing for this set to avoid duplicates and allow "removal" by not sending
+        await connection.query(
+            'DELETE FROM rapor_ekskul WHERE kelas_id = ? AND tahun_ajaran_id = ? AND semester = ?',
+            [kelas_id, tahun_ajaran_id, semester]
+        );
+
+        for (const e of ekskulList) {
+            if (!e.nama_ekskul) continue;
+            await connection.query(
+                `INSERT INTO rapor_ekskul (siswa_id, kelas_id, tahun_ajaran_id, semester, nama_ekskul, keterangan)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [e.siswa_id, kelas_id, tahun_ajaran_id, semester, e.nama_ekskul, e.keterangan]
+            );
+        }
+
+        await connection.commit();
+        res.json({ success: true });
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: err.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// =============================================
 // LOCK GRADES: Prevent further editing
 // =============================================
 router.post('/lock', async (req, res) => {
@@ -290,6 +336,12 @@ router.get('/rapor/:siswa_id', async (req, res) => {
             [siswa_id, kelas_id, tahun_ajaran_id, semester]
         );
 
+        // Get ekskul
+        const [ekskulRows] = await pool.query(
+            'SELECT nama_ekskul, keterangan FROM rapor_ekskul WHERE siswa_id = ? AND kelas_id = ? AND tahun_ajaran_id = ? AND semester = ?',
+            [siswa_id, kelas_id, tahun_ajaran_id, semester]
+        );
+
         // Get wali kelas info
         const [wkRows] = await pool.query(`
             SELECT g.nama, g.nip FROM wali_kelas wk
@@ -304,8 +356,112 @@ router.get('/rapor/:siswa_id', async (req, res) => {
             nilaiMapel: nilaiAll,
             attendance,
             catatan: catRows[0]?.catatan || '',
+            ekskul: ekskulRows,
             waliKelas: wkRows[0] || {}
         });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// =============================================
+// RAPOR BATCH: Full data for all students in a class
+// =============================================
+router.get('/rapor-batch', async (req, res) => {
+    try {
+        const { kelas_id, tahun_ajaran_id, semester } = req.query;
+
+        // 1. Get all students
+        const [students] = await pool.query(`
+            SELECT s.*, k.nama as kelas_nama, u.nama as unit_nama
+            FROM siswa s
+            LEFT JOIN kelas k ON s.kelas_id = k.id
+            LEFT JOIN units u ON k.unit_id = u.id
+            WHERE s.kelas_id = ? AND s.status = 'aktif'
+            ORDER BY s.nama ASC
+        `, [kelas_id]);
+
+        if (students.length === 0) return res.json([]);
+
+        // 2. Get year/semester info
+        const [taRows] = await pool.query('SELECT * FROM tahun_ajaran WHERE id = ?', [tahun_ajaran_id]);
+        const ta = taRows[0] || {};
+        const [yearStart] = (ta.tahun || '2025/2026').split('/');
+        let startDate, endDate;
+        if (semester === 'Ganjil') {
+            startDate = `${yearStart}-07-01`; endDate = `${yearStart}-12-31`;
+        } else {
+            endDate = `${Number(yearStart) + 1}-06-30`; startDate = `${Number(yearStart) + 1}-01-01`;
+        }
+
+        // 3. Batch fetch all related data
+        const studentIds = students.map(s => s.id);
+
+        const [nilaiAll] = await pool.query(`
+            SELECT ns.*, m.nama as mapel_nama, m.tingkat as mapel_tingkat
+            FROM nilai_semester ns
+            JOIN mata_pelajaran m ON ns.mapel_id = m.id
+            WHERE ns.siswa_id IN (?) AND ns.kelas_id = ? AND ns.tahun_ajaran_id = ? AND ns.semester = ?
+            ORDER BY ns.siswa_id, m.nama
+        `, [studentIds, kelas_id, tahun_ajaran_id, semester]);
+
+        const [attAll] = await pool.query(`
+            SELECT siswa_id, status, COUNT(*) as cnt
+            FROM siswa_presensi
+            WHERE siswa_id IN (?) AND tanggal BETWEEN ? AND ?
+            GROUP BY siswa_id, status
+        `, [studentIds, startDate, endDate]);
+
+        const [catAll] = await pool.query(
+            'SELECT siswa_id, catatan FROM rapor_catatan WHERE siswa_id IN (?) AND kelas_id = ? AND tahun_ajaran_id = ? AND semester = ?',
+            [studentIds, kelas_id, tahun_ajaran_id, semester]
+        );
+
+        const [ekskulAll] = await pool.query(
+            'SELECT siswa_id, nama_ekskul, keterangan FROM rapor_ekskul WHERE siswa_id IN (?) AND kelas_id = ? AND tahun_ajaran_id = ? AND semester = ?',
+            [studentIds, kelas_id, tahun_ajaran_id, semester]
+        );
+
+        const [wkRows] = await pool.query(`
+            SELECT g.nama, g.nip FROM wali_kelas wk
+            JOIN guru g ON wk.guru_id = g.id
+            WHERE wk.kelas_id = ? AND wk.tahun_ajaran_id = ?
+        `, [kelas_id, tahun_ajaran_id]);
+        const waliKelas = wkRows[0] || {};
+
+        // 4. Organize into maps
+        const nilaiMap = {};
+        nilaiAll.forEach(n => {
+            if (!nilaiMap[n.siswa_id]) nilaiMap[n.siswa_id] = [];
+            nilaiMap[n.siswa_id].push(n);
+        });
+
+        const attMap = {};
+        attAll.forEach(a => {
+            if (!attMap[a.siswa_id]) attMap[a.siswa_id] = { sakit: 0, izin: 0, alpha: 0 };
+            attMap[a.siswa_id][a.status === 'sakit' ? 'sakit' : a.status === 'izin' ? 'izin' : 'alpha'] = a.cnt;
+        });
+
+        const catMap = {};
+        catAll.forEach(c => { catMap[c.siswa_id] = c.catatan; });
+
+        const eksMap = {};
+        ekskulAll.forEach(e => {
+            if (!eksMap[e.siswa_id]) eksMap[e.siswa_id] = [];
+            eksMap[e.siswa_id].push({ nama_ekskul: e.nama_ekskul, keterangan: e.keterangan });
+        });
+
+        // 5. Compose results
+        const results = students.map(s => ({
+            student: s,
+            tahunAjaran: ta,
+            semester,
+            nilaiMapel: nilaiMap[s.id] || [],
+            attendance: attMap[s.id] || { sakit: 0, izin: 0, alpha: 0 },
+            catatan: catMap[s.id] || '',
+            ekskul: eksMap[s.id] || [],
+            waliKelas
+        }));
+
+        res.json(results);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

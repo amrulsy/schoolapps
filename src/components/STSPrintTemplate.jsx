@@ -1,17 +1,31 @@
 import React from 'react';
 
-const STSPrintTemplate = ({ data }) => {
-    if (!data) return null;
+const STSPrintTemplate = ({ data, batchData }) => {
+    if (batchData && Array.isArray(batchData)) {
+        return (
+            <div className="sts-batch-container">
+                <style>{`
+                    @media print {
+                        .sts-page-break { page-break-after: always; }
+                        .sts-page-break:last-child { page-break-after: auto; }
+                    }
+                `}</style>
+                {batchData.map((d, idx) => (
+                    <div key={idx} className="sts-page-break">
+                        <SingleSTS data={d} />
+                    </div>
+                ))}
+            </div>
+        );
+    }
 
+    if (!data) return null;
+    return <SingleSTS data={data} />;
+};
+
+const SingleSTS = ({ data }) => {
     const { student, tahunAjaran, semester, nilaiMapel, waliKelas } = data;
-    const school = {
-        nama: "SMK PPRQ",
-        alamat: "Alamat sekolah tidak terkonfigurasi",
-        telp: "(0298) 321-xxx",
-        email: "info@smkpprq.sch.id",
-        kepala_sekolah: "Kepala Sekolah",
-        nip_kepsek: "-"
-    };
+    const school = JSON.parse(localStorage.getItem('school_settings') || '{}');
 
     const getKeterangan = (nilai) => {
         const n = Number(nilai);
@@ -21,14 +35,32 @@ const STSPrintTemplate = ({ data }) => {
         return "Perlu Pendampingan";
     };
 
-    // KONFIGURASI TATA LETAK (Edit di sini untuk menyesuaikan ukuran agar pas A4)
+    const getCatClass = (score) => {
+        const n = Number(score);
+        if (n >= 85) return 'cat-istimewa';
+        if (n >= 75) return 'cat-kompeten';
+        if (n >= 60) return 'cat-berkembang';
+        return 'cat-perlu';
+    };
+
+    // Only use real data — no mock data generation
+    const allMapel = nilaiMapel || [];
+
+    const grouped = allMapel.reduce((acc, curr) => {
+        const key = curr.kelompok || curr.mapel_tingkat || "Muatan Lokal";
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(curr);
+        return acc;
+    }, {});
+
+    // Layout config
     const layoutConfig = {
-        fontSize: '9.2pt',      // Ukuran font umum
-        lineHeight: '1.2',      // Jarak antar baris text
-        rowPadding: '6.5px',    // Padding baris tabel (Nilai ini paling krusial untuk A4)
-        pagePadding: '10mm 15mm', // Margin kertas (Atas/Bawah Kiri/Kanan)
-        sectionGap: '8px',      // Jarak antar blok informasi
-        signatureGap: '60px',   // Jarak untuk area tanda tangan
+        fontSize: '9.2pt',
+        lineHeight: '1.2',
+        rowPadding: '6.5px',
+        pagePadding: '10mm 15mm',
+        sectionGap: '8px',
+        signatureGap: '55px',
     };
 
     return (
@@ -92,18 +124,19 @@ const STSPrintTemplate = ({ data }) => {
                 .premium-divider { height: 1.5px; background: linear-gradient(90deg, #1e293b 0%, #e2e8f0 100%) !important; margin: 8px 0; border-radius: 1px; }
                 
                 /* Header Section */
-                .sts-header { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 8px; text-align: center; }
+                .sts-header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
                 .sts-logo-container { 
-                    width: 60px; height: 60px; 
+                    width: 58px; height: 58px; 
                     background: #f1f5f9 !important;
-                    border: 1.2px solid #cbd5e1;
-                    border-radius: 10px;
+                    border: 1.2px solid #94a3b8;
+                    border-radius: 8px;
                     display: flex; align-items: center; justify-content: center;
-                    font-weight: 800; font-size: 12px; color: #64748b;
+                    font-weight: 800; font-size: 11px; color: #64748b;
                     flex-shrink: 0;
                 }
+                .school-details { flex: 1; }
                 .school-details h1 { margin: 0; font-size: 15pt; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; }
-                .school-details p { margin: 1px 0; color: #64748b; font-size: 8.5pt; font-weight: 500; display: flex; justify-content: center; gap: 8px; }
+                .school-details p { margin: 1px 0; color: #64748b; font-size: 8.5pt; font-weight: 500; }
 
                 /* Document Title */
                 .title-area { text-align: center; margin: 5px 0 12px 0; }
@@ -179,12 +212,12 @@ const STSPrintTemplate = ({ data }) => {
             <div className="sts-header">
                 <div className="sts-logo-container">LOGO</div>
                 <div className="school-details">
-                    <h1>{school.nama}</h1>
-                    <p>{school.alamat}</p>
-                    <p style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <span>T: {school.telp}</span>
+                    <h1>{school.nama || 'SMK PPRQ'}</h1>
+                    <p>{school.alamat || 'Alamat sekolah tidak terkonfigurasi'}</p>
+                    <p style={{ display: 'flex', gap: '8px' }}>
+                        <span>T: {school.telp || '-'}</span>
                         <span>•</span>
-                        <span>E: {school.email}</span>
+                        <span>E: {school.email || '-'}</span>
                     </p>
                 </div>
             </div>
@@ -192,7 +225,7 @@ const STSPrintTemplate = ({ data }) => {
             <div className="premium-divider"></div>
 
             <div className="title-area">
-                <span className="doc-type-pill">Kurikulum Merdeka • TA 2025/2026</span>
+                <span className="doc-type-pill">Kurikulum Merdeka • TA {tahunAjaran?.tahun || '-'}</span>
                 <h2>Surat Keterangan Hasil Asesmen</h2>
                 <div className="sub-title">Sumatif Tengah Semester (STS)</div>
             </div>
@@ -231,44 +264,20 @@ const STSPrintTemplate = ({ data }) => {
                 </thead>
                 <tbody>
                     {(() => {
-                        // Data Preparation & Grouping
-                        const allMapel = [...nilaiMapel, ...Array(Math.max(0, 16 - nilaiMapel.length)).fill(null).map((_, i) => {
-                            const mockIdx = i + nilaiMapel.length;
-                            let kelompok = "Muatan Kejuruan";
-                            if (mockIdx < 6) kelompok = "Muatan Nasional";
-                            else if (mockIdx < 9) kelompok = "Muatan Kewilayahan";
-
-                            return {
-                                id: `mock-${i}`,
-                                mapel_nama: `Mata Pelajaran Simulasi ${mockIdx + 1}`,
-                                sts: 75 + (i % 20),
-                                kelompok
-                            };
-                        })];
-
-                        const grouped = allMapel.reduce((acc, curr) => {
-                            const key = curr.kelompok || "Lainnya";
-                            if (!acc[key]) acc[key] = [];
-                            acc[key].push(curr);
-                            return acc;
-                        }, {});
-
                         const rows = [];
                         let globalIdx = 1;
 
                         Object.entries(grouped).forEach(([cat, items]) => {
-                            // Category Header Row
                             rows.push(
                                 <tr key={`cat-${cat}`} className="category-row">
                                     <td colSpan="4" className="category-header">{cat}</td>
                                 </tr>
                             );
 
-                            // Subject Rows
                             items.forEach((m) => {
                                 const score = Number(m.sts || 0);
                                 const ket = getKeterangan(score);
-                                const catClass = score >= 85 ? 'cat-istimewa' : score >= 75 ? 'cat-kompeten' : score >= 60 ? 'cat-berkembang' : 'cat-perlu';
+                                const catClass = getCatClass(score);
 
                                 rows.push(
                                     <tr key={m.id}>
@@ -300,13 +309,13 @@ const STSPrintTemplate = ({ data }) => {
             <div className="signature-section">
                 <div className="sig-box">
                     <div className="sig-label">Kepala Sekolah</div>
-                    <div className="sig-name">{school.kepala_sekolah === 'Kepala Sekolah' ? '' : school.kepala_sekolah}</div>
+                    <div className="sig-name">{school.kepala_sekolah || '-'}</div>
                     <div className="sig-nip">NIP. {school.nip_kepsek || '-'}</div>
                 </div>
                 <div className="sig-box">
                     <div className="sig-label">Wali Kelas</div>
-                    <div className="sig-name">{waliKelas.nama}</div>
-                    <div className="sig-nip">NIP. {waliKelas.nip || '-'}</div>
+                    <div className="sig-name">{waliKelas?.nama || '-'}</div>
+                    <div className="sig-nip">NIP. {waliKelas?.nip || '-'}</div>
                 </div>
             </div>
         </div>

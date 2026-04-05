@@ -4,7 +4,7 @@ import { API_BASE, getAuthHeaders } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import {
     History, Calendar, Users, BookOpen, ChevronRight,
-    Search, Filter, ArrowLeft, Clock, CheckCircle, X, ChevronDown, Trash2
+    Search, Filter, ArrowLeft, Clock, CheckCircle, X, ChevronDown, Trash2, BarChart2
 } from 'lucide-react'
 
 const styles = /*css*/`
@@ -187,6 +187,31 @@ const styles = /*css*/`
     border: 2px dashed var(--border-color);
     margin-top: 20px;
   }
+
+  /* R10: Heatmap Styles */
+  .heatmap-container {
+    background: var(--bg-card);
+    border-radius: 24px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .heatmap-grid {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .heatmap-cell {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .heatmap-cell:hover { transform: scale(1.4); z-index: 1; position: relative; }
+
   @media (max-width: 768px) {
     .history-header { flex-direction: column; align-items: stretch; padding: 16px 20px; border-radius: 20px; }
     .search-container { max-width: none; }
@@ -199,6 +224,7 @@ const styles = /*css*/`
     .materi-preview { max-width: 120px; }
     .empty-state { padding: 50px 20px; border-radius: 20px; }
     .history-table-container { border-radius: 18px; }
+    .heatmap-cell { width: 10px; height: 10px; }
   }
 `
 
@@ -227,7 +253,6 @@ export default function GuruHistory() {
             const res = await fetch(`${API_BASE}/guru/session/history`, { headers: getAuthHeaders() })
             if (!res.ok) throw new Error('Gagal mengambil data riwayat')
             const data = await res.json()
-            console.log("Journal History Data:", data)
             setHistory(Array.isArray(data) ? data : [])
         } catch (err) {
             console.error("Fetch History Error:", err)
@@ -244,7 +269,6 @@ export default function GuruHistory() {
     const filteredHistory = useMemo(() => {
         if (!Array.isArray(history)) return []
         return history.filter(item => {
-            // Search match
             const searchLower = search.toLowerCase()
             const matchSearch =
                 (item.kelas_nama?.toLowerCase() || '').includes(searchLower) ||
@@ -252,17 +276,12 @@ export default function GuruHistory() {
                 (item.materi?.toLowerCase() || '').includes(searchLower)
 
             if (!matchSearch) return false
-
-            // Filter match
             if (filters.kelas && item.kelas_nama !== filters.kelas) return false
             if (filters.mapel && item.mapel_nama !== filters.mapel) return false
 
-            // Compare as YYYY-MM-DD strings for consistency
             const itemDateStr = item.tanggal ? new Date(item.tanggal).toLocaleDateString('en-CA') : ''
-
             if (filters.startDate && itemDateStr < filters.startDate) return false
             if (filters.endDate && itemDateStr > filters.endDate) return false
-
             return true
         })
     }, [history, search, filters])
@@ -298,15 +317,7 @@ export default function GuruHistory() {
                 </button>
                 <div>
                     <h2 className="fw-black text-primary mb-0" style={{ letterSpacing: '-1px' }}>Riwayat Jurnal</h2>
-                    <div className="d-flex align-items-center gap-2">
-                        <p className="text-muted small mb-0 fw-bold">Daftar pengajaran yang telah Anda laksanakan</p>
-                        <span
-                            style={{ fontSize: '10px', opacity: 0.3, cursor: 'help' }}
-                            title={`Diagnostic: Guru ID ${history[0]?.guru_id || 'N/A'}, Total items: ${history.length}`}
-                        >
-                            • Diagnostic Info
-                        </span>
-                    </div>
+                    <p className="text-muted small mb-0 fw-bold">Daftar pengajaran yang telah Anda laksanakan</p>
                 </div>
             </div>
 
@@ -353,40 +364,26 @@ export default function GuruHistory() {
                     <div className="filter-grid">
                         <div className="filter-group">
                             <label>Mulai Tanggal</label>
-                            <input
-                                type="date"
-                                className="filter-date"
-                                value={filters.startDate}
-                                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                            />
+                            <input type="date" className="filter-date" value={filters.startDate}
+                                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} />
                         </div>
                         <div className="filter-group">
                             <label>Sampai Tanggal</label>
-                            <input
-                                type="date"
-                                className="filter-date"
-                                value={filters.endDate}
-                                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                            />
+                            <input type="date" className="filter-date" value={filters.endDate}
+                                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} />
                         </div>
                         <div className="filter-group">
                             <label>Kelas</label>
-                            <select
-                                className="filter-select"
-                                value={filters.kelas}
-                                onChange={(e) => setFilters({ ...filters, kelas: e.target.value })}
-                            >
+                            <select className="filter-select" value={filters.kelas}
+                                onChange={(e) => setFilters({ ...filters, kelas: e.target.value })}>
                                 <option value="">Semua Kelas</option>
                                 {classes.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
                         <div className="filter-group">
                             <label>Mata Pelajaran</label>
-                            <select
-                                className="filter-select"
-                                value={filters.mapel}
-                                onChange={(e) => setFilters({ ...filters, mapel: e.target.value })}
-                            >
+                            <select className="filter-select" value={filters.mapel}
+                                onChange={(e) => setFilters({ ...filters, mapel: e.target.value })}>
                                 <option value="">Semua Mapel</option>
                                 {subjects.map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
@@ -394,6 +391,9 @@ export default function GuruHistory() {
                     </div>
                 </div>
             )}
+
+            {/* R10: Attendance Heatmap */}
+            {!loading && history.length > 0 && <AttendanceHeatmap history={history} />}
 
             {loading ? <LoadingSpinner fullScreen={false} /> : error ? (
                 <div className="empty-state text-danger">
@@ -425,7 +425,7 @@ export default function GuruHistory() {
                                 <table className="history-table">
                                     <thead>
                                         <tr>
-                                            <th>Mata Pelajaran & Kelas</th>
+                                            <th>Mata Pelajaran &amp; Kelas</th>
                                             <th>Tanggal</th>
                                             <th>Waktu</th>
                                             <th>Materi</th>
@@ -435,16 +435,11 @@ export default function GuruHistory() {
                                     </thead>
                                     <tbody>
                                         {filteredHistory.map(item => (
-                                            <tr
-                                                key={item.id}
-                                                className="history-row"
-                                                onClick={() => navigate(`/guru/session/${item.id}`)}
-                                            >
+                                            <tr key={item.id} className="history-row"
+                                                onClick={() => navigate(`/guru/session/${item.id}`)}>
                                                 <td>
                                                     <div className="cell-subject">
-                                                        <div className="subject-icon">
-                                                            <BookOpen size={20} />
-                                                        </div>
+                                                        <div className="subject-icon"><BookOpen size={20} /></div>
                                                         <div>
                                                             <h6 className="fw-black text-primary mb-1">{item.mapel_nama}</h6>
                                                             <span className="text-muted fw-bold small">{item.kelas_nama}</span>
@@ -465,10 +460,6 @@ export default function GuruHistory() {
                                                         <div className="mini-stat">
                                                             <Clock size={14} className="text-warning" />
                                                             {item.jadwal_mulai?.substring(0, 5) || '--:--'} - {item.jadwal_selesai?.substring(0, 5) || '--:--'}
-                                                        </div>
-                                                        <div className="mini-stat text-muted" style={{ fontSize: '0.65rem' }} title="Waktu Terakhir Diperbarui">
-                                                            <History size={10} className="me-1 opacity-50" />
-                                                            Update: {item.waktu_keluar_aktual?.substring(0, 5) || item.waktu_masuk_aktual?.substring(0, 5) || '--:--'}
                                                         </div>
                                                         <div className="mini-stat mt-1" style={{ fontSize: '0.75rem' }}>
                                                             <Users size={12} className="text-primary" />
@@ -493,7 +484,8 @@ export default function GuruHistory() {
                                                     )}
                                                 </td>
                                                 <td className="text-end">
-                                                    <button className="btn btn-sm btn-light rounded-circle" style={{ width: 36, height: 36, background: 'var(--bg-stripe)', border: '1px solid var(--border-color)' }}>
+                                                    <button className="btn btn-sm btn-light rounded-circle"
+                                                        style={{ width: 36, height: 36, background: 'var(--bg-stripe)', border: '1px solid var(--border-color)' }}>
                                                         <ChevronRight size={16} className="text-primary" />
                                                     </button>
                                                 </td>
@@ -506,6 +498,93 @@ export default function GuruHistory() {
                     )}
                 </>
             )}
+        </div>
+    )
+}
+
+// R10: Attendance Heatmap Component (GitHub-style calendar)
+function AttendanceHeatmap({ history }) {
+    const DAYS = 91
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const dateMap = {}
+    history.forEach(item => {
+        if (!item.tanggal) return
+        const parts = item.tanggal.split('-')
+        let d = new Date()
+        if (parts.length >= 3) {
+            d = new Date(parts[0], parts[1] - 1, parts[2].substring(0, 2))
+        } else {
+            d = new Date(item.tanggal)
+            d.setHours(0, 0, 0, 0)
+        }
+        const key = d.toLocaleDateString('en-CA')
+        dateMap[key] = (dateMap[key] || 0) + 1
+    })
+
+    const cells = []
+    for (let i = DAYS - 1; i >= 0; i--) {
+        const d = new Date(today)
+        d.setDate(today.getDate() - i)
+        const key = d.toLocaleDateString('en-CA')
+        cells.push({ date: d, key, count: dateMap[key] || 0 })
+    }
+
+    const getColor = (count) => {
+        if (count === 0) return 'var(--bg-stripe)'
+        if (count === 1) return 'rgba(37,99,235,0.3)'
+        if (count === 2) return 'rgba(37,99,235,0.55)'
+        return 'var(--primary-600)'
+    }
+
+    const totalActive = Object.values(dateMap).reduce((a, b) => a + b, 0)
+    const streakDays = (() => {
+        let streak = 0
+        for (let i = 0; i < cells.length; i++) {
+            const cell = cells[cells.length - 1 - i]
+            if (cell.count > 0) streak++
+            else break
+        }
+        return streak
+    })()
+
+    return (
+        <div className="heatmap-container stagger-item" style={{ animationDelay: '0.05s' }}>
+            <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-3">
+                <div className="d-flex align-items-center gap-3">
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-50)', color: 'var(--primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <BarChart2 size={18} />
+                    </div>
+                    <div>
+                        <h6 className="fw-bold mb-0 text-primary">Kalender Aktivitas Mengajar</h6>
+                        <div className="text-muted small fw-bold">
+                            {totalActive} sesi · 3 bulan terakhir
+                            {streakDays > 1 && <span className="ms-2 text-warning fw-black">🔥 {streakDays} hari streak</span>}
+                        </div>
+                    </div>
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                    <span className="text-muted" style={{ fontSize: '0.72rem', fontWeight: 600 }}>Kurang</span>
+                    {[0, 1, 2, 3].map(n => (
+                        <div key={n} className="heatmap-cell" style={{ background: getColor(n), border: '1px solid var(--border-color)', width: 14, height: 14, borderRadius: 3 }} />
+                    ))}
+                    <span className="text-muted" style={{ fontSize: '0.72rem', fontWeight: 600 }}>Banyak</span>
+                </div>
+            </div>
+            <div className="heatmap-grid">
+                {cells.map((cell) => (
+                    <div
+                        key={cell.key}
+                        className="heatmap-cell"
+                        style={{
+                            background: getColor(cell.count),
+                            border: `1px solid ${cell.count > 0 ? 'transparent' : 'var(--border-color)'}`
+                        }}
+                        title={`${cell.date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}: ${cell.count === 0 ? 'Tidak ada sesi' : cell.count + ' sesi'}`}
+                    />
+                ))}
+            </div>
         </div>
     )
 }

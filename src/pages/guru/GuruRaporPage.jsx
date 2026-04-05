@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { BookOpen, Plus, Trash2, Save, Wand2, ChevronDown, FileSpreadsheet, ListChecks, Loader2, AlertCircle, CheckCircle2, Edit3 } from 'lucide-react'
+import { BookOpen, Plus, Trash2, Save, Wand2, ChevronDown, FileSpreadsheet, ListChecks, Loader2, AlertCircle, CheckCircle2, Edit3, BarChart2 } from 'lucide-react'
 import api from '../../services/api'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 
@@ -82,12 +82,42 @@ const STYLES = /*css*/`
   .spreadsheet td:first-child:hover { background: var(--bg-card); }
 
   .score-input {
-    width: 60px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);
+    width: 60px; padding: 6px 8px; border-radius: 8px; border: 1.5px solid var(--border-color);
     text-align: center; font-size: 0.85rem; background: var(--bg-base); color: var(--text-primary);
     transition: all 0.2s;
   }
   .score-input:focus { border-color: var(--primary-500); outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
   .score-input.locked { background: var(--bg-base); color: var(--text-muted); cursor: not-allowed; }
+  .score-input.score-high { border-color: rgba(34,197,94,0.5); background: rgba(34,197,94,0.05); }
+  .score-input.score-mid { border-color: rgba(234,179,8,0.5); background: rgba(234,179,8,0.05); }
+  .score-input.score-low { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.05); }
+
+  /* Grade Distribution Chart */
+  .grade-dist {
+    display: flex; gap: 8px; align-items: flex-end;
+    background: var(--bg-card); border-radius: 16px; padding: 16px 20px;
+    border: 1px solid var(--border-color); margin-top: 16px;
+  }
+  .grade-bar-group {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1;
+  }
+  .grade-bar-track {
+    width: 100%; height: 60px; background: var(--bg-stripe);
+    border-radius: 8px; position: relative; overflow: hidden; border: 1px solid var(--border-color);
+  }
+  .grade-bar-fill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    border-radius: 6px;
+    transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .grade-bar-label { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+  .grade-bar-count { font-size: 0.85rem; font-weight: 800; }
+  .auto-save-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+    padding: 4px 10px; background: var(--bg-stripe); border-radius: 100px;
+    border: 1px solid var(--border-color);
+  }
 
   .score-final { font-weight: 700; font-size: 0.95rem; color: var(--primary-600); }
   .score-final.low { color: #ef4444; }
@@ -143,7 +173,12 @@ export default function GuruRaporPage() {
     const { showAlert, showConfirm } = useCustomAlert()
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [autoSaving, setAutoSaving] = useState(false)
     const [showSaveToast, setShowSaveToast] = useState(false)
+    const autoSaveTimer = useRef(null)
+    const latestSaveState = useRef({})
+    
+
     const [classes, setClasses] = useState([])
     const [tahunAjaran, setTahunAjaran] = useState(null)
 
@@ -159,6 +194,11 @@ export default function GuruRaporPage() {
     // Spreadsheet state
     const [students, setStudents] = useState([])
     const [bobot, setBobot] = useState({ tp: 50, sts: 25, sas: 25 })
+
+    // Sync state into ref for stale-closure free auto-save
+    useEffect(() => {
+        latestSaveState.current = { students, bobot, selectedClass, tahunAjaran }
+    }, [students, bobot, selectedClass, tahunAjaran])
 
     useEffect(() => {
         loadMyClasses()
@@ -279,6 +319,28 @@ export default function GuruRaporPage() {
             updated[studentIdx].nilai_akhir = Number(nilaiAkhir.toFixed(2))
             return updated
         })
+        // Auto-save debounce
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+        autoSaveTimer.current = setTimeout(async () => {
+            setAutoSaving(true)
+            try {
+                const state = latestSaveState.current;
+                await api.post('/guru/rapor/input/save', {
+                    kelas_id: state.selectedClass.kelas_id,
+                    mapel_id: state.selectedClass.mapel_id,
+                    tahun_ajaran_id: state.tahunAjaran.id,
+                    semester: state.tahunAjaran.semester_aktif,
+                    grades: state.students,
+                    bobot: state.bobot
+                })
+                setShowSaveToast(true)
+                setTimeout(() => setShowSaveToast(false), 3000)
+            } catch (err) {
+                console.error("Auto-save failed", err)
+            } finally {
+                setAutoSaving(false)
+            }
+        }, 2000)
     }
 
     const handleSave = async () => {
@@ -528,15 +590,26 @@ export default function GuruRaporPage() {
                             </div>
 
                             {/* Action Bar */}
-                            <div className="action-bar">
-                                <button className="btn-action primary" onClick={handleSave} disabled={saving}>
-                                    {saving ? <Loader2 size={18} className="spin" /> : <Save size={18} />}
-                                    Simpan Semua Nilai
-                                </button>
-                                <button className="btn-action secondary" onClick={handleGenerateDesc} disabled={saving}>
-                                    <Wand2 size={18} /> Generate Deskripsi
-                                </button>
+                            <div className="action-bar d-flex align-items-center justify-content-between flex-wrap">
+                                <div className="d-flex gap-3">
+                                    <button className="btn-action primary" onClick={handleSave} disabled={saving}>
+                                        {saving ? <Loader2 size={18} className="spin" /> : <Save size={18} />}
+                                        Simpan Semua Nilai
+                                    </button>
+                                    <button className="btn-action secondary" onClick={handleGenerateDesc} disabled={saving}>
+                                        <Wand2 size={18} /> Generate Deskripsi
+                                    </button>
+                                </div>
+                                {autoSaving && (
+                                    <div className="auto-save-indicator">
+                                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', animation: 'pulse 1s infinite' }} />
+                                        Auto-save aktif...
+                                    </div>
+                                )}
                             </div>
+
+                            {/* R11: Grade Distribution Chart */}
+                            {students.length > 0 && <GradeDistChart students={students} />}
 
                             {/* Bobot info */}
                             <div style={{ marginTop: 16, fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
@@ -552,6 +625,48 @@ export default function GuruRaporPage() {
                     <CheckCircle2 size={20} /> Nilai berhasil disimpan!
                 </div>
             )}
+        </div>
+    )
+}
+
+
+// R11: Grade Distribution Chart
+function GradeDistChart({ students }) {
+    const grades = [
+        { label: 'A (90+)', range: [90, 100], color: '#10b981', textColor: 'var(--success-700)' },
+        { label: 'B (80-89)', range: [80, 89], color: '#3b82f6', textColor: 'var(--primary-700)' },
+        { label: 'C (70-79)', range: [70, 79], color: '#f59e0b', textColor: '#b45309' },
+        { label: 'D (<70)', range: [0, 69], color: '#ef4444', textColor: '#b91c1c' },
+    ]
+    const withGrades = students.filter(s => s.nilai_akhir > 0)
+    if (withGrades.length === 0) return null
+    const counts = grades.map(g => ({
+        ...g, count: withGrades.filter(s => s.nilai_akhir >= g.range[0] && s.nilai_akhir <= g.range[1]).length
+    }))
+    const maxCount = Math.max(...counts.map(g => g.count), 1)
+    const avg = (withGrades.reduce((a, s) => a + s.nilai_akhir, 0) / withGrades.length).toFixed(1)
+    return (
+        <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: '20px', border: '1px solid var(--border-color)', marginTop: 20 }}>
+            <div className="d-flex align-items-center justify-content-between mb-3">
+                <div className="d-flex align-items-center gap-2">
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-50)', color: 'var(--primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <BarChart2 size={16} />
+                    </div>
+                    <h6 className="fw-bold mb-0 text-primary">Distribusi Nilai Akhir</h6>
+                </div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                    Rata-rata: <span className="text-primary fw-black">{avg}</span> &bull; {withGrades.length} siswa
+                </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', height: 80 }}>
+                {counts.map(g => (
+                    <div key={g.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: g.textColor }}>{g.count}</div>
+                        <div style={{ width: '100%', background: g.color, borderRadius: 6, opacity: g.count === 0 ? 0.15 : 0.85, height: String(Math.max(8, Math.round((g.count / maxCount) * 52))) + 'px', transition: 'height 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }} />
+                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textAlign: 'center', whiteSpace: 'nowrap' }}>{g.label}</div>
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }

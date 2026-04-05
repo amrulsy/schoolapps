@@ -30,33 +30,31 @@ export default function PortalLogin() {
                         <div className="login-role-icon">
                             <GraduationCap size={60} />
                         </div>
-                        <h2>Siswa & Orang Tua</h2>
+                        <h2>Siswa</h2>
                         <p>Cek absensi, nilai rapor, riwayat tabungan, dan informasi pembayaran sekolah secara mudah.</p>
                         <div className="login-role-btn">
                             Masuk Portal <ArrowRight size={18} />
                         </div>
                     </Link>
 
-                    {/* --- Card 2: Guru / Staf --- */}
-                    <Link to="/admin" className="login-role-card stagger-item" style={{ '--card-color': '#4f46e5', animationDelay: '0.3s' }}>
+                    {/* --- Card 2: Guru --- */}
+                    <Link to="/guru" className="login-role-card stagger-item" style={{ '--card-color': '#4f46e5', animationDelay: '0.3s' }}>
                         <div className="login-role-icon">
                             <Briefcase size={60} />
                         </div>
-                        <h2>Guru & Staf</h2>
-                        <p>Akses manajemen data sekolah, jurnal mengajar, dan administrasi akademik harian.</p>
+                        <h2>Guru</h2>
+                        <p>Akses manajemen kelas, absensi, jurnal mengajar, dan akademik harian.</p>
                         <div className="login-role-btn">
-                            Mulai Bekerja <ArrowRight size={18} />
+                            Mulai Mengajar <ArrowRight size={18} />
                         </div>
                     </Link>
 
                     {/* --- Card 3: Pendaftar PPDB --- */}
                     <Link to="/ppdb/login" className="login-role-card stagger-item" style={{ '--card-color': '#7c3aed', animationDelay: '0.5s' }}>
                         <div className="login-role-icon">
-                            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '20px', borderRadius: '50%' }}>
-                                <GraduationCap size={60} />
-                            </div>
+                            <GraduationCap size={60} />
                         </div>
-                        <h2>Pendaftar PPDB</h2>
+                        <h2>PPDB</h2>
                         <p>Lengkapi biodata, unggah berkas pendaftaran, dan cek hasil seleksi secara mandiri.</p>
                         <div className="login-role-btn">
                             Masuk Dasbor <ArrowRight size={18} />

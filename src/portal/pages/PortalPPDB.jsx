@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
-import { Search, MapPin, Phone, GraduationCap, CheckCircle2, ClipboardCheck, ArrowRight, User, Calendar, BookOpen, MessageCircle, AlertCircle, Info, ChevronRight } from 'lucide-react'
+import { Search, MapPin, Phone, GraduationCap, CheckCircle2, ClipboardCheck, ArrowRight, User, Calendar, BookOpen, MessageCircle, AlertCircle, Info, ChevronRight, Palette, Scissors, Landmark, Eye, X } from 'lucide-react'
 import Swal from 'sweetalert2'
 
 export default function PortalPPDB() {
+    const navigate = useNavigate()
     const { fetchPublic, postPublic } = usePortal()
     const [pageContent, setPageContent] = useState(null)
     const [settings, setSettings] = useState({})
     const [loading, setLoading] = useState(true)
+    const [showPreview, setShowPreview] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [activeTab, setActiveTab] = useState('register') // 'register' or 'check'
     const [searchQuery, setSearchQuery] = useState('')
@@ -24,10 +27,17 @@ export default function PortalPPDB() {
         tgl_lahir: '',
         jenis_kelamin: 'L',
         agama: '',
+        jurusan_pilihan: '',
         asal_sekolah: '',
         no_whatsapp: '',
         alamat_lengkap: ''
     })
+
+    const JURUSAN_OPTIONS = [
+        { id: 'DKV', label: 'Desain Komunikasi Visual', abbr: 'DKV', icon: Palette, color: '#8b5cf6', desc: 'Kreativitas visual, desain grafis, & multimedia' },
+        { id: 'DPBSN', label: 'Desain dan Produksi Busana', abbr: 'DPBSN', icon: Scissors, color: '#ec4899', desc: 'Fashion design, tata busana, & produksi garmen' },
+        { id: 'LPBS', label: 'Layanan Perbankan Syariah', abbr: 'LPBS', icon: Landmark, color: '#10b981', desc: 'Keuangan syariah, perbankan, & akuntansi' }
+    ]
     const [printData, setPrintData] = useState(null)
 
     useEffect(() => {
@@ -63,13 +73,20 @@ export default function PortalPPDB() {
         setFormData(prev => ({ ...prev, [name]: value }))
     }
 
-    const handleSubmit = async (e) => {
+    const handlePreview = (e) => {
         e.preventDefault()
-
         if (!formData.nama_lengkap || !formData.asal_sekolah || !formData.no_whatsapp || !formData.alamat_lengkap) {
             Swal.fire('Peringatan', 'Mohon lengkapi semua data wajib yang bertanda (*)', 'warning')
             return
         }
+        if (!formData.jurusan_pilihan) {
+            Swal.fire('Peringatan', 'Mohon pilih Kompetensi Keahlian yang diminati', 'warning')
+            return
+        }
+        setShowPreview(true)
+    }
+
+    const handleSubmit = async () => {
 
         setSubmitting(true)
         try {
@@ -83,30 +100,44 @@ export default function PortalPPDB() {
                 } catch(e) {}
 
                 setPrintData(data.data);
+                setShowPreview(false);
 
-                Swal.fire({
-                    title: 'Pendaftaran Berhasil!',
+                // Auto-login: save token and redirect to dashboard
+                if (data.data.token) {
+                    localStorage.setItem('ppdb_token', data.data.token);
+                    localStorage.setItem('ppdb_user', JSON.stringify({ nama: data.data.nama_lengkap, status: 'draft' }));
+                }
+
+                const result = await Swal.fire({
+                    title: 'Pendaftaran Berhasil! 🎉',
                     html: `
                         <div style="text-align: center; background: rgba(99, 102, 241, 0.05); padding: 25px; border-radius: 20px; margin-top: 20px; border: 2px dashed var(--portal-primary);">
                             <p style="margin-bottom: 10px; font-weight: 500; color: #64748b;">Nomor Registrasi Anda:</p>
                             <h2 style="color: var(--portal-primary); margin: 5px 0; font-size: 2.2rem; letter-spacing: 2px; font-weight: 900;">${data.data.registration_number}</h2>
-                            <p style="font-size: 0.85rem; color: #666; margin-top: 15px; line-height: 1.5;">Harap simpan nomor ini untuk masuk Dasbor Pendaftar.<br/>Username & PIN telah dikirim ke WhatsApp Anda.</p>
+                            <div style="margin: 15px 0; background: #fff; padding: 15px; border-radius: 12px; display: inline-block; border: 1px solid #e2e8f0; width: 100%; max-width: 250px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                                 <p style="margin: 0 0 5px 0; font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase;">🔑 PIN LOGIN ANDA</p>
+                                 <div style="font-size: 2rem; font-weight: 900; color: #1e293b; letter-spacing: 6px;">${data.data.pin}</div>
+                            </div>
+                            <p style="font-size: 0.85rem; color: #b45309; margin-top: 10px; line-height: 1.5; font-weight: 700; background: #fef3c7; padding: 12px; border-radius: 10px;">
+                                📸 HARAP SCREENSHOT & SIMPAN DATA INI SECARA RAHASIA!<br/>Akan digunakan untuk akses Login kembali.
+                            </p>
                         </div>
                     `,
                     icon: 'success',
-                    confirmButtonText: 'Unduh PDF & Selesai',
-                    confirmButtonColor: 'var(--portal-primary)',
-                    customClass: {
-                        popup: 'portal-swal-popup'
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        setTimeout(() => window.print(), 500);
-                    }
-                })
+                    confirmButtonText: 'Lanjutkan Pengisian Biodata →',
+                    showDenyButton: false,
+                    confirmButtonColor: '#4f46e5',
+                    customClass: { popup: 'portal-swal-popup' },
+                    allowOutsideClick: false
+                });
+
+                if (result.isConfirmed) {
+                    navigate('/ppdb/dashboard');
+                }
+
                 setFormData({
                     nama_lengkap: '', tempat_lahir: '', tgl_lahir: '',
-                    jenis_kelamin: 'L', agama: '', asal_sekolah: '',
+                    jenis_kelamin: 'L', agama: '', jurusan_pilihan: '', asal_sekolah: '',
                     no_whatsapp: '', alamat_lengkap: ''
                 })
                 setSelectedGelombang(null)
@@ -133,13 +164,17 @@ export default function PortalPPDB() {
 
             if (!data.error) {
                 const statusColors = {
-                    pending: '#f59e0b',
-                    approved: '#10b981',
+                    draft: '#94a3b8',
+                    pending_verification: '#f59e0b',
+                    wawancara: '#3b82f6',
+                    accepted: '#10b981',
                     rejected: '#ef4444'
                 }
                 const statusText = {
-                    pending: 'Menunggu Verifikasi',
-                    approved: 'Diterima / Lolos Seleksi',
+                    draft: 'Draft Berkas',
+                    pending_verification: 'Menunggu Verifikasi',
+                    wawancara: 'Tahap Wawancara',
+                    accepted: 'Diterima / Lolos Seleksi',
                     rejected: 'Ditolak / Tidak Lolos'
                 }
 
@@ -166,7 +201,7 @@ export default function PortalPPDB() {
                                     </div>
                                     <div>
                                         <label style="display: block; font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">NISN</label>
-                                        <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${data.nisn}</div>
+                                        <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${data.nisn || '-'}</div>
                                     </div>
                                 </div>
                                 <div>
@@ -180,18 +215,18 @@ export default function PortalPPDB() {
                             </div>
                         </div>
 
-                        ${data.status === 'pending' ? `
+                        ${data.status === 'pending_verification' ? `
                             <div style="margin-top: 20px; padding: 16px; background: rgba(245, 158, 11, 0.05); border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.1); text-align: left;">
                                 <p style="margin: 0; font-size: 0.85rem; color: #854d0e; line-height: 1.5;">
-                                    <strong>ℹ️ Informasi:</strong> Data Anda telah tersimpan. Silakan pastikan berkas fisik sudah diserahkan ke ruang panitia untuk proses verifikasi selanjutnya.
+                                    <strong>ℹ️ Informasi:</strong> Data Anda telah tersimpan dan sedang diverifikasi oleh tim panitia. Silakan tunggu pengumuman selanjutnya.
                                 </p>
                             </div>
                         ` : ''}
                         
-                        ${data.status === 'approved' ? `
+                        ${data.status === 'accepted' ? `
                             <div style="margin-top: 20px; padding: 16px; background: rgba(16, 185, 129, 0.05); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.1); text-align: left;">
                                 <p style="margin: 0; font-size: 0.85rem; color: #065f46; line-height: 1.5;">
-                                    <strong>✅ Selamat!</strong> Anda dinyatakan lolos seleksi berkas. Silakan pantau WhatsApp atau email untuk jadwal tahapan selanjutnya (Wawancara & Tes Akademik).
+                                    <strong>✅ Selamat!</strong> Anda dinyatakan DITERIMA. Silakan login ke Dashboard Pendaftar untuk melihat kelas penempatan dan langkah selanjutnya.
                                 </p>
                             </div>
                         ` : ''}
@@ -608,6 +643,13 @@ export default function PortalPPDB() {
                                 </button>
                             </div>
 
+                            <div style={{ textAlign: 'center', marginBottom: '32px', padding: '16px', background: 'rgba(99, 102, 241, 0.03)', borderRadius: '20px', border: '1px solid rgba(99, 102, 241, 0.1)' }}>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 10px 0', fontWeight: 600 }}>Sudah terdaftar? Silakan masuk ke dashboard untuk melengkapi data.</p>
+                                <Link to="/ppdb/login" className="portal-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--portal-primary)', color: 'white', padding: '10px 24px', fontSize: '0.9rem', borderRadius: '14px', textDecoration: 'none', fontWeight: 700, transition: 'all 0.3s' }}>
+                                    Login Dashboard Siswa <ArrowRight size={18} />
+                                </Link>
+                            </div>
+
                             {activeTab === 'register' ? (
                                 !isOpen ? (
                                     <div className="closed-state">
@@ -619,7 +661,7 @@ export default function PortalPPDB() {
                                     </div>
                                 ) : (
                                     <div className="form-container-glass">
-                                        <form onSubmit={handleSubmit}>
+                                        <form onSubmit={handlePreview}>
                                             {/* Gelombang Selection */}
                                             {gelombangList.length > 0 && (
                                                 <div style={{ marginBottom: '24px' }}>
@@ -631,17 +673,36 @@ export default function PortalPPDB() {
                                                         {gelombangList.map(g => {
                                                             const pct = g.kuota > 0 ? Math.min(((g.terisi || 0) / g.kuota) * 100, 100) : 0
                                                             const isFull = (g.terisi || 0) >= g.kuota
+                                                            const isEnded = g.date_status === 'ended'
+                                                            const isNotOpen = g.date_status === 'not_yet_open'
+                                                            const isDisabled = isFull || isEnded || isNotOpen
                                                             const isSelected = selectedGelombang === g.id
+                                                            
+                                                            let statusLabel = 'SEDANG BERJALAN'
+                                                            let statusColor = '#22c55e'
+                                                            if (isFull) { statusLabel = 'KUOTA PENUH'; statusColor = '#ef4444'; }
+                                                            else if (isEnded) { statusLabel = 'SUDAH BERAKHIR'; statusColor = '#64748b'; }
+                                                            else if (isNotOpen) { statusLabel = 'BELUM DIBUKA'; statusColor = '#f59e0b'; }
+
                                                             return (
-                                                                <button type="button" key={g.id} disabled={isFull} onClick={() => setSelectedGelombang(isSelected ? null : g.id)}
-                                                                    style={{ padding: '16px', borderRadius: '14px', border: isSelected ? '2px solid var(--portal-primary)' : '1px solid #e2e8f0', background: isSelected ? 'var(--portal-gradient-soft)' : 'white', cursor: isFull ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: isFull ? 0.5 : 1, transition: 'all 0.2s' }}>
-                                                                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: isSelected ? 'var(--portal-primary)' : '#1e293b', marginBottom: '8px' }}>{g.nama}</div>
-                                                                    <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '6px' }}>
-                                                                        <div style={{ height: '100%', width: `${pct}%`, background: isFull ? '#ef4444' : 'var(--portal-primary)', borderRadius: '3px' }} />
+                                                                <button type="button" key={g.id} disabled={isDisabled} onClick={() => setSelectedGelombang(isSelected ? null : g.id)}
+                                                                    style={{ padding: '16px', borderRadius: '14px', border: isSelected ? '2px solid var(--portal-primary)' : '1px solid #e2e8f0', background: isSelected ? 'var(--portal-gradient-soft)' : 'white', cursor: isDisabled ? 'not-allowed' : 'pointer', textAlign: 'left', opacity: isDisabled ? 0.6 : 1, transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: isSelected ? 'var(--portal-primary)' : '#1e293b' }}>{g.nama}</div>
+                                                                        <div style={{ fontSize: '0.6rem', fontWeight: 900, padding: '2px 8px', borderRadius: '20px', background: `${statusColor}15`, color: statusColor, border: `1px solid ${statusColor}30`, whiteSpace: 'nowrap' }}>
+                                                                            {statusLabel}
+                                                                        </div>
                                                                     </div>
-                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                                                                    <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '10px' }}>
+                                                                        <div style={{ height: '100%', width: `${pct}%`, background: isFull ? '#ef4444' : (isSelected ? 'var(--portal-primary)' : statusColor), borderRadius: '3px' }} />
+                                                                    </div>
+                                                                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
                                                                         <span>{isFull ? 'PENUH' : `${g.terisi || 0}/${g.kuota} terisi`}</span>
-                                                                        <span>Rp {Number(g.biaya_daftar_ulang || 0).toLocaleString('id-ID')}</span>
+                                                                        {g.tanggal_buka && g.tanggal_tutup && (
+                                                                            <span>
+                                                                                {new Date(g.tanggal_buka).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - {new Date(g.tanggal_tutup).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                 </button>
                                                             )
@@ -694,6 +755,42 @@ export default function PortalPPDB() {
 
                                             <div className="form-section-divider"></div>
 
+                                            <div className="portal-form-title-group" style={{ color: '#8b5cf6' }}>
+                                                <GraduationCap size={22} strokeWidth={2.5} />
+                                                <h3>Pilih Kompetensi Keahlian <span style={{ color: 'var(--portal-danger)' }}>*</span></h3>
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '14px', marginBottom: '32px' }}>
+                                                {JURUSAN_OPTIONS.map(j => {
+                                                    const Icon = j.icon;
+                                                    const isSelected = formData.jurusan_pilihan === j.id;
+                                                    return (
+                                                        <button type="button" key={j.id}
+                                                            onClick={() => setFormData(p => ({ ...p, jurusan_pilihan: isSelected ? '' : j.id }))}
+                                                            style={{
+                                                                padding: '20px 16px', borderRadius: '18px', cursor: 'pointer', textAlign: 'left',
+                                                                border: isSelected ? `2px solid ${j.color}` : '2px solid #f1f5f9',
+                                                                background: isSelected ? `${j.color}08` : 'white',
+                                                                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                                                                transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                                                                boxShadow: isSelected ? `0 8px 25px ${j.color}20` : '0 2px 8px rgba(0,0,0,0.03)',
+                                                                position: 'relative', overflow: 'hidden'
+                                                            }}
+                                                        >
+                                                            {isSelected && <div style={{ position: 'absolute', top: 10, right: 10, width: 22, height: 22, borderRadius: '50%', background: j.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle2 size={14} style={{ color: 'white' }} /></div>}
+                                                            <div style={{ width: 44, height: 44, borderRadius: '14px', background: `${j.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, color: j.color, transition: 'all 0.3s' }}>
+                                                                <Icon size={22} />
+                                                            </div>
+                                                            <div style={{ fontSize: '0.75rem', fontWeight: 900, color: j.color, letterSpacing: '0.05em', marginBottom: 4 }}>{j.abbr}</div>
+                                                            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1e293b', lineHeight: 1.3, marginBottom: 6 }}>{j.label}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.4 }}>{j.desc}</div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <div className="form-section-divider"></div>
+
                                             <div className="portal-form-title-group" style={{ color: 'var(--portal-accent)' }}>
                                                 <BookOpen size={22} strokeWidth={2.5} />
                                                 <h3>Informasi Akademik & Kontak</h3>
@@ -720,11 +817,7 @@ export default function PortalPPDB() {
                                                 style={{ width: '100%', height: '60px', borderRadius: '18px', fontSize: '1.05rem', marginTop: '16px', boxShadow: '0 15px 30px rgba(99, 102, 241, 0.3)' }}
                                                 disabled={submitting}
                                             >
-                                                {submitting ? (
-                                                    <><div className="portal-spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div> Memproses...</>
-                                                ) : (
-                                                    <>Submit Pendaftaran Online <ArrowRight size={20} /></>
-                                                )}
+                                                <Eye size={20} /> Preview & Kirim Pendaftaran
                                             </button>
                                         </form>
                                     </div>
@@ -744,7 +837,7 @@ export default function PortalPPDB() {
                                             <input
                                                 type="text"
                                                 className="portal-form-input"
-                                                placeholder="Contoh: REG-2026123456"
+                                                placeholder="Contoh: PPDB-2026-001"
                                                 value={searchQuery}
                                                 onChange={e => setSearchQuery(e.target.value)}
                                                 style={{ textAlign: 'center', fontSize: '1.15rem', height: '64px', borderRadius: '18px', background: '#f8fafc' }}
@@ -838,6 +931,100 @@ export default function PortalPPDB() {
                     </div>
                 </div>
             )}
+            {/* ── Preview Confirmation Modal ── */}
+            {showPreview && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 9999,
+                    background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '20px', animation: 'fadeIn 0.3s ease'
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '28px', width: '100%', maxWidth: '580px',
+                        maxHeight: '85vh', overflowY: 'auto',
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }}>
+                        {/* Header */}
+                        <div style={{ padding: '28px 32px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: '#1e293b' }}>Konfirmasi Data</h2>
+                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>Pastikan data berikut sudah benar</p>
+                            </div>
+                            <button onClick={() => setShowPreview(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '12px', width: 40, height: 40, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}><X size={20} /></button>
+                        </div>
+
+                        {/* Content */}
+                        <div style={{ padding: '24px 32px' }}>
+                            {/* Jurusan Badge */}
+                            {formData.jurusan_pilihan && (() => {
+                                const j = JURUSAN_OPTIONS.find(o => o.id === formData.jurusan_pilihan);
+                                if (!j) return null;
+                                const Icon = j.icon;
+                                return (
+                                    <div style={{ background: `${j.color}08`, border: `2px solid ${j.color}25`, borderRadius: '18px', padding: '16px 20px', marginBottom: '20px', display: 'flex', gap: 14, alignItems: 'center' }}>
+                                        <div style={{ width: 42, height: 42, borderRadius: '12px', background: `${j.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: j.color }}><Icon size={20} /></div>
+                                        <div>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: j.color, letterSpacing: '0.05em' }}>{j.abbr}</div>
+                                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>{j.label}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Data Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                {[
+                                    { label: 'Nama Lengkap', value: formData.nama_lengkap },
+                                    { label: 'Jenis Kelamin', value: formData.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan' },
+                                    { label: 'Tempat Lahir', value: formData.tempat_lahir || '-' },
+                                    { label: 'Tanggal Lahir', value: formData.tgl_lahir ? new Date(formData.tgl_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-' },
+                                    { label: 'Agama', value: formData.agama || '-' },
+                                    { label: 'Asal Sekolah', value: formData.asal_sekolah },
+                                    { label: 'No. WhatsApp', value: formData.no_whatsapp },
+                                ].map((item, i) => (
+                                    <div key={i} style={{ padding: '12px', background: '#f8fafc', borderRadius: '12px' }}>
+                                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>{item.label}</div>
+                                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b' }}>{item.value}</div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ marginTop: 16, padding: '12px', background: '#f8fafc', borderRadius: '12px' }}>
+                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>Alamat Lengkap</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', lineHeight: 1.5 }}>{formData.alamat_lengkap}</div>
+                            </div>
+
+                            {/* Warning */}
+                            <div style={{ marginTop: 20, padding: '14px 18px', background: '#fffbeb', borderRadius: '14px', border: '1px solid #fef3c7', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                                <AlertCircle size={18} style={{ color: '#f59e0b', marginTop: 2, flexShrink: 0 }} />
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#92400e', lineHeight: 1.5, fontWeight: 500 }}>Setelah dikirim, Anda akan otomatis masuk ke Dashboard untuk melengkapi berkas & foto.</p>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ padding: '0 32px 28px', display: 'flex', gap: 12 }}>
+                            <button
+                                onClick={() => setShowPreview(false)}
+                                style={{ flex: 1, padding: '14px', borderRadius: '14px', border: '2px solid #e2e8f0', background: 'white', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', color: '#64748b' }}
+                            >
+                                Kembali
+                            </button>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={submitting}
+                                style={{ flex: 2, padding: '14px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 10px 25px rgba(79,70,229,0.3)' }}
+                            >
+                                {submitting ? <><div className="portal-spinner" style={{ width: 18, height: 18, borderWidth: 2 }}></div> Memproses...</> : <>Kirim Pendaftaran <ArrowRight size={18} /></>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
         </div>
     )
 }

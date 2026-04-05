@@ -46,6 +46,8 @@ const WhatsAppConfigPage = lazy(() => import('./pages/admin/WhatsAppConfigPage')
 const GateMonitorPage = lazy(() => import('./pages/admin/GateMonitor'))
 const InfaqHarianPage = lazy(() => import('./pages/admin/InfaqHarianPage'))
 const InfaqSettingsPage = lazy(() => import('./pages/admin/InfaqSettingsPage'))
+const LabInventarisPage = lazy(() => import('./pages/admin/LabInventarisPage'))
+const LabScanMonitor = lazy(() => import('./pages/admin/LabScanMonitor'))
 // CMS Pages (lazy)
 const CmsBannersPage = lazy(() => import('./features/cms/pages/CmsBannersPage'))
 const CmsPostsPage = lazy(() => import('./features/cms/pages/CmsPostsPage'))
@@ -91,6 +93,8 @@ export default function App() {
           <Route path="gate-monitor" element={<GateMonitorPage />} />
           <Route path="infaq" element={<InfaqHarianPage />} />
           <Route path="infaq-settings" element={<InfaqSettingsPage />} />
+          <Route path="lab-inventaris" element={<LabInventarisPage />} />
+          <Route path="lab-scan" element={<LabScanMonitor />} />
           <Route path="backup" element={<BackupPage />} />
 
           {/* CMS Routes */}

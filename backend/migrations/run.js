@@ -30,7 +30,17 @@ async function runMigrations() {
                     await pool.query(stmt);
                     console.log('  ✅', stmt.substring(0, 60).replace(/\n/g, ' ') + '...');
                 } catch (err) {
-                    if (err.code === 'ER_TABLE_EXISTS_ERROR' || err.code === 'ER_DUP_ENTRY') {
+                    const errMsg = (err.message || '').toLowerCase();
+                    const isDuplicate = 
+                        err.code === 'ER_TABLE_EXISTS_ERROR' || 
+                        err.code === 'ER_DUP_ENTRY' ||
+                        err.code === 'ER_DUP_FIELDNAME' ||
+                        err.code === 'ER_DUP_KEYNAME' ||
+                        errMsg.includes('duplicate column name') ||
+                        errMsg.includes('duplicate key name') ||
+                        errMsg.includes('duplicate foreign key constraint');
+
+                    if (isDuplicate) {
                         console.log('  ⏭️  Skipped (already exists):', stmt.substring(0, 50).replace(/\n/g, ' '));
                     } else {
                         console.error('  ❌ Error:', err.message);

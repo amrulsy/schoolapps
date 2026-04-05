@@ -22,7 +22,7 @@
     padding: 10px 16px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: stretch; /* Stretch to normalize button/link heights */
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(99, 102, 241, 0.1);
     max-width: 500px;
     margin: 0 auto;
@@ -32,6 +32,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start; /* Force top-alignment to prevent content-height induced shifting */
+    text-align: center; /* Enforce horizontal text centering relative to bounding box */
     gap: 4px;
     text-decoration: none;
     color: var(--portal-text-secondary);
@@ -40,8 +42,12 @@
     flex: 1;
     background: none;
     border: none;
-    padding: 4px 0;
+    padding: 6px 0 2px 0; /* Slight padding adjust */
     cursor: pointer;
+    line-height: 1.2;
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit;
 }
 
 .bottom-nav-icon {

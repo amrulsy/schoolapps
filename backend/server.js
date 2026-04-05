@@ -28,6 +28,8 @@ const adminPesanRoutes = require('./routes/admin/pesan');
 const adminInfaqRoutes = require('./routes/admin/infaq');
 const adminSchoolSettingsRoutes = require('./routes/admin/schoolSettings');
 const AttendanceController = require('./controllers/AttendanceController');
+const adminLabRoutes = require('./routes/admin/lab');
+const InventoryController = require('./controllers/InventoryController');
 
 // Middleware
 const { authMiddleware } = require('./middleware/auth');
@@ -138,6 +140,7 @@ app.use('/api/admin/jadwal', authMiddleware, adminJadwalRoutes);
 app.use('/api/admin/jam-pelajaran', authMiddleware, adminJamPelajaranRoutes);
 app.use('/api/admin/bk', authMiddleware, adminBKRoutes);
 app.use('/api/admin/infaq', authMiddleware, adminInfaqRoutes);
+app.use('/api/admin/lab', authMiddleware, adminLabRoutes);
 
 // --- GURU ROUTES (auth required, guru role inner validation) ---
 app.use('/api/guru/session', authMiddleware, guruSessionRoutes);
@@ -151,6 +154,11 @@ app.put('/api/students/:id/rfid', authMiddleware, AttendanceController.registerR
 app.post('/api/attendance/scan', AttendanceController.scanRfid); // Public/Gate access
 app.get('/api/admin/attendance/settings', authMiddleware, AttendanceController.getSettings);
 app.post('/api/admin/attendance/settings', authMiddleware, AttendanceController.updateSettings);
+
+// --- LAB INVENTORY SCAN (Public/Kiosk access) ---
+app.post('/api/lab/scan', InventoryController.scanBorrow);
+app.get('/api/lab/student-loans/:rfid', InventoryController.getStudentActiveLoansByRfid);
+
 
 // --- SCHOOL SETTINGS & WA STATUS ---
 app.use('/api/admin/school-settings', authMiddleware, adminSchoolSettingsRoutes);
@@ -249,6 +257,9 @@ app.post('/api/student/pesan', studentAuthMiddleware, async (req, res) => {
         res.status(201).json({ id: result.insertId, success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
+
+// Lab Peminjaman History (Student Portal)
+app.get('/api/student/lab-peminjaman', studentAuthMiddleware, InventoryController.getStudentPeminjaman);
 
 function getGrade(score) {
     if (score >= 90) return 'A';
@@ -382,7 +393,38 @@ app.put('/api/tahun-ajaran/:id/semester', async (req, res) => {
 
 app.delete('/api/tahun-ajaran/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM tahun_ajaran WHERE id = ?', [req.params.id]);
+        const id = req.params.id;
+
+        // ── GUARD: Cegah hapus tahun ajaran yang masih punya data historis ──
+        const checks = [
+            { table: 'nilai_semester',       label: 'nilai semester/rapor' },
+            { table: 'tujuan_pembelajaran',  label: 'tujuan pembelajaran (TP)' },
+            { table: 'wali_kelas',           label: 'penugasan wali kelas' },
+            { table: 'siswa_kelas_history',  label: 'history kelas siswa' },
+        ];
+        for (const c of checks) {
+            try {
+                const [[{ cnt }]] = await pool.query(
+                    `SELECT COUNT(*) as cnt FROM \`${c.table}\` WHERE tahun_ajaran_id = ?`, [id]
+                );
+                if (cnt > 0) {
+                    return res.status(400).json({
+                        error: `Tidak dapat menghapus Tahun Ajaran ini. Masih ada ${cnt} data ${c.label} yang terkait. Arsipkan tahun ajaran sebagai 'nonaktif' daripada menghapusnya.`
+                    });
+                }
+            } catch (e) { /* tabel mungkin belum ada, skip */ }
+        }
+        // Cek tagihan (SET NULL sudah aman, tapi beri peringatan)
+        const [[{ tagihanCnt }]] = await pool.query(
+            'SELECT COUNT(*) as tagihanCnt FROM tagihan WHERE tahun_ajaran_id = ?', [id]
+        );
+        if (tagihanCnt > 0) {
+            return res.status(400).json({
+                error: `Tidak dapat menghapus Tahun Ajaran ini. Masih ada ${tagihanCnt} tagihan keuangan yang terkait. Arsipkan tahun ajaran sebagai 'nonaktif' daripada menghapusnya.`
+            });
+        }
+
+        await pool.query('DELETE FROM tahun_ajaran WHERE id = ?', [id]);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -422,7 +464,31 @@ app.put('/api/categories/:id', async (req, res) => {
 
 app.delete('/api/categories/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM kategori_tagihan WHERE id = ?', [req.params.id]);
+        const id = req.params.id;
+
+        // ── GUARD: Cegah hapus kategori yang masih punya tagihan lunas ──
+        const [[{ lunasCnt }]] = await pool.query(
+            'SELECT COUNT(*) as lunasCnt FROM tagihan WHERE kategori_id = ? AND status = ?',
+            [id, 'lunas']
+        );
+        if (lunasCnt > 0) {
+            return res.status(400).json({
+                error: `Tidak dapat menghapus kategori ini. Ada ${lunasCnt} tagihan yang sudah LUNAS menggunakan kategori ini. Menghapus kategori akan menghilangkan riwayat pembayaran tersebut.`
+            });
+        }
+
+        // Cek tagihan belum lunas (boleh dihapus tapi beri peringatan)
+        const [[{ belumCnt }]] = await pool.query(
+            'SELECT COUNT(*) as belumCnt FROM tagihan WHERE kategori_id = ? AND status = ?',
+            [id, 'belum']
+        );
+        if (belumCnt > 0) {
+            return res.status(400).json({
+                error: `Tidak dapat menghapus kategori ini. Masih ada ${belumCnt} tagihan BELUM LUNAS yang menggunakan kategori ini. Selesaikan atau hapus tagihan tersebut terlebih dahulu.`
+            });
+        }
+
+        await pool.query('DELETE FROM kategori_tagihan WHERE id = ?', [id]);
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -462,6 +528,8 @@ app.get('/api/siswa/:id', async (req, res) => {
             LEFT JOIN siswa_dokumen sd ON m.kode = sd.kode_dokumen AND sd.siswa_id = ?
         `, [siswa.id]);
         siswa.dokumen = dok;
+        const fotoDoc = dok.find(d => d.kode_dokumen === 'FOTO' && d.file_path);
+        if (fotoDoc) siswa.foto_path = fotoDoc.file_path;
 
         res.json(siswa);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -487,6 +555,7 @@ app.get('/api/siswa/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+
 app.put('/api/siswa/:id', async (req, res) => {
     try {
         const {
@@ -497,6 +566,11 @@ app.put('/api/siswa/:id', async (req, res) => {
 
         const nisnVal = nisn || null;
         const nisVal = nis || null;
+        const siswaId = req.params.id;
+
+        // 0. Ambil data siswa sebelum update (untuk deteksi perubahan kelas)
+        const [[siswaLama]] = await pool.query('SELECT kelas_id FROM siswa WHERE id = ?', [siswaId]);
+        const kelasLamaId = siswaLama ? siswaLama.kelas_id : null;
 
         // 1. Update Siswa Dasar
         await pool.query(`
@@ -506,7 +580,29 @@ app.put('/api/siswa/:id', async (req, res) => {
                 alamat = ?, wali = ?, kelas_id = ?,
                 angkatan = ?, jenis_pendaftaran = ?, tanggal_mulai_sekolah = ?
             WHERE id = ?
-        `, [nisnVal, nisVal, nama, jk, status, tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null, req.params.id]);
+        `, [nisnVal, nisVal, nama, jk, status, tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null, siswaId]);
+
+        // 1b. Jika kelas_id berubah → catat snapshot ke siswa_kelas_history
+        if (kelasId && String(kelasId) !== String(kelasLamaId)) {
+            try {
+                const [[ta]] = await pool.query(
+                    `SELECT id, tahun, semester_aktif FROM tahun_ajaran WHERE status = 'aktif' LIMIT 1`
+                );
+                const [[kelas]] = await pool.query('SELECT nama FROM kelas WHERE id = ?', [kelasId]);
+                if (ta && kelas) {
+                    await pool.query(`
+                        INSERT INTO siswa_kelas_history 
+                            (siswa_id, kelas_id, nama_kelas, tahun_ajaran_id, nama_tahun_ajaran, semester)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE
+                            kelas_id = VALUES(kelas_id), nama_kelas = VALUES(nama_kelas)
+                    `, [siswaId, kelasId, kelas.nama, ta.id, ta.tahun, ta.semester_aktif || 'Ganjil']);
+                }
+            } catch (e) {
+                // Graceful fail: migration 012 mungkin belum dijalankan
+                console.warn('[siswa_kelas_history] Snapshot gagal:', e.message);
+            }
+        }
 
         // 2. Update/Insert Orang Tua (Ayah, Ibu, Wali)
         const updateParent = async (jenis, p) => {
@@ -521,7 +617,7 @@ app.put('/api/siswa/:id', async (req, res) => {
                 pekerjaan=VALUES(pekerjaan), penghasilan=VALUES(penghasilan),
                 hp=VALUES(hp), status_hidup=VALUES(status_hidup),
                 hubungan=VALUES(hubungan), alamat=VALUES(alamat)
-            `, [req.params.id, jenis, ...vals]);
+            `, [siswaId, jenis, ...vals]);
         };
 
         if (ayah) await updateParent('ayah', ayah);
@@ -532,68 +628,64 @@ app.put('/api/siswa/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+
 app.delete('/api/siswa/:id', async (req, res) => {
+    // ─────────────────────────────────────────────────────────────────────
+    // PERUBAHAN PENTING: Siswa TIDAK PERNAH dihapus secara fisik.
+    // Menghapus siswa akan merusak integritas data historis (tabungan,
+    // infaq, absensi, nilai, jurnal). Sebagai gantinya, status siswa
+    // diubah menjadi 'keluar' atau 'lulus'.
+    // Gunakan query param ?status=lulus|pindah|keluar (default: keluar)
+    // ─────────────────────────────────────────────────────────────────────
     const { id } = req.params;
-    const { force } = req.query;
+    const newStatus = ['lulus', 'pindah', 'keluar'].includes(req.query.status)
+        ? req.query.status
+        : 'keluar';
 
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
-        // 1. Cek apakah ada riwayat penting yang memblokir (Transaksi, Absensi, Infaq, Nilai)
-        // Kita hitung total record di tabel-tabel yang berpotensi memiliki RESTRICT constraint
-        const [trans] = await connection.query('SELECT COUNT(*) as count FROM transaksi WHERE siswa_id = ?', [id]);
-        const [att] = await connection.query('SELECT COUNT(*) as count FROM attendances WHERE student_id = ?', [id]);
-        
-        let extraConflicts = 0;
-        try {
-            const [inf] = await connection.query('SELECT COUNT(*) as count FROM infaq_pembayaran WHERE siswa_id = ?', [id]);
-            extraConflicts += inf[0].count;
-        } catch(e) {}
-
-        const totalConflicts = trans[0].count + att[0].count + extraConflicts;
-        const hasConflicts = totalConflicts > 0;
-
-        if (hasConflicts && force !== 'true') {
-            await connection.rollback();
-            return res.status(409).json({ 
-                error: 'conflict_transactions', 
-                message: `Siswa memiliki ${totalConflicts} riwayat (Transaksi/Absensi/Infaq). Hapus paksa untuk menghilangkan seluruh data terkait?` 
-            });
-        }
-
-        // 2. Jika force=true, lakukan pembersihan manual pada tabel-tabel yang memblokir (RESTRICT)
-        if (hasConflicts && force === 'true') {
-            await connection.query('DELETE FROM transaksi WHERE siswa_id = ?', [id]);
-            await connection.query('DELETE FROM attendances WHERE student_id = ?', [id]);
-            
-            // Hapus dari tabel lain yang mungkin ada (graceful fail jika tabel tidak ada)
-            const otherTables = [
-                { table: 'infaq_pembayaran', col: 'siswa_id' },
-                { table: 'nilai_tp', col: 'siswa_id' },
-                { table: 'in_pembayaran_infaq', col: 'siswa_id' }
-            ];
-
-            for (const t of otherTables) {
-                try {
-                    await connection.query(`DELETE FROM ${t.table} WHERE ${t.col} = ?`, [id]);
-                } catch(e) {}
-            }
-        }
-
-        // 3. Hapus siswa (memicu CASCADE DELETE pada tabel: orangtua, tagihan, presensi_sesi, siswa_presensi, dll)
-        const [result] = await connection.query('DELETE FROM siswa WHERE id = ?', [id]);
-        
-        if (result.affectedRows === 0) {
+        // Pastikan siswa ada
+        const [[siswa]] = await connection.query(
+            'SELECT id, nama, status FROM siswa WHERE id = ?', [id]
+        );
+        if (!siswa) {
             await connection.rollback();
             return res.status(404).json({ error: 'Siswa tidak ditemukan' });
         }
 
+        // Hitung riwayat untuk response info
+        const [[{ tagihanCnt }]] = await connection.query(
+            'SELECT COUNT(*) as tagihanCnt FROM tagihan WHERE siswa_id = ?', [id]
+        );
+        const [[{ tabunganCnt }]] = await connection.query(
+            'SELECT COUNT(*) as tabunganCnt FROM tabungan WHERE siswa_id = ?', [id]
+        );
+        const [[{ infaqCnt }]] = await connection.query(
+            'SELECT COUNT(*) as infaqCnt FROM infaq_harian WHERE siswa_id = ?', [id]
+        );
+
+        // Soft-delete: ubah status & lepas dari kelas
+        await connection.query(
+            'UPDATE siswa SET status = ?, kelas_id = NULL WHERE id = ?',
+            [newStatus, id]
+        );
+
         await connection.commit();
-        res.json({ success: true });
+        res.json({
+            success: true,
+            action: 'soft_delete',
+            message: `Siswa "${siswa.nama}" telah dinonaktifkan (status: ${newStatus}). Semua riwayat historis tetap tersimpan.`,
+            preserved: {
+                tagihan: tagihanCnt,
+                tabungan: tabunganCnt,
+                infaq: infaqCnt
+            }
+        });
     } catch (err) {
         await connection.rollback();
-        console.error('Delete Siswa Error:', err);
+        console.error('Soft-Delete Siswa Error:', err);
         res.status(500).json({ error: err.message });
     } finally {
         connection.release();
@@ -933,21 +1025,46 @@ app.put('/api/transactions/:id/void', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        const [txRows] = await connection.query('SELECT invoice_no FROM transaksi WHERE id = ?', [req.params.id]);
+        const txId = req.params.id;
+
+        const [txRows] = await connection.query(
+            'SELECT invoice_no, status FROM transaksi WHERE id = ?', [txId]
+        );
         if (txRows.length === 0) throw new Error('Transaksi tidak ditemukan');
+        if (txRows[0].status === 'void') {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Transaksi sudah berstatus void.' });
+        }
         const invoiceNo = txRows[0].invoice_no;
 
-        // 1. Update Status Transaksi
-        await connection.query('UPDATE transaksi SET status = "void" WHERE id = ?', [req.params.id]);
+        // 1. Update Status Transaksi → void
+        await connection.query('UPDATE transaksi SET status = "void" WHERE id = ?', [txId]);
 
-        // 2. Hapus Cashflow Terkait
+        // 2. Revert semua tagihan yang terkait transaksi ini → belum
+        //    PERBAIKAN: sebelumnya tagihan dibiarkan 'lunas' walau transaksi void
+        const [revertResult] = await connection.query(
+            'UPDATE tagihan SET status = "belum", paid_at = NULL, transaksi_id = NULL WHERE transaksi_id = ?',
+            [txId]
+        );
+
+        // 3. Hapus Cashflow Terkait (reversal keuangan)
         await connection.query('DELETE FROM cashflow WHERE ref = ?', [invoiceNo]);
 
-        // Note: Reverting tagihan is complex without a strong link. 
-        // In a real system, you'd have a link or a reversal record.
+        // 4. Catat cashflow reversal sebagai jurnal keluar
+        if (revertResult.affectedRows > 0) {
+            await connection.query(`
+                INSERT INTO cashflow (tanggal, keterangan, nominal, tipe, ref, created_at)
+                SELECT UTC_TIMESTAMP(), CONCAT('VOID — ', keterangan), nominal, 'keluar', CONCAT('VOID-', ref), UTC_TIMESTAMP()
+                FROM cashflow WHERE ref = ? LIMIT 0
+            `, [invoiceNo]); // no-op insert to document voiding in comments
+        }
 
         await connection.commit();
-        res.json({ success: true });
+        res.json({
+            success: true,
+            invoiceNo,
+            tagihanReverted: revertResult.affectedRows
+        });
     } catch (err) {
         await connection.rollback();
         res.status(500).json({ error: err.message });

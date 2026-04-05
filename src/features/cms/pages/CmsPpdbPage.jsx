@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../../../context/AppContext'
-import { Search, Filter, Trash2, CheckCircle, XCircle, Clock, Eye, Download, UserPlus, Users, GraduationCap, X, MapPin, Phone, Calendar, Send, RefreshCw, ListOrdered, CheckCircle2, Edit2, Plus, Layers, Save, Settings, BarChart3, Megaphone, Waves } from 'lucide-react'
+import { Search, Filter, Trash2, CheckCircle, XCircle, Clock, Eye, Download, UserPlus, Users, GraduationCap, X, MapPin, Phone, Calendar, Send, RefreshCw, ListOrdered, CheckCircle2, Edit2, Plus, Layers, Save, Settings, BarChart3, Megaphone, Waves, Image, FileText, AlertCircle, ExternalLink, FolderOpen, RotateCcw, LayoutGrid, List, CheckSquare, Square } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { useCustomAlert } from '../../../hooks/useCustomAlert'
 import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import React from 'react'
+
+class ChartErrorBoundary extends React.Component {
+    constructor(props) { super(props); this.state = { hasError: false, errorStr: '' }; }
+    static getDerivedStateFromError(error) { return { hasError: true, errorStr: error.toString() }; }
+    render() {
+        if (this.state.hasError) return <div style={{ color: '#ef4444', fontSize:'0.75rem', padding: 20 }}>Chart Error: {this.state.errorStr}</div>;
+        return this.props.children;
+    }
+}
 
 import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../../../services/api'
 
@@ -17,6 +27,9 @@ export default function CmsPpdbPage() {
     const [filterStatus, setFilterStatus] = useState('all')
     const [selectedReg, setSelectedReg] = useState(null)
     const [classes, setClasses] = useState([])
+    const [viewMode, setViewMode] = useState('table') // 'table' or 'kanban'
+    const [selectedIds, setSelectedIds] = useState(new Set())
+    const [bulkProcessing, setBulkProcessing] = useState(false)
 
     // Steps state
     const [steps, setSteps] = useState([])
@@ -301,6 +314,44 @@ export default function CmsPpdbPage() {
         }
     }
 
+    const handleRollback = async (id) => {
+        const reg = registrations.find(r => r.id === id)
+        const { isConfirmed } = await Swal.fire({
+            title: 'Batalkan Penerimaan?',
+            html: `<div style="text-align:left;font-size:0.9rem;color:#64748b;line-height:1.6">
+                <p>Anda akan membatalkan penerimaan <b>${reg?.nama_lengkap || ''}</b>.</p>
+                <p style="color:#ef4444;font-weight:700">⚠️ Data siswa, orang tua, dan dokumen yang sudah disinkronisasi akan <u>dihapus permanen</u> dari sistem akademik.</p>
+                <p>Status akan dikembalikan ke <b>Menunggu Verifikasi</b>.</p>
+            </div>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Batalkan Penerimaan',
+            cancelButtonText: 'Tidak Jadi',
+            confirmButtonColor: '#ef4444'
+        })
+
+        if (!isConfirmed) return
+
+        try {
+            const res = await fetch(`${API_BASE}/ppdb/${id}/rollback`, {
+                method: 'POST',
+                headers: getAuthHeaders()
+            })
+            const json = await res.json()
+            if (res.ok && json.success) {
+                addToast('success', 'Berhasil', json.message || 'Penerimaan dibatalkan')
+                setRegistrations(prev => prev.map(r => r.id === id ? { ...r, status: 'pending_verification', siswa_id: null } : r))
+                if (selectedReg && selectedReg.id === id) {
+                    setSelectedReg(prev => ({ ...prev, status: 'pending_verification', siswa_id: null }))
+                }
+            } else {
+                addToast('danger', 'Gagal', json.error || 'Gagal membatalkan penerimaan')
+            }
+        } catch (err) {
+            addToast('danger', 'Error', 'Terjadi kesalahan sistem')
+        }
+    }
+
     const handleDelete = async (id) => {
         const { isConfirmed } = await Swal.fire({
             title: 'Hapus Data?',
@@ -337,6 +388,64 @@ export default function CmsPpdbPage() {
         const matchStatus = filterStatus === 'all' || r.status === filterStatus
         return matchSearch && matchStatus
     })
+
+    // Bulk selection helpers
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id); else next.add(id)
+            return next
+        })
+    }
+    const toggleSelectAll = () => {
+        if (selectedIds.size === filteredData.length) setSelectedIds(new Set())
+        else setSelectedIds(new Set(filteredData.map(r => r.id)))
+    }
+    const handleBulkAccept = async () => {
+        if (selectedIds.size === 0) return
+        const { value: kelasId, isConfirmed } = await Swal.fire({
+            title: `Terima ${selectedIds.size} Pendaftar`,
+            html: `<div style="text-align:left"><p style="margin-bottom:10px;color:#64748b">Pilih kelas penempatan:</p><select id="swal-bulk-kelas" class="swal2-select" style="width:100%"><option value="">-- Pilih Kelas --</option>${classes.map(k => `<option value="${k.id}">${k.nama}</option>`).join('')}</select></div>`,
+            icon: 'question', showCancelButton: true, confirmButtonText: 'Terima Semua', confirmButtonColor: '#10b981', cancelButtonText: 'Batal',
+            preConfirm: () => { const v = document.getElementById('swal-bulk-kelas').value; if (!v) Swal.showValidationMessage('Pilih kelas!'); return v }
+        })
+        if (!isConfirmed) return
+        setBulkProcessing(true)
+        let success = 0, failed = 0
+        for (const id of selectedIds) {
+            try {
+                const res = await fetch(`${API_BASE}/ppdb/${id}/accept`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ kelas_id: kelasId }) })
+                const json = await res.json()
+                if (res.ok && json.success) success++; else failed++
+            } catch { failed++ }
+        }
+        setBulkProcessing(false)
+        setSelectedIds(new Set())
+        addToast('success', 'Selesai', `${success} diterima, ${failed} gagal`)
+        loadData()
+    }
+    const handleBulkReject = async () => {
+        if (selectedIds.size === 0) return
+        const { isConfirmed } = await Swal.fire({ title: `Tolak ${selectedIds.size} Pendaftar?`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Tolak Semua', confirmButtonColor: '#ef4444', cancelButtonText: 'Batal' })
+        if (!isConfirmed) return
+        setBulkProcessing(true)
+        for (const id of selectedIds) {
+            try { await fetch(`${API_BASE}/ppdb/${id}/status`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify({ status: 'rejected' }) }) } catch {}
+        }
+        setBulkProcessing(false)
+        setSelectedIds(new Set())
+        addToast('success', 'Selesai', 'Pendaftar terpilih telah ditolak')
+        loadData()
+    }
+
+    // Kanban columns
+    const KANBAN_COLUMNS = [
+        { key: 'draft', label: 'Draft', color: '#94a3b8', icon: '📝' },
+        { key: 'locked', label: 'Terkirim', color: '#3b82f6', icon: '📨' },
+        { key: 'pending_verification', label: 'Verifikasi', color: '#f59e0b', icon: '🔍' },
+        { key: 'accepted', label: 'Diterima', color: '#10b981', icon: '✅' },
+        { key: 'rejected', label: 'Ditolak', color: '#ef4444', icon: '❌' }
+    ]
 
     const stats = {
         total: registrations.length,
@@ -479,6 +588,7 @@ export default function CmsPpdbPage() {
             case 'accepted': return <span className="badge" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}>Diterima</span>
             case 'rejected': return <span className="badge" style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>Ditolak</span>
             case 'draft': return <span className="badge" style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #cbd5e1' }}>Draft Berkas</span>
+            case 'locked': return <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>Terkirim</span>
             case 'pending_verification': return <span className="badge" style={{ background: '#fef9c3', color: '#854d0e', border: '1px solid #fef08a' }}>Menunggu</span>
             default: return <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>{status}</span>
         }
@@ -615,7 +725,7 @@ export default function CmsPpdbPage() {
 
                     {/* Registration List Card */}
                     <div className="card cms-section-card" style={{ padding: 0 }}>
-                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
                                 <Search style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
                                 <input
@@ -628,13 +738,24 @@ export default function CmsPpdbPage() {
                                 />
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {/* View Toggle */}
+                                <div style={{ display: 'flex', background: 'var(--bg-hover)', borderRadius: 10, padding: 3, border: '1px solid var(--border-color)' }}>
+                                    <button onClick={() => setViewMode('table')} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: viewMode === 'table' ? 'var(--bg-card)' : 'transparent', color: viewMode === 'table' ? 'var(--primary-color)' : 'var(--text-muted)', boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, fontSize: '0.8rem' }}>
+                                        <List size={15} /> Tabel
+                                    </button>
+                                    <button onClick={() => setViewMode('kanban')} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: viewMode === 'kanban' ? 'var(--bg-card)' : 'transparent', color: viewMode === 'kanban' ? 'var(--primary-color)' : 'var(--text-muted)', boxShadow: viewMode === 'kanban' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, fontSize: '0.8rem' }}>
+                                        <LayoutGrid size={15} /> Kanban
+                                    </button>
+                                </div>
+
                                 <div style={{ padding: '8px 16px', background: 'var(--bg-hover)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--border-color)' }}>
                                     <Filter size={16} color="var(--text-muted)" />
                                     <select style={{ border: 'none', background: 'transparent', fontWeight: 600, color: 'var(--text-color)', cursor: 'pointer', outline: 'none' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                                         <option value="all">Semua Status</option>
                                         <option value="draft">Draft Berkas</option>
-                                        <option value="pending_verification">Menuggu Verifikasi</option>
+                                        <option value="locked">Terkirim</option>
+                                        <option value="pending_verification">Menunggu Verifikasi</option>
                                         <option value="accepted">Diterima</option>
                                         <option value="rejected">Ditolak</option>
                                     </select>
@@ -642,10 +763,31 @@ export default function CmsPpdbPage() {
                             </div>
                         </div>
 
+                        {/* Bulk Action Toolbar */}
+                        {selectedIds.size > 0 && viewMode === 'table' && (
+                            <div style={{ padding: '12px 24px', background: 'linear-gradient(90deg, rgba(79,70,229,0.08), rgba(124,58,237,0.05))', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 12, animation: 'fadeIn 0.3s' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-color)' }}>{selectedIds.size} dipilih</span>
+                                <button disabled={bulkProcessing} onClick={handleBulkAccept} style={{ padding: '7px 16px', borderRadius: 10, border: 'none', background: '#10b981', color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <CheckCircle size={14} /> Terima Semua
+                                </button>
+                                <button disabled={bulkProcessing} onClick={handleBulkReject} style={{ padding: '7px 16px', borderRadius: 10, border: 'none', background: '#ef4444', color: 'white', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <XCircle size={14} /> Tolak Semua
+                                </button>
+                                <button onClick={() => setSelectedIds(new Set())} style={{ padding: '7px 12px', borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>Batal</button>
+                            </div>
+                        )}
+
+                        {/* TABLE VIEW */}
+                        {viewMode === 'table' && (
                         <div className="table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                             <table className="table" style={{ margin: 0, minWidth: '800px' }}>
                                 <thead style={{ background: 'var(--bg-hover)' }}>
                                     <tr>
+                                        <th style={{ padding: '16px 12px 16px 24px', width: 40 }}>
+                                            <button onClick={toggleSelectAll} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: selectedIds.size === filteredData.length && filteredData.length > 0 ? 'var(--primary-color)' : 'var(--text-muted)', display: 'flex' }}>
+                                                {selectedIds.size === filteredData.length && filteredData.length > 0 ? <CheckSquare size={18} /> : <Square size={18} />}
+                                            </button>
+                                        </th>
                                         <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Waktu Daftar</th>
                                         <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>No. Registrasi</th>
                                         <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Calon Siswa</th>
@@ -656,14 +798,19 @@ export default function CmsPpdbPage() {
                                 </thead>
                                 <tbody>
                                     {loading ? (
-                                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>Memuat data pendaftaran...</td></tr>
+                                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>Memuat data pendaftaran...</td></tr>
                                     ) : filteredData.length === 0 ? (
-                                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '100px 0' }}>
+                                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '100px 0' }}>
                                             <div style={{ opacity: 0.3, marginBottom: 15, color: 'var(--text-muted)' }}><UserPlus size={48} style={{ margin: '0 auto' }} /></div>
                                             <div style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Tidak ada data pendaftaran ditemukan.</div>
                                         </td></tr>
                                     ) : filteredData.map(r => (
-                                        <tr key={r.id} style={{ transition: 'all 0.2s' }}>
+                                        <tr key={r.id} style={{ transition: 'all 0.2s', background: selectedIds.has(r.id) ? 'rgba(79,70,229,0.04)' : 'transparent' }}>
+                                            <td style={{ padding: '20px 12px 20px 24px', borderBottom: '1px solid var(--border-color)', width: 40 }}>
+                                                <button onClick={() => toggleSelect(r.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: selectedIds.has(r.id) ? 'var(--primary-color)' : 'var(--text-muted)', display: 'flex' }}>
+                                                    {selectedIds.has(r.id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                                                </button>
+                                            </td>
                                             <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
                                                 <div style={{ fontWeight: 600 }}>{new Date(r.created_at).toLocaleDateString('id-ID')}</div>
                                                 <div className="text-secondary" style={{ fontSize: '0.8rem' }}>{new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
@@ -683,7 +830,7 @@ export default function CmsPpdbPage() {
                                                         <Eye size={18} />
                                                     </button>
 
-                                                    {r.status === 'pending_verification' && (
+                                                    {(r.status === 'pending_verification' || r.status === 'locked' || r.status === 'wawancara') && (
                                                         <>
                                                             <button className="btn-icon text-success" onClick={() => handleAccept(r.id)} title="Terima & Sinkronisasi">
                                                                 <CheckCircle size={18} />
@@ -692,6 +839,12 @@ export default function CmsPpdbPage() {
                                                                 <XCircle size={18} />
                                                             </button>
                                                         </>
+                                                    )}
+
+                                                    {r.status === 'accepted' && (
+                                                        <button className="btn-icon" style={{ color: '#f59e0b' }} onClick={() => handleRollback(r.id)} title="Batalkan Penerimaan">
+                                                            <RotateCcw size={18} />
+                                                        </button>
                                                     )}
 
                                                     <button className="btn-icon text-danger" onClick={() => handleDelete(r.id)} title="Hapus">
@@ -704,6 +857,60 @@ export default function CmsPpdbPage() {
                                 </tbody>
                             </table>
                         </div>
+                        )}
+
+                        {/* KANBAN VIEW */}
+                        {viewMode === 'kanban' && (
+                            <div style={{ padding: '24px', overflowX: 'auto' }}>
+                                <div style={{ display: 'flex', gap: 16, minWidth: '1200px' }}>
+                                    {KANBAN_COLUMNS.map(col => {
+                                        const items = registrations.filter(r => {
+                                            const matchSearch = !search || r.nama_lengkap.toLowerCase().includes(search.toLowerCase()) || r.registration_number.toLowerCase().includes(search.toLowerCase())
+                                            return r.status === col.key && matchSearch
+                                        })
+                                        return (
+                                            <div key={col.key} style={{ flex: 1, minWidth: '220px' }}>
+                                                <div style={{ padding: '12px 16px', background: `${col.color}10`, borderRadius: '14px 14px 0 0', borderBottom: `3px solid ${col.color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        <span>{col.icon}</span>
+                                                        <span style={{ fontWeight: 800, fontSize: '0.85rem', color: col.color }}>{col.label}</span>
+                                                    </div>
+                                                    <span style={{ background: col.color, color: 'white', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800 }}>{items.length}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflowY: 'auto', paddingRight: 4 }}>
+                                                    {items.length === 0 ? (
+                                                        <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', background: 'var(--bg-hover)', borderRadius: 12, border: '2px dashed var(--border-color)' }}>Kosong</div>
+                                                    ) : items.map(r => (
+                                                        <div key={r.id} onClick={() => setSelectedReg(r)} style={{ padding: '14px', background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border-color)', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                            onMouseOver={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                                                            onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none' }}
+                                                        >
+                                                            <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-color)', marginBottom: 6 }}>{r.nama_lengkap}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+                                                                <span>{r.registration_number}</span>
+                                                                <span style={{ fontWeight: 800, color: 'var(--primary-color)' }}>{r.jurusan_pilihan || '-'}</span>
+                                                            </div>
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{r.asal_sekolah}</div>
+                                                            <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
+                                                                {(r.status === 'pending_verification' || r.status === 'locked') && (
+                                                                    <>
+                                                                        <button onClick={e => { e.stopPropagation(); handleAccept(r.id) }} style={{ flex: 1, padding: '6px', borderRadius: 8, border: 'none', background: '#10b98120', color: '#10b981', fontWeight: 700, fontSize: '0.7rem', cursor: 'pointer' }}>✓ Terima</button>
+                                                                        <button onClick={e => { e.stopPropagation(); handleUpdateStatus(r.id, 'rejected') }} style={{ flex: 1, padding: '6px', borderRadius: 8, border: 'none', background: '#ef444420', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem', cursor: 'pointer' }}>✗ Tolak</button>
+                                                                    </>
+                                                                )}
+                                                                {r.status === 'accepted' && (
+                                                                    <button onClick={e => { e.stopPropagation(); handleRollback(r.id) }} style={{ flex: 1, padding: '6px', borderRadius: 8, border: 'none', background: '#f59e0b20', color: '#f59e0b', fontWeight: 700, fontSize: '0.7rem', cursor: 'pointer' }}>↺ Rollback</button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -744,7 +951,8 @@ export default function CmsPpdbPage() {
                                     <UserPlus size={40} />
                                 </div>
                                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '0 0 5px 0' }}>{selectedReg.nama_lengkap}</h2>
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0, marginBottom: 10 }}>{selectedReg.registration_number}</p>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0, marginBottom: 5 }}>{selectedReg.registration_number}</p>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color)', marginBottom: 15 }}>Jurusan Pilihan: {selectedReg.jurusan_pilihan || '-'}</div>
                                 <div>{getStatusBadge(selectedReg.status)}</div>
                             </div>
 
@@ -798,6 +1006,116 @@ export default function CmsPpdbPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {(() => {
+                                let berkas = {}
+                                try {
+                                    berkas = typeof selectedReg.berkas_json === 'string' ? JSON.parse(selectedReg.berkas_json) : (selectedReg.berkas_json || {})
+                                } catch (e) { }
+
+                                const getFileUrl = (path) => path ? `${API_BASE.replace('/admin/cms', '').replace('/api', '')}${path}` : null;
+
+                                return (
+                                    <div className="card mt-4" style={{ padding: 20, border: '1px solid var(--border-color)', boxShadow: 'none' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottom: '1px dashed var(--border-color)' }}>
+                                            <FolderOpen size={20} className="text-primary" />
+                                            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-color)' }}>Dokumen & Berkas Digital</h4>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+                                            {/* Foto */}
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-hover)', borderRadius: 12 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <div style={{ padding: 8, background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', borderRadius: 8 }}><Image size={18} /></div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Pas Foto</div>
+                                                        <div style={{ fontSize: '0.75rem', color: selectedReg.foto_path ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                            {selectedReg.foto_path ? '✅ Terunggah' : '❌ Belum Ada'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {selectedReg.foto_path && (
+                                                    <a href={getFileUrl(selectedReg.foto_path)} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', fontWeight: 700 }}>
+                                                        <ExternalLink size={14} /> Lihat
+                                                    </a>
+                                                )}
+                                            </div>
+
+                                            {/* KK */}
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-hover)', borderRadius: 12 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <div style={{ padding: 8, background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', borderRadius: 8 }}><FileText size={18} /></div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Kartu Keluarga</div>
+                                                        <div style={{ fontSize: '0.75rem', color: berkas.kk ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                            {berkas.kk ? '✅ Terunggah' : '❌ Belum Ada'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {berkas.kk && (
+                                                    <a href={getFileUrl(berkas.kk)} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', fontWeight: 700 }}>
+                                                        <ExternalLink size={14} /> Lihat
+                                                    </a>
+                                                )}
+                                            </div>
+
+                                            {/* Akte */}
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-hover)', borderRadius: 12 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <div style={{ padding: 8, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: 8 }}><FileText size={18} /></div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Akte Kelahiran</div>
+                                                        <div style={{ fontSize: '0.75rem', color: berkas.akte ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                            {berkas.akte ? '✅ Terunggah' : '❌ Belum Ada'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {berkas.akte && (
+                                                    <a href={getFileUrl(berkas.akte)} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 700 }}>
+                                                        <ExternalLink size={14} /> Lihat
+                                                    </a>
+                                                )}
+                                            </div>
+
+                                            {/* Ijazah */}
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-hover)', borderRadius: 12 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <div style={{ padding: 8, background: 'rgba(56, 189, 248, 0.1)', color: '#0284c7', borderRadius: 8 }}><FileText size={18} /></div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Ijazah / SKL</div>
+                                                        <div style={{ fontSize: '0.75rem', color: berkas.ijazah ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                            {berkas.ijazah ? '✅ Terunggah' : '❌ Belum Ada'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {berkas.ijazah && (
+                                                    <a href={getFileUrl(berkas.ijazah)} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(56, 189, 248, 0.1)', color: '#0284c7', fontWeight: 700 }}>
+                                                        <ExternalLink size={14} /> Lihat
+                                                    </a>
+                                                )}
+                                            </div>
+
+                                            {/* KTP Ortu */}
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-hover)', borderRadius: 12 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <div style={{ padding: 8, background: 'rgba(168, 85, 247, 0.1)', color: '#9333ea', borderRadius: 8 }}><FileText size={18} /></div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>KTP Orang Tua</div>
+                                                        <div style={{ fontSize: '0.75rem', color: berkas.ktp_ortu ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                                                            {berkas.ktp_ortu ? '✅ Terunggah' : '❌ Belum Ada'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {berkas.ktp_ortu && (
+                                                    <a href={getFileUrl(berkas.ktp_ortu)} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ padding: '6px 12px', fontSize: '0.75rem', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(168, 85, 247, 0.1)', color: '#9333ea', fontWeight: 700 }}>
+                                                        <ExternalLink size={14} /> Lihat
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })()}
                         </div>
 
                         <div className="modal-footer" style={{ flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', background: 'var(--bg-hover)', borderRadius: '0 0 20px 20px' }}>
@@ -818,6 +1136,15 @@ export default function CmsPpdbPage() {
                                 >
                                     <CheckCircle size={16} /> {selectedReg.status === 'accepted' ? 'Sudah Diterima' : 'Eksekusi Terima Siswa'}
                                 </button>
+                                {selectedReg.status === 'accepted' && (
+                                    <button
+                                        className="btn" 
+                                        onClick={() => handleRollback(selectedReg.id)}
+                                        style={{ borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontWeight: 700 }}
+                                    >
+                                        <RotateCcw size={16} /> Rollback
+                                    </button>
+                                )}
                                 <button
                                     className="btn btn-danger"
                                     onClick={() => handleUpdateStatus(selectedReg.id, 'rejected')}
@@ -1222,6 +1549,21 @@ export default function CmsPpdbPage() {
 
     function renderAnalyticsTab() {
         if (!analytics) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Memuat data analytics...</div>
+        
+        // PAD DAILY DATA FOR LINE CHART SO IT DOES NOT CRASH ON SINGLE ELEMENT
+        let dailySafe = (analytics.daily || []).map(d => {
+            const dateObj = new Date(d.date);
+            const safeDate = isNaN(dateObj.valueOf()) ? String(d.date || '') : dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+            return { date: safeDate, count: Number(d.count) || 0 };
+        });
+        if (dailySafe.length === 1) {
+            dailySafe = [{ date: 'Sebelumnya', count: 0 }, ...dailySafe];
+        }
+
+        const genderSafe = (analytics.gender || []).map(g => ({ name: g.jk === 'L' ? 'Laki-laki' : g.jk === 'P' ? 'Perempuan' : 'Lainnya', value: Number(g.count) || 0 }));
+        const schoolsSafe = (analytics.schools || []).map(s => ({ sekolah: String(s.sekolah || 'Tidak Diketahui'), count: Number(s.count) || 0 }));
+        const funnelSafe = analytics.funnel || [];
+
         return (
             <div>
                 <div className="mb-4"><h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Analytics PPDB</h3><p className="text-secondary small m-0">Insight visual pendaftaran siswa baru.</p></div>
@@ -1229,60 +1571,74 @@ export default function CmsPpdbPage() {
                     {/* Line Chart - Daily */}
                     <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
                         <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>📈 Pendaftar per Hari (14 Hari)</h4>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <LineChart data={analytics.daily.map(d => ({ ...d, date: new Date(d.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) }))}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                                <XAxis dataKey="date" style={{ fontSize: '0.7rem' }} />
-                                <YAxis allowDecimals={false} style={{ fontSize: '0.7rem' }} />
-                                <Tooltip />
-                                <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1' }} name="Pendaftar" />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        {dailySafe.length > 0 ? (
+                            <ChartErrorBoundary>
+                                <LineChart width={400} height={200} data={dailySafe}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                                    <XAxis dataKey="date" style={{ fontSize: '0.7rem' }} />
+                                    <YAxis style={{ fontSize: '0.7rem' }} />
+                                    <Tooltip />
+                                    <Line type="linear" dataKey="count" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1' }} name="Pendaftar" />
+                                </LineChart>
+                            </ChartErrorBoundary>
+                        ) : (
+                            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada data pendaftar.</div>
+                        )}
                     </div>
 
                     {/* Pie Chart - Gender */}
                     <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
                         <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>👫 Rasio Jenis Kelamin</h4>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <PieChart>
-                                <Pie data={analytics.gender.map(g => ({ name: g.jk === 'L' ? 'Laki-laki' : g.jk === 'P' ? 'Perempuan' : 'Lainnya', value: g.count }))} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
-                                    {analytics.gender.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        {genderSafe.length > 0 ? (
+                            <ChartErrorBoundary>
+                                <PieChart width={400} height={200}>
+                                    <Pie data={genderSafe} cx="50%" cy="50%" outerRadius={70} dataKey="value" labelLine={false}>
+                                        {genderSafe.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend wrapperStyle={{ fontSize: '0.8rem' }} />
+                                </PieChart>
+                            </ChartErrorBoundary>
+                        ) : (
+                            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada data gender.</div>
+                        )}
                     </div>
 
                     {/* Bar Chart - Schools */}
                     <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
                         <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>🏫 Top 10 Asal Sekolah</h4>
-                        <ResponsiveContainer width="100%" height={220}>
-                            <BarChart data={analytics.schools} layout="vertical" margin={{ left: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                                <XAxis type="number" allowDecimals={false} style={{ fontSize: '0.7rem' }} />
-                                <YAxis type="category" dataKey="sekolah" width={120} style={{ fontSize: '0.65rem' }} />
-                                <Tooltip />
-                                <Bar dataKey="count" fill="#6366f1" radius={[0, 6, 6, 0]} name="Pendaftar" />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {schoolsSafe.length > 0 ? (
+                            <ChartErrorBoundary>
+                                <BarChart width={400} height={220} data={schoolsSafe} layout="vertical" margin={{ left: 20, right: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                                    <XAxis type="number" style={{ fontSize: '0.7rem' }} />
+                                    <YAxis type="category" dataKey="sekolah" width={120} style={{ fontSize: '0.65rem' }} />
+                                    <Tooltip />
+                                    <Bar dataKey="count" fill="#6366f1" radius={[0, 6, 6, 0]} name="Pendaftar" />
+                                </BarChart>
+                            </ChartErrorBoundary>
+                        ) : (
+                            <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada data sekolah asal.</div>
+                        )}
                     </div>
 
                     {/* Funnel - Conversion */}
                     <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
                         <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>🔽 Funnel Konversi</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {analytics.funnel.map((f, i) => {
-                                const maxCount = analytics.funnel[0]?.count || 1
-                                const pct = maxCount > 0 ? (f.count / maxCount) * 100 : 0
+                            {funnelSafe.map((f, i) => {
+                                const maxCount = Number(funnelSafe[0]?.count) || 1
+                                const fCount = Number(f.count) || 0
+                                const pct = maxCount > 0 ? (fCount / maxCount) * 100 : 0
                                 const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#10b981']
                                 return (
                                     <div key={i}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>
                                             <span style={{ color: 'var(--text-color)' }}>{f.stage}</span>
-                                            <span style={{ color: colors[i] }}>{f.count}</span>
+                                            <span style={{ color: colors[i] || '#cbd5e1' }}>{fCount}</span>
                                         </div>
                                         <div style={{ height: 10, background: 'var(--bg-hover)', borderRadius: 5, overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', width: `${pct}%`, background: colors[i], borderRadius: 5, transition: 'width 0.5s' }} />
+                                            <div style={{ height: '100%', width: `${pct}%`, background: colors[i] || '#cbd5e1', borderRadius: 5, transition: 'width 0.5s' }} />
                                         </div>
                                     </div>
                                 )
