@@ -1464,12 +1464,10 @@ app.post('/api/admin/whatsapp/test', authMiddleware, async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3005;
-server.listen(PORT, '0.0.0.0', async () => {
-    console.log(`✅ Server SIAS (with Socket.io) berjalan di http://0.0.0.0:${PORT}`);
-    // Inisialisasi WhatsApp Service saat server startup
-    try {
-        await waService.initialize();
-    } catch (err) {
-        console.error('[WA Service] Gagal inisialisasi saat startup:', err.message);
-    }
+server.listen(PORT, () => {
+    console.log(`✅ Server SIAS berjalan di port: ${PORT}`);
+    // Inisialisasi WhatsApp Service secara background agar tidak memblokir startup server
+    waService.initialize().catch(err => {
+        console.error('[WA Service] Gagal inisialisasi:', err.message);
+    });
 });

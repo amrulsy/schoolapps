@@ -117,6 +117,19 @@ CREATE TABLE IF NOT EXISTS siswa_dokumen (
     UNIQUE KEY (siswa_id, kode_dokumen)
 );
 
+CREATE TABLE IF NOT EXISTS transaksi (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    invoice_no VARCHAR(100) UNIQUE NOT NULL,
+    tanggal DATETIME NOT NULL,
+    siswa_id INT NOT NULL,
+    user_id INT,
+    total DECIMAL(12,2) NOT NULL,
+    amount_paid DECIMAL(12,2) NOT NULL,
+    change_amount DECIMAL(12,2) DEFAULT 0,
+    status ENUM('success', 'void', 'pending') DEFAULT 'success',
+    FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE RESTRICT
+);
+
 CREATE TABLE IF NOT EXISTS tagihan (
     id INT AUTO_INCREMENT PRIMARY KEY,
     siswa_id INT NOT NULL,
@@ -131,24 +144,13 @@ CREATE TABLE IF NOT EXISTS tagihan (
     status ENUM('belum', 'lunas') DEFAULT 'belum',
     paid_at DATE NULL,
     transaksi_id BIGINT,
-    FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE CASCADE,
-    FOREIGN KEY (kategori_id) REFERENCES kategori_tagihan(id) ON DELETE CASCADE,
+    FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE RESTRICT,
+    FOREIGN KEY (kategori_id) REFERENCES kategori_tagihan(id) ON DELETE RESTRICT,
     FOREIGN KEY (tahun_ajaran_id) REFERENCES tahun_ajaran(id) ON DELETE SET NULL,
     FOREIGN KEY (transaksi_id) REFERENCES transaksi(id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS transaksi (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    invoice_no VARCHAR(100) UNIQUE NOT NULL,
-    tanggal DATETIME NOT NULL,
-    siswa_id INT NOT NULL,
-    user_id INT,
-    total DECIMAL(12,2) NOT NULL,
-    amount_paid DECIMAL(12,2) NOT NULL,
-    change_amount DECIMAL(12,2) DEFAULT 0,
-    status ENUM('success', 'void', 'pending') DEFAULT 'success',
-    FOREIGN KEY (siswa_id) REFERENCES siswa(id) ON DELETE RESTRICT
-);
+-- Transaksi moved up to resolve tagihan dependency
 
 CREATE TABLE IF NOT EXISTS cashflow (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

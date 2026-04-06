@@ -12,6 +12,8 @@
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const QRCode = require('qrcode');
+const path = require('path');
+const fs = require('fs');
 
 class WhatsAppService {
     constructor() {
@@ -47,9 +49,12 @@ class WhatsAppService {
         console.log('[WA Service] Menginisialisasi mode Internal (whatsapp-web.js)...');
         this.statusMessage = 'Menginisialisasi...';
 
+        const sessionPath = path.join(__dirname, '../wa_session');
+        if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
+
         this.client = new Client({
             authStrategy: new LocalAuth({
-                dataPath: './wa_session'
+                dataPath: sessionPath
             }),
             puppeteer: {
                 headless: true,

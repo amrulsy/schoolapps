@@ -1,4 +1,5 @@
-const pool = require('./db');
+const pool = require('../../db');
+const bcrypt = require('bcryptjs');
 
 async function seed() {
     const connection = await pool.getConnection();
@@ -61,11 +62,14 @@ async function seed() {
 
         // 5. Seed Users
         console.log('Seeding Users...');
+        const adminHash = await bcrypt.hash('admin123', 10);
+        const kasirHash = await bcrypt.hash('kasir123', 10);
+        
         await connection.query(`
             INSERT INTO users (id, nama, username, password_hash, role) VALUES 
-            (1, "Pak Ahmad", "admin", "admin123", "admin"),
-            (2, "Ibu Siti", "bendahara", "kasir123", "kasir")
-        `);
+            (1, "Pak Ahmad", "admin", ?, "admin"),
+            (2, "Ibu Siti", "bendahara", ?, "kasir")
+        `, [adminHash, kasirHash]);
 
         // 6. Seed Students (Generate 48 students, 4 per class)
         console.log('Seeding 48 Students...');
@@ -86,13 +90,13 @@ async function seed() {
 
                 studentValues.push([
                     studentId, kId, nisn, nis, nama, jk, status,
-                    'Bogor', '2010-01-01', '08123456789', 'Jl. Pendidikan No. ' + studentId, 'Wali ' + fName
+                    'Bogor', '2010-01-01', '08123456789', 'Jl. Pendidikan No. ' + studentId
                 ]);
                 studentId++;
             }
         }
         await connection.query(`
-            INSERT INTO siswa (id, kelas_id, nisn, nis, nama, jk, status, tempat_lahir, tgl_lahir, telp, alamat, wali) 
+            INSERT INTO siswa (id, kelas_id, nisn, nis, nama, jk, status, tempat_lahir, tgl_lahir, telp, alamat) 
             VALUES ?
         `, [studentValues]);
 
@@ -107,31 +111,17 @@ async function seed() {
         activeStudents.forEach(s => {
             const sid = s[0];
             const currentKid = s[1];
-            months.forEach((bulan, idx) => {
-                const isPaid = idx < 2; // July & August paid
-                const billYear = ['Januari', 'Februari'].includes(bulan) ? 2026 : 2025;
                 tagihanValues.push([
                     sid, 1, 1, bulan, billYear, 150000, 150000,
                     isPaid ? 'lunas' : 'belum',
-                    isPaid ? '2025-08-01' : null,
-                    currentKid // Historical class
+                    isPaid ? '2025-08-01' : null
                 ]);
             });
         });
 
-        // Simulating "Naik Kelas" / Historical debt
-        // Let's pick student ID 1 and give them a debt from a PREVIOUS class/year
-        const studentOne = activeStudents.find(s => s[0] === 1);
-        if (studentOne) {
-            // Add a bill from June 2025 with class_id 12 (assuming they were in a different class)
-            tagihanValues.push([
-                1, 1, 1, 'Juni', 2025, 150000, 150000, 'belum', null, 12
-            ]);
-        }
-
         if (tagihanValues.length > 0) {
             await connection.query(`
-                INSERT INTO tagihan (siswa_id, kategori_id, tahun_ajaran_id, bulan, tahun, nominal_asli, nominal, status, paid_at, kelas_id)
+                INSERT INTO tagihan (siswa_id, kategori_id, tahun_ajaran_id, bulan, tahun, nominal_asli, nominal, status, paid_at)
                 VALUES ?
             `, [tagihanValues]);
         }

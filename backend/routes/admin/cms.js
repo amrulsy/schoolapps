@@ -7,7 +7,12 @@ const router = express.Router();
 const pool = require('../../db');
 const { invalidateCache } = require('../../middleware/cache');
 const { upload } = require('../../middleware/upload');
-const sharp = require('sharp');
+let sharp;
+try {
+    sharp = require('sharp');
+} catch (e) {
+    console.warn('[CMS] Sharp module not found or incompatible. Image optimization will be skipped.');
+}
 const fs = require('fs');
 const path = require('path');
 
@@ -499,7 +504,7 @@ router.post('/media/upload', upload.single('file'), async (req, res) => {
         let filename = `media-${uniqueSuffix}`;
         const uploadDir = path.join(__dirname, '../../uploads');
 
-        if (isImage) {
+        if (isImage && sharp) {
             filename += '.webp';
             const filePath = path.join(uploadDir, filename);
             try {
@@ -515,7 +520,7 @@ router.post('/media/upload', upload.single('file'), async (req, res) => {
                 fs.writeFileSync(path.join(uploadDir, filename), req.file.buffer);
             }
         } else {
-            const ext = path.extname(req.file.originalname);
+            const ext = path.extname(req.file.originalname) || '.jpg';
             filename += ext;
             fs.writeFileSync(path.join(uploadDir, filename), req.file.buffer);
         }
