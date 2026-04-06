@@ -41,13 +41,20 @@ export function SiswaProvider({ children }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(student)
             });
+            const data = await res.json();
             if (res.ok) {
-                const data = await res.json();
                 const kelasName = units.flatMap(u => u.kelas).find(k => k.id == student.kelasId)?.nama || '';
                 setStudents(prev => [...prev, { ...student, id: data.id, kelas: kelasName }]);
                 addToast('success', 'Berhasil', `Siswa ${student.nama} ditambahkan`);
+                return true;
+            } else {
+                addToast('danger', 'Gagal Menambah', data.error || 'Server error');
+                return false;
             }
-        } catch (err) { addToast('danger', 'Error', 'Gagal menambah siswa'); }
+        } catch (err) { 
+            addToast('danger', 'Error Koneksi', err.message); 
+            return false;
+        }
     }, [addToast, units]);
 
     const updateStudent = useCallback(async (id, data) => {
@@ -57,6 +64,7 @@ export function SiswaProvider({ children }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
+            const resData = await res.json();
             if (res.ok) {
                 const kelasName = units.flatMap(u => u.kelas).find(k => k.id == data.kelasId)?.nama || '';
                 setStudents(prev => prev.map(s => s.id === id ? {
@@ -66,8 +74,15 @@ export function SiswaProvider({ children }) {
                     wali_detail: { ...(s.wali_detail || {}), ...(data.wali_detail || {}) }
                 } : s));
                 addToast('success', 'Berhasil', 'Data siswa diperbarui');
+                return true;
+            } else {
+                addToast('danger', 'Gagal Update', resData.error || 'Server error');
+                return false;
             }
-        } catch (err) { addToast('danger', 'Error', 'Gagal memperbarui siswa'); }
+        } catch (err) { 
+            addToast('danger', 'Error Koneksi', err.message); 
+            return false;
+        }
     }, [addToast, units]);
 
     const deleteStudent = useCallback(async (id, force = false) => {

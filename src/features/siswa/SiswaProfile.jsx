@@ -204,6 +204,7 @@ export default function SiswaProfile({ data, onClose }) {
     const [isEditing, setIsEditing] = useState(false)
     const [form, setForm] = useState({})
 
+    const [isSaving, setIsSaving] = useState(false)
     const [loadingDetail, setLoadingDetail] = useState(true)
 
     // Use live data from context to avoid stale prop issues
@@ -266,7 +267,10 @@ export default function SiswaProfile({ data, onClose }) {
 
     const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (isSaving) return
+        setIsSaving(true)
+
         const ayahFields = ['nama', 'nik', 'pendidikan', 'pekerjaan', 'penghasilan', 'hp', 'status_hidup']
         const ibuFields = [...ayahFields]
         const waliFields = [...ayahFields, 'hubungan', 'alamat']
@@ -296,9 +300,11 @@ export default function SiswaProfile({ data, onClose }) {
             delete payload[`wali_${k}`]
         })
 
-        updateStudent(p.id, payload)
-        addToast('success', 'Profil Diperbarui', `Data ${p.nama} berhasil disimpan`)
-        setIsEditing(false)
+        const success = await updateStudent(p.id, payload)
+        if (success) {
+            setIsEditing(false)
+        }
+        setIsSaving(false)
     }
 
     const handleCancel = () => { setForm({}); setIsEditing(false) }

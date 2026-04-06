@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { io } from 'socket.io-client'
-import { User, School, Clock, CheckCircle, ArrowRight, ArrowLeft, AlertTriangle } from 'lucide-react'
+import { User, School, Clock, CheckCircle, ArrowRight, ArrowLeft, AlertTriangle, Volume2 } from 'lucide-react'
 import api, { API_BASE } from '../../services/api'
 
 export default function GateMonitor() {
@@ -9,6 +9,9 @@ export default function GateMonitor() {
     const [rfidInput, setRfidInput] = useState('')
     const [currentTime, setCurrentTime] = useState(new Date())
     const [schoolSettings, setSchoolSettings] = useState(null)
+    const [isProcessing, setIsProcessing] = useState(false)
+    const [lastError, setLastError] = useState(null)
+    const [audioUnlocked, setAudioUnlocked] = useState(false)
     
     const inputRef = useRef(null)
     const timerRef = useRef(null)
@@ -23,7 +26,10 @@ export default function GateMonitor() {
     // Socket.io Connection
     useEffect(() => {
         const socketOrigin = API_BASE.replace('/api', '')
-        const socket = io(socketOrigin)
+        const socket = io(socketOrigin, {
+            path: '/api/socket.io',
+            transports: ['polling']
+        })
 
         socket.on('connect', () => console.log('[Socket] Connected'))
         socket.on('scan_success', (data) => showScanResult(data))
@@ -135,13 +141,31 @@ export default function GateMonitor() {
         }, 5000)
     }
 
+    const unlockAudio = () => {
+        setAudioUnlocked(true)
+        // Play a silent sound to "prime" the browser's audio engine
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)()
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+            gain.gain.value = 0
+            osc.connect(gain); gain.connect(ctx.destination)
+            osc.start(); osc.stop(0.1)
+            
+            // Speak a small welcome to confirm
+            speakMessage("Audio diaktifkan. Selamat datang.")
+        } catch(e) { console.error(e) }
+    }
+
     const showScanInfo = (data) => {
         if (timerRef.current) clearTimeout(timerRef.current)
         setScanData(null)
         setScanInfo(data)
         
-        playBuzzer();
-        setTimeout(() => speakMessage('Mohon maaf, ' + data.message), 300);
+        if (audioUnlocked) {
+            playBuzzer();
+            setTimeout(() => speakMessage('Mohon maaf, ' + data.message), 300);
+        }
 
         timerRef.current = setTimeout(() => {
             setScanInfo(null)
@@ -150,15 +174,34 @@ export default function GateMonitor() {
 
     const handleManualScan = async (e) => {
         e.preventDefault()
-        if (!rfidInput) return
+        if (!rfidInput || isProcessing) return
+        
+        setIsProcessing(true)
+        setLastError(null)
+        // DONT clear state here immediately so the screen doesn't flicker unnecessarily 
+        // until the response arrives
 
         try {
-            const { data } = await api.post('/attendance/scan', { rfid_uid: rfidInput })
-            if (!data.success) console.error(data.error)
+            const { data } = await api.post('/attendance/scan', { rfid_uid: rfidInput.trim() })
+            if (data.success) {
+                showScanResult(data);
+            } else {
+                setLastError(data.error || 'Server error');
+                showScanInfo({ message: data.error || 'Terjadi kesalahan sistem', type: 'warning' });
+            }
         } catch (err) {
             console.error('Scan error:', err)
+            const errMsg = err.response?.data?.error || err.message || 'Kesalahan Koneksi';
+            setLastError(errMsg);
+            // Fallback display warning immediately
+            showScanInfo({ 
+                student: { nama: 'Peringatan' },
+                message: errMsg,
+                type: 'warning' 
+            });
         } finally {
             setRfidInput('')
+            setIsProcessing(false)
         }
     }
 
@@ -178,8 +221,16 @@ export default function GateMonitor() {
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             transition: 'background 0.5s ease'
         }}>
-            <form onSubmit={handleManualScan} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}>
-                <input ref={inputRef} type="text" value={rfidInput} onChange={e => setRfidInput(e.target.value)} autoFocus />
+            {/* HIDDEN RFID INPUT (Fixed for better focus/browser compatibility) */}
+            <form onSubmit={handleManualScan} style={{ position: 'fixed', top: -100, left: -100 }}>
+                <input 
+                    ref={inputRef} 
+                    type="text" 
+                    value={rfidInput} 
+                    onChange={e => setRfidInput(e.target.value)} 
+                    onBlur={() => setTimeout(() => inputRef.current?.focus(), 100)}
+                    autoFocus 
+                />
             </form>
 
             {/* HEADER */}
@@ -209,21 +260,51 @@ export default function GateMonitor() {
 
             <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                 
+                {/* AUDIO UNLOCK OVERLAY (For browser compatibility) */}
+                {!audioUnlocked && (
+                    <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.95)', zIndex: 10000,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', textAlign: 'center', padding: 20
+                    }}>
+                        <div className="animate-pulse" style={{ width: 150, height: 150, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 30 }}>
+                            <Volume2 size={80} />
+                        </div>
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: 10 }}>AKTIFKAN SUARA</h1>
+                        <p style={{ fontSize: '1.2rem', color: '#94a3b8', maxWidth: 500, marginBottom: 40 }}>
+                            Klik tombol di bawah satu kali untuk mengaktifkan fitur suara otomatis (Text-to-Speech).
+                        </p>
+                        <button 
+                            onClick={unlockAudio}
+                            style={{ 
+                                padding: '20px 60px', borderRadius: 20, background: '#3b82f6', color: '#fff', 
+                                border: 'none', fontSize: '1.5rem', fontWeight: 900, cursor: 'pointer',
+                                boxShadow: '0 10px 30px rgba(59, 130, 246, 0.5)'
+                            }}
+                        >
+                            🚀 MULAI SEKARANG
+                        </button>
+                    </div>
+                )}
                 {/* IDLE SCREEN (with Marquee) */}
                 {!scanData && !scanInfo && (
                     <div className="animate-pulse" style={{ width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ 
-                            width: 250, height: 250, border: '4px dashed rgba(255,255,255,0.15)', 
+                            width: 200, height: 200, border: '4px dashed rgba(255,255,255,0.15)', 
                             borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             margin: '0 auto 40px', background: 'rgba(255,255,255,0.02)'
                         }}>
                             {schoolSettings?.logo_url ? (
                                 <img src={`${API_BASE.replace('/api', '')}${schoolSettings.logo_url}`} alt="Logo" style={{ width: '50%', height: '50%', objectFit: 'contain', opacity: 0.5, filter: 'grayscale(100%) brightness(200%)' }} />
                             ) : (
-                                <School size={100} strokeWidth={1} style={{ opacity: 0.3 }} />
+                                <School size={80} strokeWidth={1} style={{ opacity: 0.3 }} />
                             )}
                         </div>
-                        <h2 style={{ fontSize: '3rem', fontWeight: 300, color: '#94a3b8', margin: 0 }}>Silakan Tempelkan Kartu RFID Anda</h2>
+                        <h2 style={{ fontSize: '2.5rem', fontWeight: 300, color: '#94a3b8', margin: 0 }}>
+                            Silakan Tempelkan Kartu RFID
+                        </h2>
+                        
                         <div style={{ marginTop: 30, display: 'flex', gap: 15, justifyContent: 'center' }}>
                             <span style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: 10, fontSize: '1rem', color: '#64748b', fontWeight: 600 }}>Scanner Ready 🟢</span>
                             <span style={{ padding: '8px 16px', background: 'rgba(59,130,246,0.15)', borderRadius: 10, fontSize: '1rem', color: '#60a5fa', fontWeight: 600 }}>Server Connected ⚡</span>

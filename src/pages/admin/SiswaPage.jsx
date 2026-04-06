@@ -237,7 +237,7 @@ export default function SiswaPage() {
     const [editData, setEditData] = useState(null)
     const [viewData, setViewData] = useState(null)
 
-    const allKelas = units.flatMap(u => u.kelas)
+    const allKelas = (units || []).flatMap(u => u.kelas || [])
 
     const filtered = (students || []).filter(s => {
         if (!s) return false
@@ -247,9 +247,14 @@ export default function SiswaPage() {
         return matchSearch && matchKelas && matchStatus
     })
 
-    const { page, setPage, totalPages, paginated, resetPage, perPage: PER_PAGE } = usePagination(filtered, 10)
+    const [perPage, setPerPage] = useState(10)
+    const { page, setPage, totalPages, paginated, resetPage } = usePagination(filtered, perPage)
+
+    const [isSaving, setIsSaving] = useState(false)
 
     const handleSave = async (data) => {
+        if (isSaving) return;
+        setIsSaving(true);
         let finalKelasId = data.kelasId;
 
         if (data.isNewKelas && data.newKelasNama) {
@@ -270,24 +275,30 @@ export default function SiswaPage() {
                     addToast('success', 'Kelas Dibuat', `Kelas ${data.newKelasNama} berhasil dibuat.`);
                 } else {
                     addToast('danger', 'Gagal', 'Gagal membuat kelas baru.');
+                    setIsSaving(false);
                     return;
                 }
             } catch (err) {
                 console.error("Error creating class:", err);
                 addToast('danger', 'Error', 'Terjadi kesalahan saat membuat kelas.');
+                setIsSaving(false);
                 return;
             }
         }
 
         const studentData = { ...data, kelasId: finalKelasId };
-
+        let success = false;
         if (editData) {
-            updateStudent(editData.id, studentData)
+            success = await updateStudent(editData.id, studentData)
         } else {
-            addStudent(studentData)
+            success = await addStudent(studentData)
         }
-        setShowModal(false)
-        setEditData(null)
+
+        if (success) {
+            setShowModal(false)
+            setEditData(null)
+        }
+        setIsSaving(false)
     }
 
     const handleEdit = (student) => {
@@ -626,7 +637,7 @@ export default function SiswaPage() {
                         {totalPages > 1 && (
                             <div className="d-flex justify-content-between align-items-center p-4 border-top">
                                 <div className="text-muted small fw-bold">
-                                    Menampilkan {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} dari {filtered.length} siswa
+                                    Menampilkan {(page - 1) * perPage + 1}–{Math.min(page * perPage, filtered.length)} dari {filtered.length} siswa
                                 </div>
                                 <div className="d-flex gap-2 align-items-center bg-light p-1" style={{ borderRadius: 14 }}>
                                     <button

@@ -1,0 +1,371 @@
+=== TABLES IN LOCAL BUT NOT IN HOSTING ===
+- cms_partners
+- cms_ppdb_requirements
+- cms_ppdb_steps
+- log_generate
+- nilai_semester
+- nilai_tp
+- rapor_catatan
+- rapor_ekskul
+- tujuan_pembelajaran
+- wali_kelas
+
+=== TABLES IN HOSTING BUT NOT IN LOCAL ===
+
+=== COLUMN DIFFERENCES IN TABLES EXISTING IN BOTH ===
+
+Table: attendance_settings
+  TYPE DIFF: value | Local: text DEFAULT NULL | Host: text NOT NULL
+  MISSING in Hosting: description (text DEFAULT NULL)
+  MISSING in Hosting: updated_at (timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
+
+Table: attendances
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: student_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: jam_masuk | Local: datetime NOT NULL | Host: datetime DEFAULT NULL
+  TYPE DIFF: status | Local: enum('Hadir','Terlambat') DEFAULT 'Hadir' | Host: enum('Hadir','Terlambat','Sakit','Izin','Alpha') DEFAULT 'Hadir'
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: bk_catatan
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: bk_kategori_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: poin | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: user_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: bk_kategori
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: poin | Local: int NOT NULL | Host: int(11) NOT NULL
+
+Table: cashflow
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  MISSING in Hosting: siswa_id (int DEFAULT NULL COMMENT 'Referensi siswa jika cashflow terkait pembayaran siswa')
+  MISSING in Hosting: tahun_ajaran_id (int DEFAULT NULL COMMENT 'Referensi tahun ajaran untuk filter laporan')
+
+Table: cms_agenda
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: is_active | Local: tinyint(1) DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  TYPE DIFF: updated_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+
+Table: cms_banners
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: sort_order | Local: int DEFAULT '0' | Host: int(11) DEFAULT 0
+  TYPE DIFF: is_active | Local: tinyint(1) DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: cms_contacts
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: is_read | Local: tinyint(1) DEFAULT '0' | Host: tinyint(1) DEFAULT 0
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: cms_faq
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  MISSING in Hosting: category (varchar(100) DEFAULT NULL)
+  TYPE DIFF: sort_order | Local: int DEFAULT '0' | Host: int(11) DEFAULT 0
+  TYPE DIFF: is_active | Local: tinyint DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  MISSING in Hosting: created_at (timestamp DEFAULT CURRENT_TIMESTAMP)
+
+Table: cms_gallery
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: title | Local: varchar(255) NOT NULL | Host: varchar(255) DEFAULT NULL
+  TYPE DIFF: image_url | Local: text NOT NULL | Host: varchar(500) NOT NULL
+  TYPE DIFF: category | Local: varchar(100) DEFAULT NULL | Host: varchar(50) DEFAULT NULL
+  MISSING in Hosting: description (text DEFAULT NULL)
+  TYPE DIFF: sort_order | Local: int DEFAULT '0' | Host: int(11) DEFAULT 0
+  TYPE DIFF: is_active | Local: tinyint DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  MISSING in Hosting: created_at (timestamp DEFAULT CURRENT_TIMESTAMP)
+
+Table: cms_identity_logos
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  MISSING in Hosting: label (varchar(100) NOT NULL DEFAULT 'Identitas')
+  MISSING in Hosting: name (varchar(255) NOT NULL)
+  MISSING in Hosting: logo_url (varchar(500) DEFAULT NULL)
+  MISSING in Hosting: color_class (varchar(50) DEFAULT 'yayasan')
+  TYPE DIFF: sort_order | Local: int DEFAULT '0' | Host: int(11) DEFAULT 0
+  TYPE DIFF: is_active | Local: tinyint(1) DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  MISSING in Hosting: created_at (timestamp DEFAULT CURRENT_TIMESTAMP)
+  EXTRA in Hosting: nama (varchar(100) NOT NULL)
+  EXTRA in Hosting: image_url (varchar(500) NOT NULL)
+
+Table: cms_media
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: size | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: uploaded_by | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: cms_pages
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: is_active | Local: tinyint(1) DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  TYPE DIFF: updated_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+
+Table: cms_posts
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: is_pinned | Local: tinyint(1) DEFAULT '0' | Host: tinyint(1) DEFAULT 0
+  TYPE DIFF: author_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: views | Local: int DEFAULT '0' | Host: int(11) DEFAULT 0
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  TYPE DIFF: updated_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+
+Table: cms_programs
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: icon | Local: varchar(10) NOT NULL DEFAULT '📚' | Host: varchar(10) NOT NULL DEFAULT 'book'
+  TYPE DIFF: sort_order | Local: int DEFAULT '0' | Host: int(11) DEFAULT 0
+  TYPE DIFF: is_active | Local: tinyint(1) DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  MISSING in Hosting: slug (varchar(100) DEFAULT NULL)
+  MISSING in Hosting: tagline (varchar(255) DEFAULT NULL)
+  MISSING in Hosting: banner_image (varchar(255) DEFAULT NULL)
+  MISSING in Hosting: color_theme (varchar(50) DEFAULT NULL)
+  MISSING in Hosting: features_json (json DEFAULT NULL)
+  MISSING in Hosting: full_content (text DEFAULT NULL)
+  MISSING in Hosting: milestones_json (json DEFAULT NULL)
+  MISSING in Hosting: showcase_json (json DEFAULT NULL)
+  MISSING in Hosting: alumni_json (json DEFAULT NULL)
+  MISSING in Hosting: stats_json (json DEFAULT NULL)
+  MISSING in Hosting: careers_json (json DEFAULT NULL)
+
+Table: cms_testimonials
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  MISSING in Hosting: name (varchar(255) NOT NULL)
+  MISSING in Hosting: role (varchar(255) DEFAULT NULL)
+  MISSING in Hosting: company (varchar(255) DEFAULT NULL)
+  MISSING in Hosting: photo_url (text DEFAULT NULL)
+  MISSING in Hosting: quote (text NOT NULL)
+  MISSING in Hosting: rating (int DEFAULT '5')
+  TYPE DIFF: sort_order | Local: int DEFAULT '0' | Host: int(11) DEFAULT 0
+  TYPE DIFF: is_active | Local: tinyint DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  MISSING in Hosting: created_at (timestamp DEFAULT CURRENT_TIMESTAMP)
+  EXTRA in Hosting: nama (varchar(100) NOT NULL)
+  EXTRA in Hosting: jabatan (varchar(100) DEFAULT NULL)
+  EXTRA in Hosting: pesan (text NOT NULL)
+  EXTRA in Hosting: foto_url (varchar(500) DEFAULT NULL)
+
+Table: cms_visitor_stats
+  TYPE DIFF: visits | Local: int DEFAULT '0' | Host: int(11) DEFAULT 0
+
+Table: guru
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: user_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+
+Table: harilibur
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+
+Table: infaq_harian
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: user_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  TYPE DIFF: tahun_ajaran_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: nama_siswa | Local: varchar(150) DEFAULT NULL COMMENT 'Snapshot nama siswa saat infaq dicatat' | Host: varchar(150) DEFAULT NULL
+  TYPE DIFF: nis | Local: varchar(20) DEFAULT NULL COMMENT 'Snapshot NIS siswa saat infaq dicatat' | Host: varchar(20) DEFAULT NULL
+
+Table: infaq_settings
+  MISSING in Hosting: key (varchar(50) NOT NULL)
+  MISSING in Hosting: value (text NOT NULL)
+  EXTRA in Hosting: key_name (varchar(50) NOT NULL)
+  EXTRA in Hosting: value_text (text NOT NULL)
+
+Table: jadwal_pelajaran
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: guru_id | Local: int DEFAULT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: kelas_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: mapel_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: jam_pelajaran_id | Local: int NOT NULL | Host: int(11) NOT NULL
+
+Table: jam_pelajaran
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: jam_ke | Local: int NOT NULL | Host: int(11) NOT NULL
+
+Table: jurnal_mengajar
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: guru_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: jadwal_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  MISSING in Hosting: jadwal_id_end (int DEFAULT NULL)
+  TYPE DIFF: kelas_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: mapel_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  MISSING in Hosting: nama_kelas_snapshot (varchar(100) DEFAULT NULL)
+  MISSING in Hosting: nama_mapel_snapshot (varchar(100) DEFAULT NULL)
+  MISSING in Hosting: nama_guru_snapshot (varchar(100) DEFAULT NULL)
+  MISSING in Hosting: jam_ke_snapshot (int DEFAULT NULL)
+  MISSING in Hosting: jam_ke_end_snapshot (int DEFAULT NULL)
+  MISSING in Hosting: jam_mulai_snapshot (time DEFAULT NULL)
+  MISSING in Hosting: jam_selesai_snapshot (time DEFAULT NULL)
+  TYPE DIFF: nama_kelas | Local: varchar(50) DEFAULT NULL COMMENT 'Snapshot nama kelas saat jurnal dibuat' | Host: varchar(50) DEFAULT NULL
+  TYPE DIFF: nama_mapel | Local: varchar(150) DEFAULT NULL COMMENT 'Snapshot nama mata pelajaran saat jurnal dibuat' | Host: varchar(150) DEFAULT NULL
+  TYPE DIFF: nama_guru | Local: varchar(150) DEFAULT NULL COMMENT 'Snapshot nama guru saat jurnal dibuat' | Host: varchar(150) DEFAULT NULL
+
+Table: kategori_tagihan
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+
+Table: kelas
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: unit_id | Local: int NOT NULL | Host: int(11) NOT NULL
+
+Table: lab_inventaris
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: kategori_id | Local: int NOT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: nama | Local: varchar(200) NOT NULL | Host: varchar(255) NOT NULL
+  TYPE DIFF: status | Local: enum('tersedia','dipinjam','maintenance') DEFAULT 'tersedia' | Host: enum('tersedia','dipinjam','maintenance','hilang') DEFAULT 'tersedia'
+  TYPE DIFF: lokasi | Local: varchar(100) DEFAULT NULL | Host: varchar(150) DEFAULT NULL
+  TYPE DIFF: nilai_aset | Local: decimal(12,2) DEFAULT NULL | Host: decimal(15,2) DEFAULT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  TYPE DIFF: max_pinjam_per_siswa | Local: int DEFAULT '1' | Host: int(11) DEFAULT 1
+  TYPE DIFF: durasi_pinjam | Local: int DEFAULT '1' | Host: int(11) DEFAULT 1
+  TYPE DIFF: durasi_tipe | Local: enum('hari','jam_pelajaran','akhir_hari') DEFAULT 'hari' | Host: enum('jam_pelajaran','akhir_hari','hari') DEFAULT 'hari'
+
+Table: lab_kategori
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: icon | Local: varchar(50) DEFAULT '📦' | Host: varchar(50) DEFAULT 'box'
+  MISSING in Hosting: created_at (timestamp DEFAULT CURRENT_TIMESTAMP)
+
+Table: lab_peminjaman
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: inventaris_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: user_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: kondisi_pinjam | Local: enum('baik','rusak_ringan','rusak_berat') DEFAULT 'baik' | Host: varchar(50) DEFAULT NULL
+  TYPE DIFF: kondisi_kembali | Local: enum('baik','rusak_ringan','rusak_berat') DEFAULT NULL | Host: varchar(50) DEFAULT NULL
+  TYPE DIFF: status | Local: enum('dipinjam','dikembalikan','terlambat') DEFAULT 'dipinjam' | Host: enum('dipinjam','dikembalikan','terlambat','hilang') DEFAULT 'dipinjam'
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: lab_settings
+  TYPE DIFF: value | Local: text DEFAULT NULL | Host: text NOT NULL
+
+Table: master_dokumen
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: is_required | Local: tinyint(1) DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+
+Table: mata_pelajaran
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  MISSING in Hosting: guru_id (int DEFAULT NULL)
+  MISSING in Hosting: kelas_id (int DEFAULT NULL)
+
+Table: nilai_siswa
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: mapel_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: tahun_ajaran_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: tugas | Local: decimal(5,2) DEFAULT '0' | Host: decimal(5,2) DEFAULT 0.00
+  TYPE DIFF: uts | Local: decimal(5,2) DEFAULT '0' | Host: decimal(5,2) DEFAULT 0.00
+  TYPE DIFF: uas | Local: decimal(5,2) DEFAULT '0' | Host: decimal(5,2) DEFAULT 0.00
+  TYPE DIFF: akhir | Local: decimal(5,2) DEFAULT '0' | Host: decimal(5,2) DEFAULT 0.00
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: pesan
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: pengirim_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: penerima_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: is_read | Local: tinyint(1) DEFAULT '0' | Host: tinyint(1) DEFAULT 0
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: ppdb_announcements
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: is_active | Local: tinyint(1) DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: ppdb_gelombang
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: kuota | Local: int NOT NULL DEFAULT '50' | Host: int(11) DEFAULT 50
+  TYPE DIFF: biaya_daftar_ulang | Local: decimal(12,2) DEFAULT '1500000' | Host: decimal(12,2) DEFAULT 0.00
+  TYPE DIFF: is_active | Local: tinyint(1) DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: ppdb_registrations
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: jenis_kelamin | Local: enum('L','P') NOT NULL | Host: enum('L','P') NOT NULL DEFAULT 'L'
+  TYPE DIFF: biodata_tambahan | Local: json DEFAULT NULL | Host: longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`biodata_tambahan`))
+  TYPE DIFF: status | Local: enum('draft','pending_verification','wawancara','accepted','rejected') DEFAULT 'draft' | Host: enum('draft','locked','pending_verification','wawancara','accepted','rejected') DEFAULT 'draft'
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  TYPE DIFF: updated_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  EXTRA in Hosting: jurusan_pilihan (varchar(100) DEFAULT NULL)
+  EXTRA in Hosting: gelombang_id (int(11) DEFAULT NULL)
+  EXTRA in Hosting: foto_path (varchar(255) DEFAULT NULL)
+  EXTRA in Hosting: completeness_pct (int(11) DEFAULT 0)
+  EXTRA in Hosting: berkas_json (longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`berkas_json`)))
+  EXTRA in Hosting: siswa_id (int(11) DEFAULT NULL)
+
+Table: presensi_sesi
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: jurnal_id | Local: bigint NOT NULL | Host: bigint(20) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  MISSING in Hosting: nama_siswa (varchar(150) DEFAULT NULL COMMENT 'Snapshot nama siswa saat presensi dicatat')
+  MISSING in Hosting: nis (varchar(20) DEFAULT NULL COMMENT 'Snapshot NIS siswa saat presensi dicatat')
+
+Table: school_settings
+  TYPE DIFF: value | Local: text DEFAULT NULL | Host: text NOT NULL
+
+Table: siswa
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: kelas_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: anak_ke | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: jml_saudara | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  MISSING in Hosting: wali (varchar(150) DEFAULT NULL)
+  TYPE DIFF: rfid_uid | Local: varchar(100) DEFAULT NULL | Host: varchar(50) DEFAULT NULL
+
+Table: siswa_dokumen
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+
+Table: siswa_kelas_history
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: kelas_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: tahun_ajaran_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: siswa_orangtua
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+
+Table: siswa_presensi
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+
+Table: student_menus
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: is_active | Local: tinyint(1) DEFAULT '1' | Host: tinyint(1) DEFAULT 1
+  TYPE DIFF: sort_order | Local: int DEFAULT '0' | Host: int(11) DEFAULT 0
+
+Table: tabungan
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: user_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: created_at | Local: timestamp DEFAULT CURRENT_TIMESTAMP | Host: timestamp NOT NULL DEFAULT current_timestamp()
+  TYPE DIFF: nama_siswa | Local: varchar(150) DEFAULT NULL COMMENT 'Snapshot nama siswa saat transaksi tabungan' | Host: varchar(150) DEFAULT NULL
+
+Table: tagihan
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: kategori_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: tahun_ajaran_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: tahun | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: is_diskon | Local: tinyint(1) DEFAULT '0' | Host: tinyint(1) DEFAULT 0
+  TYPE DIFF: transaksi_id | Local: bigint DEFAULT NULL | Host: bigint(20) DEFAULT NULL
+  MISSING in Hosting: kelas_id (bigint DEFAULT NULL)
+  MISSING in Hosting: log_generate_id (bigint DEFAULT NULL)
+  MISSING in Hosting: nama_kategori (varchar(150) DEFAULT NULL COMMENT 'Snapshot nama kategori tagihan saat tagihan dibuat')
+
+Table: tahun_ajaran
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  MISSING in Hosting: tanggal_mulai (date DEFAULT NULL)
+  MISSING in Hosting: tanggal_selesai (date DEFAULT NULL)
+
+Table: transaksi
+  TYPE DIFF: id | Local: bigint NOT NULL AUTO_INCREMENT | Host: bigint(20) NOT NULL
+  TYPE DIFF: siswa_id | Local: int NOT NULL | Host: int(11) NOT NULL
+  TYPE DIFF: user_id | Local: int DEFAULT NULL | Host: int(11) DEFAULT NULL
+  TYPE DIFF: change_amount | Local: decimal(12,2) DEFAULT '0' | Host: decimal(12,2) DEFAULT 0.00
+
+Table: units
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+
+Table: users
+  TYPE DIFF: id | Local: int NOT NULL AUTO_INCREMENT | Host: int(11) NOT NULL
+  TYPE DIFF: password_hash | Local: varchar(255) DEFAULT NULL | Host: varchar(255) NOT NULL

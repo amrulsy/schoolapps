@@ -49,6 +49,12 @@ class AttendanceController {
             );
 
             if (students.length === 0) {
+                const io = socketService.getIo();
+                io.emit('scan_info', { 
+                    student: { nama: 'Unknown System' },
+                    message: 'Kartu RFID tidak terdaftar atau siswa tidak aktif',
+                    type: 'warning'
+                });
                 return res.status(404).json({ error: 'Siswa tidak ditemukan atau kartu tidak terdaftar' });
             }
 
@@ -102,6 +108,7 @@ class AttendanceController {
                         subMessage: `Jadwal absen masuk dimulai pukul ${entryStartTimeStr}.`,
                         type: 'warning'
                     };
+                    const io = socketService.getIo();
                     io.emit('scan_info', infoData);
                     return res.status(400).json({ error: infoData.message });
                 }
@@ -134,6 +141,7 @@ class AttendanceController {
                         message: 'Absensi hari ini sudah selesai.',
                         type: 'info'
                     };
+                    const io = socketService.getIo();
                     io.emit('scan_info', infoData);
                     return res.status(400).json({ error: infoData.message });
                 }
@@ -248,6 +256,14 @@ class AttendanceController {
 
         } catch (err) {
             console.error('[RFID Scan Error]', err);
+            try {
+                const io = socketService.getIo();
+                io.emit('scan_info', { 
+                    message: 'Kesalahan Sistem',
+                    subMessage: err.message,
+                    type: 'warning'
+                });
+            } catch (ioErr) { /* ignore */ }
             res.status(500).json({ error: 'Terjadi kesalahan pada server' });
         }
     }

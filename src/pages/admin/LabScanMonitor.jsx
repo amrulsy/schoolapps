@@ -16,6 +16,8 @@ export default function LabScanMonitor() {
     const [selectedCategoryId, setSelectedCategoryId] = useState('all')
     const [kioskMode, setKioskMode] = useState('pinjam') // 'pinjam' | 'kembali'
     const [studentLoans, setStudentLoans] = useState(null) // { student, loans }
+    const [isProcessing, setIsProcessing] = useState(false)
+    const [lastError, setLastError] = useState(null)
 
     const inputRef = useRef(null)
     const timerRef = useRef(null)
@@ -37,7 +39,10 @@ export default function LabScanMonitor() {
     // Socket.io
     useEffect(() => {
         const socketOrigin = API_BASE.replace('/api', '')
-        const socket = io(socketOrigin)
+        const socket = io(socketOrigin, {
+            path: '/api/socket.io',
+            transports: ['polling']
+        })
 
         socket.on('connect', () => console.log('[Lab Socket] Connected'))
         socket.on('lab_scan_success', (data) => showScanResult(data))
@@ -183,12 +188,30 @@ export default function LabScanMonitor() {
         e.preventDefault()
         const input = rfidInput.trim();
         setRfidInput('')
-        if (!input) return
+        if (!input || isProcessing) return
 
+        setIsProcessing(true)
+        setLastError(null)
 
         if (kioskMode === 'pinjam') {
-            if (!selectedItem) return
-            api.post('/lab/scan', { rfid_uid: input, inventaris_id: selectedItem.id }).catch(console.error)
+            if (!selectedItem) {
+                setIsProcessing(false)
+                return
+            }
+            try {
+                const { data } = await api.post('/lab/scan', { rfid_uid: input, inventaris_id: selectedItem.id })
+                if (data.success) {
+                    showScanResult(data);
+                } else {
+                    showScanInfo({ message: data.error || 'Terjadi kesalahan sistem' });
+                }
+            } catch (err) {
+                const errMsg = err.response?.data?.error || err.message || 'Kesalahan Koneksi';
+                setLastError(errMsg)
+                showScanInfo({ message: errMsg })
+            } finally {
+                setIsProcessing(false)
+            }
         } else {
             if (!studentLoans) {
                 try {
@@ -200,16 +223,30 @@ export default function LabScanMonitor() {
                         setActiveRfid(input)
                     }
                 } catch (err) {
-                    showScanInfo({ message: err.response?.data?.error || 'Kesalahan sistem' })
+                    const errMsg = err.response?.data?.error || 'Kesalahan sistem';
+                    showScanInfo({ message: errMsg })
+                    setLastError(errMsg)
+                } finally {
+                    setIsProcessing(false)
                 }
+            } else {
+                setIsProcessing(false)
             }
         }
     }
 
     const executeReturn = async (invId) => {
         try {
-            await api.post('/lab/scan', { rfid_uid: activeRfid, inventaris_id: invId })
-        } catch (err) { console.error(err) }
+            const { data } = await api.post('/lab/scan', { rfid_uid: activeRfid, inventaris_id: invId })
+            if (data.success) {
+                showScanResult(data);
+            } else {
+                showScanInfo({ message: data.error || 'Gagal mengembalikan barang' });
+            }
+        } catch (err) { 
+            console.error(err);
+            showScanInfo({ message: err.response?.data?.error || err.message || 'Kesalahan Koneksi' });
+        }
     }
 
     const availableItems = inventaris.filter(i => {
@@ -395,7 +432,10 @@ export default function LabScanMonitor() {
                         }}>
                             <Package size={80} strokeWidth={1} style={{ opacity: 0.5 }} />
                         </div>
-                        <h2 style={{ fontSize: '2.5rem', fontWeight: 300, color: '#e2e8f0', margin: '0 0 8px' }}>Tempelkan Kartu RFID</h2>
+                        <h2 style={{ fontSize: '2.5rem', fontWeight: 300, color: '#e2e8f0', margin: '0 0 8px' }}>
+                            {isProcessing ? 'Sedang Memproses...' : 'Tempelkan Kartu RFID'}
+                        </h2>
+
                         <div style={{
                             background: 'rgba(255,255,255,0.1)', borderRadius: 20, padding: '16px 32px',
                             display: 'inline-block', margin: '16px 0 24px'
@@ -413,6 +453,7 @@ export default function LabScanMonitor() {
                         </div>
                         <div style={{ marginTop: 20, display: 'flex', gap: 12, justifyContent: 'center' }}>
                             <span style={{ padding: '6px 14px', background: 'rgba(255,255,255,0.05)', borderRadius: 10, fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Scanner Ready 🟢</span>
+                            {isProcessing && <span style={{ padding: '6px 14px', background: 'rgba(245,158,11,0.2)', borderRadius: 10, fontSize: '0.85rem', color: '#f59e0b', fontWeight: 600 }}>Processing... ⏳</span>}
                         </div>
                     </div>
                 )}

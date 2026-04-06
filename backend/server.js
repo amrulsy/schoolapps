@@ -71,6 +71,9 @@ app.use(cors({ origin: true, credentials: true }));
 // Request Logger
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    if (['POST', 'PUT'].includes(req.method)) {
+        console.log('Body:', JSON.stringify(req.body));
+    }
     next();
 });
 
@@ -552,7 +555,13 @@ app.get('/api/siswa/:id', async (req, res) => {
         `, [nisnVal, nisVal, nama, jk, status || 'aktif', tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null]);
 
         res.status(201).json({ id: result.insertId });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { 
+        console.error('[POST /api/siswa] Error:', err);
+        let errorMsg = 'Gagal menambah siswa: ' + err.message;
+        if (err.code === 'ER_DUP_ENTRY') errorMsg = 'Gagal: NIS atau NISN sudah terdaftar di siswa lain.';
+        if (err.code === 'ER_BAD_FIELD_ERROR') errorMsg = 'Gagal: Struktur database tidak sesuai. Silakan jalankan script migrasi terbaru.';
+        res.status(500).json({ error: errorMsg }); 
+    }
 });
 
 
@@ -625,7 +634,13 @@ app.put('/api/siswa/:id', async (req, res) => {
         if (wali_detail) await updateParent('wali', wali_detail);
 
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { 
+        console.error('[PUT /api/siswa/:id] Error:', err);
+        let errorMsg = 'Gagal memperbarui siswa: ' + err.message;
+        if (err.code === 'ER_DUP_ENTRY') errorMsg = 'Gagal: NIS atau NISN sudah digunakan siswa lain.';
+        if (err.code === 'ER_BAD_FIELD_ERROR') errorMsg = 'Gagal: Struktur database tidak sesuai (mungkin kolom hubungan/alamat/semester_aktif belum ada).';
+        res.status(500).json({ error: errorMsg }); 
+    }
 });
 
 
