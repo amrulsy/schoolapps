@@ -3,14 +3,9 @@ import { Helmet } from 'react-helmet-async'
 import { Search, MapPin, School, Calendar, Download, Loader2 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import html2canvas from 'html2canvas'
-import { API_BASE_PUBLIC } from '../../services/api'
+import { API_BASE_PUBLIC, getMediaUrl } from '../../services/api'
 
-const getMediaUrl = (p) => {
-    if (!p) return ''
-    if (p.startsWith('http')) return p
-    const origin = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3005`
-    return `${origin}${p}`
-}
+
 
 export default function PortalPPDBTracker() {
     const [regNumber, setRegNumber] = useState('')

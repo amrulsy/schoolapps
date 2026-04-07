@@ -11,6 +11,7 @@ export const API_BASE_PUBLIC = `${origin}/api/public`
 export const getMediaUrl = (path) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
+    if (path.startsWith('/uploads/')) return `${origin}/api${path}`;
     return `${origin}${path}`;
 }
 

@@ -3,13 +3,13 @@ import { Helmet } from "react-helmet-async";
 import { 
   User, FileText, CheckCircle, Save, LogOut, UploadCloud, AlertCircle, 
   MapPin, Users, Camera, ChevronRight, ChevronLeft, Home, Bell, Menu, X, 
-  CheckCircle2, Loader2, Download, ExternalLink, Printer, Sparkles, FileCheck, ShieldCheck
+  CheckCircle2, Loader2, Download, ExternalLink, Printer, Sparkles, FileCheck, ShieldCheck, Eye
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { QRCodeSVG } from "qrcode.react";
-import { API_BASE_PUBLIC } from "../../services/api";
+import { API_BASE_PUBLIC, getMediaUrl } from "../../services/api";
 
 // Custom SVG Icons (Hoisted)
 function GraduationCap({ size }) {
@@ -29,12 +29,7 @@ function MessageCircle({ size }) {
 }
 
 // Helper: Get full media URL
-const getMediaUrl = (p) => {
-  if (!p) return "";
-  if (p.startsWith("http")) return p;
-  const origin = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3005`;
-  return `${origin}${p}`;
-};
+
 
 export default function PortalPPDBDashboard() {
   const [loading, setLoading] = useState(true);

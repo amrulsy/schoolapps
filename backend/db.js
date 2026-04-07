@@ -11,6 +11,7 @@ const pool = mysql.createPool({
     user: process.env.DB_USER || process.env.TIDB_USER,
     password: process.env.DB_PASSWORD || process.env.TIDB_PASSWORD,
     database: process.env.DB_DATABASE || process.env.TIDB_DATABASE,
+    charset: 'utf8mb4',
     ssl: (process.env.DB_SSL === 'true' || process.env.TIDB_HOST) ? {
         minVersion: 'TLSv1.2',
         rejectUnauthorized: false
