@@ -277,8 +277,8 @@ export default function AttendanceRecap() {
     const handleExportExcel = async () => {
         if (data.length === 0) return showError('Perhatian', 'Tidak ada data untuk diekspor');
         
-        // Calculate uiDateColumns here just for the Excel file logic parity, though the excel exports all days.
         const dateColumns = generateDateRange(appliedRange.start, appliedRange.end);
+        let periodeText = '';
         if (filterMode === 'semester') periodeText = `Semester ${selectedSemester} ${selectedTA}`;
         else if (filterMode === 'bulan') periodeText = `Bulan ${selectedBulan}`;
         else periodeText = `Tgl ${customStart} sd ${customEnd}`;
@@ -346,7 +346,6 @@ export default function AttendanceRecap() {
             // ==========================================
             // SHEET 2: DETAIL HARIAN (MATRIKS)
             // ==========================================
-            const dateColumns = generateDateRange(appliedRange.start, appliedRange.end);
             const ws2 = workbook.addWorksheet('Detail Harian', { views: [{ state: 'frozen', xSplit: 3, ySplit: 3 }] });
 
             // Title
@@ -418,10 +417,13 @@ export default function AttendanceRecap() {
                         else if (val === 'A') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } }; cell.font = { color: { argb: 'FFDC2626' }, bold: true }; }
                         else if (isSunday) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } }; } // Light Gray for Empty Sundays
                         
-                        // Set comment Note for timing
+                        // Set comment Note for timing (R-17: show masuk + pulang)
                         const rawStatusObj = s.details && s.details[dateStr];
-                        if (rawStatusObj && rawStatusObj.jam && rawStatusObj.jam !== '-') {
-                            cell.note = `Waktu: ${rawStatusObj.jam}`;
+                        if (rawStatusObj) {
+                            let noteLines = [];
+                            if (rawStatusObj.jam && rawStatusObj.jam !== '-') noteLines.push(`Masuk: ${rawStatusObj.jam}`);
+                            if (rawStatusObj.jam_pulang && rawStatusObj.jam_pulang !== '-') noteLines.push(`Pulang: ${rawStatusObj.jam_pulang}`);
+                            if (noteLines.length > 0) cell.note = noteLines.join('\n');
                         }
                     }
                 });

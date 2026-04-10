@@ -89,7 +89,7 @@ export default function RfidEnrollment({ hideHeader = false }) {
                                 onChange={e => setFilterKelas(e.target.value)}
                             >
                                 <option value="">Semua Kelas</option>
-                                {allKelas.map(k => <option key={k.id} value={k.name}>{k.nama}</option>)}
+                                {allKelas.map(k => <option key={k.id} value={k.nama}>{k.nama}</option>)}
                             </select>
                         </div>
                     </div>

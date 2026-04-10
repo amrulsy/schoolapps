@@ -30,6 +30,7 @@ const adminSchoolSettingsRoutes = require('./routes/admin/schoolSettings');
 const AttendanceController = require('./controllers/AttendanceController');
 const adminLabRoutes = require('./routes/admin/lab');
 const InventoryController = require('./controllers/InventoryController');
+const AttendanceCronService = require('./services/attendanceCron');
 
 // Middleware
 const { authMiddleware } = require('./middleware/auth');
@@ -200,4 +201,7 @@ server.listen(PORT, () => {
     waService.initialize().catch(err => {
         console.error('[WA Service] Gagal inisialisasi:', err.message);
     });
+
+    // Inisialisasi Attendance Cron Service
+    AttendanceCronService.init();
 });

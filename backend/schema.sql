@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS `attendances` (
   `status` enum('Hadir','Terlambat') DEFAULT 'Hadir',
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
+  UNIQUE KEY `uq_student_date` (`student_id`, `tanggal`),
   KEY `tanggal` (`tanggal`),
   KEY `student_id` (`student_id`),
   CONSTRAINT `fk_1` FOREIGN KEY (`student_id`) REFERENCES `siswa` (`id`)
@@ -874,12 +875,29 @@ CREATE TABLE IF NOT EXISTS `siswa_presensi` (
   `siswa_id` int NOT NULL,
   `tanggal` date NOT NULL,
   `status` enum('hadir','sakit','izin','alpha') NOT NULL,
+  `jam_masuk` datetime DEFAULT NULL,
+  `jam_pulang` datetime DEFAULT NULL,
   `keterangan` text DEFAULT NULL,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
   UNIQUE KEY `siswa_id` (`siswa_id`,`tanggal`),
   CONSTRAINT `fk_1` FOREIGN KEY (`siswa_id`) REFERENCES `siswa` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ;
+
+-- Table structure for table `wa_notification_log`
+DROP TABLE IF EXISTS `wa_notification_log`;
+CREATE TABLE IF NOT EXISTS `wa_notification_log` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `siswa_id` int NOT NULL,
+  `phone` varchar(20) NOT NULL,
+  `message_type` varchar(50) DEFAULT NULL COMMENT 'masuk, terlambat, pulang, alpha, sakit, izin',
+  `status` enum('sent','failed','pending') DEFAULT 'pending',
+  `error_message` text DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
+  KEY `idx_wa_log_siswa` (`siswa_id`),
+  KEY `idx_wa_log_date` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- Table structure for table `student_menus`
 DROP TABLE IF EXISTS `student_menus`;

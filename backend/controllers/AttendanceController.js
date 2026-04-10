@@ -2,6 +2,25 @@ const pool = require('../db');
 const socketService = require('../services/socket');
 const waService = require('../services/whatsappService');
 
+// R-3: In-memory cooldown map for RFID rate limiting (10 seconds per UID)
+const rfidCooldown = new Map();
+const COOLDOWN_MS = 10000;
+
+// R-14: Periodic cleanup of expired cooldown entries (every 5 minutes)
+setInterval(() => {
+    const now = Date.now();
+    for (const [uid, timestamp] of rfidCooldown) {
+        if (now - timestamp > COOLDOWN_MS) rfidCooldown.delete(uid);
+    }
+}, 5 * 60 * 1000);
+
+// R-6: Whitelist of allowed setting keys
+const ALLOWED_SETTING_KEYS = [
+    'entry_start_time', 'late_threshold_time', 'exit_min_gap_minutes',
+    'exit_start_time', 'exit_rule_type', 'wa_notification_enabled',
+    'wa_template_masuk', 'wa_template_terlambat', 'wa_template_pulang'
+];
+
 class AttendanceController {
     /**
      * Mendaftarkan RFID UID ke siswa
@@ -32,6 +51,11 @@ class AttendanceController {
     /**
      * Scan RFID untuk Presensi (Masuk/Pulang)
      * POST /api/attendance/scan
+     * 
+     * R-1: Unified flow — writes to both `attendances` and `siswa_presensi` consistently
+     * R-2: Holiday validation
+     * R-3: Rate limiting per RFID UID
+     * R-5: WA notification logging
      */
     static async scanRfid(req, res) {
         const { rfid_uid } = req.body;
@@ -41,6 +65,13 @@ class AttendanceController {
             return res.status(400).json({ error: 'RFID UID wajib diisi' });
         }
 
+        // R-3: Rate limiting — cooldown per RFID UID
+        const lastScan = rfidCooldown.get(rfid_uid);
+        if (lastScan && (Date.now() - lastScan) < COOLDOWN_MS) {
+            return res.status(429).json({ error: 'Mohon tunggu beberapa detik sebelum scan ulang.' });
+        }
+        rfidCooldown.set(rfid_uid, Date.now());
+
         try {
             // 1. Cari siswa berdasarkan RFID UID
             const [students] = await pool.query(
@@ -49,9 +80,8 @@ class AttendanceController {
             );
 
             if (students.length === 0) {
-                const io = socketService.getIo();
                 io.emit('scan_info', { 
-                    student: { nama: 'Unknown System' },
+                    student: { nama: 'Tidak Dikenali' },
                     message: 'Kartu RFID tidak terdaftar atau siswa tidak aktif',
                     type: 'warning'
                 });
@@ -72,21 +102,36 @@ class AttendanceController {
             parts.forEach(part => p[part.type] = part.value);
 
             const today = `${p.year}-${p.month}-${p.day}`; // YYYY-MM-DD (WIB)
-            const h = p.hour === '24' ? '00' : p.hour;
-            const nowTime = `${h}:${p.minute}:${p.second}`; // HH:MM:SS (WIB)
+            const hr = p.hour === '24' ? '00' : p.hour;
+            const nowTime = `${hr}:${p.minute}:${p.second}`; // HH:MM:SS (WIB)
             const nowDateTime = `${today} ${nowTime}`; // YYYY-MM-DD HH:MM:SS
             
             // Epoch WIB murni untuk komputasi komparasi
             const now = new Date(`${today}T${nowTime}+07:00`);
+
+            // R-2: Validasi Hari Libur
+            const [holidays] = await pool.query(
+                'SELECT id, keterangan FROM harilibur WHERE tanggal = ?', [today]
+            );
+            if (holidays.length > 0) {
+                const infoData = {
+                    student: { nama: student.nama, kelas: student.kelas_nama, nisn: student.nisn },
+                    message: 'Hari ini libur.',
+                    subMessage: holidays[0].keterangan || 'Tidak ada kegiatan belajar hari ini.',
+                    type: 'warning'
+                };
+                io.emit('scan_info', infoData);
+                return res.status(400).json({ error: infoData.message });
+            }
+
             // 0. Ambil Pengaturan dari Database
             const [settingsRows] = await pool.query('SELECT * FROM attendance_settings');
             const settings = {};
             settingsRows.forEach(r => { settings[r.key] = r.value });
 
             const lateThreshold = settings['late_threshold_time'] || '07:30';
-            const exitGap = parseInt(settings['exit_min_gap_minutes'] || '60');
 
-            // 2. Cek apakah sudah ada presensi detail hari ini
+            // 2. Cek apakah sudah ada presensi detail hari ini (tabel attendances)
             const [existing] = await pool.query(
                 'SELECT * FROM attendances WHERE student_id = ? AND tanggal = ?',
                 [student.id, today]
@@ -94,6 +139,7 @@ class AttendanceController {
 
             let status_tap = '';
             let current_status = ''; // diangkat untuk keperluan Notifikasi WA
+            let waMessageType = ''; // R-5: for WA logging
 
             if (existing.length === 0) {
                 // --- VALIDASI JAM MULAI ABSEN ---
@@ -108,15 +154,14 @@ class AttendanceController {
                         subMessage: `Jadwal absen masuk dimulai pukul ${entryStartTimeStr}.`,
                         type: 'warning'
                     };
-                    const io = socketService.getIo();
                     io.emit('scan_info', infoData);
                     return res.status(400).json({ error: infoData.message });
                 }
 
                 // --- KONDISI MASUK ---
                 // Tentukan status (Hadir/Terlambat) - Gunakan threshold dari settings
-                const [h, m] = lateThreshold.split(':');
-                const limitMasuk = new Date(`${today}T${h}:${m}:00+07:00`);
+                const [ltH, ltM] = lateThreshold.split(':');
+                const limitMasuk = new Date(`${today}T${ltH}:${ltM}:00+07:00`);
                 current_status = now > limitMasuk ? 'Terlambat' : 'Hadir';
 
                 await pool.query(
@@ -124,13 +169,17 @@ class AttendanceController {
                     [student.id, today, nowDateTime, current_status]
                 );
 
-                // SYNC: Update/Insert ke siswa_presensi (tabel lama)
+                // R-1: SYNC to siswa_presensi with correct status + jam_masuk
+                const presensiStatus = current_status === 'Terlambat' ? 'hadir' : 'hadir';
                 await pool.query(
-                    'INSERT INTO siswa_presensi (siswa_id, tanggal, status) VALUES (?, ?, "hadir") ON DUPLICATE KEY UPDATE status = "hadir"',
-                    [student.id, today]
+                    `INSERT INTO siswa_presensi (siswa_id, tanggal, status, jam_masuk) 
+                     VALUES (?, ?, ?, ?) 
+                     ON DUPLICATE KEY UPDATE status = VALUES(status), jam_masuk = VALUES(jam_masuk)`,
+                    [student.id, today, presensiStatus, nowDateTime]
                 );
 
                 status_tap = 'masuk';
+                waMessageType = current_status === 'Terlambat' ? 'terlambat' : 'masuk';
             } else {
                 // --- KONDISI PULANG ---
                 const record = existing[0];
@@ -141,7 +190,6 @@ class AttendanceController {
                         message: 'Absensi hari ini sudah selesai.',
                         type: 'info'
                     };
-                    const io = socketService.getIo();
                     io.emit('scan_info', infoData);
                     return res.status(400).json({ error: infoData.message });
                 }
@@ -197,7 +245,14 @@ class AttendanceController {
                     [nowDateTime, record.id]
                 );
 
+                // R-1: SYNC jam_pulang to siswa_presensi
+                await pool.query(
+                    'UPDATE siswa_presensi SET jam_pulang = ? WHERE siswa_id = ? AND tanggal = ?',
+                    [nowDateTime, student.id, today]
+                );
+
                 status_tap = 'pulang';
+                waMessageType = 'pulang';
             }
 
             // Ambil Foto Siswa, jika ada
@@ -224,7 +279,11 @@ class AttendanceController {
 
             io.emit('scan_success', responseData);
 
+            // R-21: Broadcast real-time stats update
+            AttendanceController.broadcastStatsUpdate(io);
+
             // --- KIRIM WA OTOMATIS (Jika diaktifkan) ---
+            // R-5: With notification logging
             if (settings.wa_notification_enabled === 'true') {
                 let template = '';
                 if (status_tap === 'masuk') {
@@ -247,7 +306,21 @@ class AttendanceController {
                     const uniquePhones = [...new Set(phoneTargets)];
                     
                     for (const phone of uniquePhones) {
-                        waService.sendMessage(phone, waMessage).catch(err => console.error('[Presensi WA] Gagal kirim notifikasi:', err.message));
+                        try {
+                            await waService.sendMessage(phone, waMessage);
+                            // R-5: Log success
+                            await pool.query(
+                                'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status) VALUES (?, ?, ?, ?)',
+                                [student.id, phone, waMessageType, 'sent']
+                            ).catch(() => {}); // Don't fail main flow for logging
+                        } catch (waErr) {
+                            console.error('[Presensi WA] Gagal kirim notifikasi:', waErr.message);
+                            // R-5: Log failure
+                            await pool.query(
+                                'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status, error_message) VALUES (?, ?, ?, ?, ?)',
+                                [student.id, phone, waMessageType, 'failed', waErr.message]
+                            ).catch(() => {}); // Don't fail main flow for logging
+                        }
                     }
                 }
             }
@@ -257,8 +330,9 @@ class AttendanceController {
         } catch (err) {
             console.error('[RFID Scan Error]', err);
             try {
-                const io = socketService.getIo();
-                io.emit('scan_info', { 
+                const ioFallback = socketService.getIo();
+                ioFallback.emit('scan_info', { 
+                    student: { nama: 'Sistem' },
                     message: 'Kesalahan Sistem',
                     subMessage: err.message,
                     type: 'warning'
@@ -286,11 +360,16 @@ class AttendanceController {
     /**
      * Update Attendance Settings
      * POST /api/attendance/settings
+     * R-6: Validates that only whitelisted keys are accepted
      */
     static async updateSettings(req, res) {
         const settings = req.body;
         try {
             for (const key in settings) {
+                // R-6: Reject unknown keys
+                if (!ALLOWED_SETTING_KEYS.includes(key)) {
+                    continue; // silently skip unknown keys
+                }
                 await pool.query(
                     'INSERT INTO attendance_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
                     [key, settings[key].toString()]
@@ -299,6 +378,42 @@ class AttendanceController {
             res.json({ success: true, message: 'Pengaturan berhasil diperbarui' });
         } catch (err) {
             res.status(500).json({ error: err.message });
+        }
+    }
+    /**
+     * R-21: Helper to broadcast real-time attendance stats
+     */
+    static async broadcastStatsUpdate(io) {
+        try {
+            // Get today in WIB
+            const rawNow = new Date();
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
+            });
+            const parts = formatter.formatToParts(rawNow);
+            const p = {};
+            parts.forEach(part => p[part.type] = part.value);
+            const today = `${p.year}-${p.month}-${p.day}`;
+
+            const [presensiStats] = await pool.query(`
+                SELECT 
+                    SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN status = 'alpha' THEN 1 ELSE 0 END) as alpha
+                FROM siswa_presensi WHERE tanggal = ?
+            `, [today]);
+
+            const stats = presensiStats[0] || {};
+            io.emit('attendance_stats_update', {
+                hadir: parseInt(stats.hadir) || 0,
+                sakit: parseInt(stats.sakit) || 0,
+                izin: parseInt(stats.izin) || 0,
+                alpha: parseInt(stats.alpha) || 0
+            });
+        } catch (err) {
+            console.error('[BroadcastStats] Error:', err.message);
         }
     }
 }

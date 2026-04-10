@@ -156,7 +156,8 @@ router.get('/attendance', async (req, res) => {
 
         const attMap = {};
         attendance.forEach(a => {
-            if (!attMap[a.siswa_id]) attMap[a.siswa_id] = { sakit: 0, izin: 0, alpha: 0 };
+            if (!attMap[a.siswa_id]) attMap[a.siswa_id] = { hadir: 0, sakit: 0, izin: 0, alpha: 0 };
+            if (a.status === 'hadir') attMap[a.siswa_id].hadir = a.cnt;
             if (a.status === 'sakit') attMap[a.siswa_id].sakit = a.cnt;
             if (a.status === 'izin') attMap[a.siswa_id].izin = a.cnt;
             if (a.status === 'alpha') attMap[a.siswa_id].alpha = a.cnt;
@@ -165,6 +166,7 @@ router.get('/attendance', async (req, res) => {
         const result = students.map(s => ({
             siswa_id: s.id,
             nama: s.nama,
+            hadir: attMap[s.id]?.hadir || 0,
             sakit: attMap[s.id]?.sakit || 0,
             izin: attMap[s.id]?.izin || 0,
             alpha: attMap[s.id]?.alpha || 0
@@ -436,8 +438,11 @@ router.get('/rapor-batch', async (req, res) => {
 
         const attMap = {};
         attAll.forEach(a => {
-            if (!attMap[a.siswa_id]) attMap[a.siswa_id] = { sakit: 0, izin: 0, alpha: 0 };
-            attMap[a.siswa_id][a.status === 'sakit' ? 'sakit' : a.status === 'izin' ? 'izin' : 'alpha'] = a.cnt;
+            if (!attMap[a.siswa_id]) attMap[a.siswa_id] = { hadir: 0, sakit: 0, izin: 0, alpha: 0 };
+            if (a.status === 'hadir') attMap[a.siswa_id].hadir = a.cnt;
+            else if (a.status === 'sakit') attMap[a.siswa_id].sakit = a.cnt;
+            else if (a.status === 'izin') attMap[a.siswa_id].izin = a.cnt;
+            else if (a.status === 'alpha') attMap[a.siswa_id].alpha = a.cnt;
         });
 
         const catMap = {};
@@ -455,7 +460,7 @@ router.get('/rapor-batch', async (req, res) => {
             tahunAjaran: ta,
             semester,
             nilaiMapel: nilaiMap[s.id] || [],
-            attendance: attMap[s.id] || { sakit: 0, izin: 0, alpha: 0 },
+            attendance: attMap[s.id] || { hadir: 0, sakit: 0, izin: 0, alpha: 0 },
             catatan: catMap[s.id] || '',
             ekskul: eksMap[s.id] || [],
             waliKelas

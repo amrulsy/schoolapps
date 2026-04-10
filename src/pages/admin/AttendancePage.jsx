@@ -12,6 +12,7 @@ import { getAuthHeaders } from '../../services/api'
 import RfidEnrollment from './RfidEnrollment'
 import AttendanceSettings from './AttendanceSettings'
 import AttendanceRecap from './AttendanceRecap'
+import Swal from 'sweetalert2'
 // --- STYLES ---
 const styles = /*css*/`
   .attendance-header {
@@ -327,6 +328,25 @@ export default function AttendancePage() {
 
     const handleSave = async () => {
         if (!selectedDate || !selectedKelasId) return
+
+        // R-8: Confirmation dialog before save
+        const kelasNama = allDetailKelas.find(k => k.id.toString() === selectedKelasId)?.nama || 'Kelas'
+        const result = await Swal.fire({
+            title: 'Simpan Presensi?',
+            html: `<div style="text-align:left">
+                <p><strong>Kelas:</strong> ${kelasNama}</p>
+                <p><strong>Tanggal:</strong> ${selectedDate}</p>
+                <p><strong>Total Siswa:</strong> ${students.length}</p>
+                ${sendWA ? '<p style="color:#25D366">✅ WA akan dikirim ke orang tua siswa <b>tidak hadir</b> (sakit/izin/alpha)</p>' : ''}
+            </div>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Simpan',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#2563eb'
+        })
+        if (!result.isConfirmed) return
+
         setSaving(true)
         try {
             const res = await fetch(`${API_BASE}/admin/presensi/bulk`, {
@@ -417,7 +437,7 @@ export default function AttendancePage() {
                         >
                             <MessageCircle size={18} style={{ color: sendWA ? '#25D366' : 'var(--text-muted)' }} />
                             <span style={{ fontWeight: 700, fontSize: '0.8rem', color: sendWA ? '#25D366' : 'var(--text-secondary)' }}>
-                                Kirim WA
+                                WA Tidak Hadir
                             </span>
                             <div style={{
                                 width: 36, height: 20, borderRadius: 10,

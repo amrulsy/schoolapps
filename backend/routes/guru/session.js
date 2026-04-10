@@ -2,11 +2,20 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../db');
 
-// Helper to get current time in WIB (UTC+7) regardless of server timezone
+// R-12: Consistent WIB helper using Intl.DateTimeFormat (same approach as AttendanceController)
 const getWIB = () => {
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    return new Date(utc + (3600000 * 7));
+    const rawNow = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+    const parts = formatter.formatToParts(rawNow);
+    const p = {};
+    parts.forEach(part => p[part.type] = part.value);
+    const h = p.hour === '24' ? '00' : p.hour;
+    // Return a Date object in WIB
+    return new Date(`${p.year}-${p.month}-${p.day}T${h}:${p.minute}:${p.second}+07:00`);
 };
 
 // Middleware to get guru_id from user_id

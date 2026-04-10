@@ -38,11 +38,18 @@ export default function GateMonitor() {
         return () => socket.disconnect()
     }, [])
 
-    // Clock
+    // Clock — R-9: Explicitly use WIB (Asia/Jakarta) timezone
     useEffect(() => {
         const interval = setInterval(() => setCurrentTime(new Date()), 1000)
         return () => clearInterval(interval)
     }, [])
+
+    const formatWIBTime = (date) => {
+        return date.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    }
+    const formatWIBDate = (date) => {
+        return date.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    }
 
     // Auto-focus input
     useEffect(() => {
@@ -250,10 +257,10 @@ export default function GateMonitor() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '2.2rem', fontWeight: 800, fontFamily: 'monospace', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-                        {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        {formatWIBTime(currentTime)}
                     </div>
                     <div style={{ fontSize: '1rem', color: '#cbd5e1', fontWeight: 500 }}>
-                        {currentTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                        {formatWIBDate(currentTime)}
                     </div>
                 </div>
             </header>
@@ -325,7 +332,7 @@ export default function GateMonitor() {
                         }}>
                             <AlertTriangle size={64} />
                         </div>
-                        <h2 style={{ fontSize: '1.5rem', color: '#64748b', margin: 0 }}>{scanInfo.student.nama}</h2>
+                        <h2 style={{ fontSize: '1.5rem', color: '#64748b', margin: 0 }}>{scanInfo.student?.nama || 'Peringatan'}</h2>
                         <h1 style={{ fontSize: '3rem', fontWeight: 900, margin: '15px 0' }}>{scanInfo.message}</h1>
                         {scanInfo.subMessage && (
                             <p style={{ fontSize: '1.4rem', color: '#b45309', fontWeight: 700 }}>{scanInfo.subMessage}</p>

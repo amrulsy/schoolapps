@@ -4,6 +4,7 @@ const pool = require('../../db');
 const jwt = require('jsonwebtoken');
 const { studentAuthMiddleware } = require('../../middleware/studentAuth');
 const InventoryController = require('../../controllers/InventoryController');
+const AttendanceStreakService = require('../../services/attendanceStreakService');
 
 // --- STUDENT PORTAL API ROUTES ---
 router.get('/menus', async (req, res) => {
@@ -21,7 +22,14 @@ router.get('/attendance/summary', studentAuthMiddleware, async (req, res) => {
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
         const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
         const [rows] = await pool.query(`SELECT COUNT(*) as presentCount FROM siswa_presensi WHERE siswa_id = ? AND status = 'hadir' AND tanggal BETWEEN ? AND ?`, [studentId, firstDayOfMonth, lastDayOfMonth]);
-        res.json({ presentCount: rows[0].presentCount });
+        
+        // R-19: Calculate current streak
+        const currentStreak = await AttendanceStreakService.calculateStreak(studentId);
+
+        res.json({ 
+            presentCount: rows[0].presentCount,
+            streak: currentStreak
+        });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -36,15 +44,15 @@ router.get('/tabungan', studentAuthMiddleware, async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// R-11: Simplified — read jam_masuk/jam_pulang directly from siswa_presensi (unified table)
 router.get('/attendance', studentAuthMiddleware, async (req, res) => {
     try {
         const studentId = req.studentId;
         const [rows] = await pool.query(`
-            SELECT sp.id, sp.tanggal as date, sp.status, sp.keterangan, a.jam_masuk, a.jam_pulang 
-            FROM siswa_presensi sp
-            LEFT JOIN attendances a ON sp.siswa_id = a.student_id AND sp.tanggal = a.tanggal
-            WHERE sp.siswa_id = ? 
-            ORDER BY sp.tanggal DESC LIMIT 50
+            SELECT id, tanggal as date, status, keterangan, jam_masuk, jam_pulang
+            FROM siswa_presensi
+            WHERE siswa_id = ? 
+            ORDER BY tanggal DESC LIMIT 50
         `, [studentId]);
         res.json(rows);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -109,6 +117,5 @@ function getGrade(score) {
     if (score >= 60) return 'D';
     return 'E';
 }
-
 
 module.exports = router;
