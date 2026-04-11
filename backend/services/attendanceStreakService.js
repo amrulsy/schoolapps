@@ -7,31 +7,28 @@ const pool = require('../db');
 class AttendanceStreakService {
     /**
      * Calculate and cache current streak for a student
-     * A streak is consecutive days with status 'hadir' (skipping weekends/holidays if possible)
-     * For simplicity, we count strictly consecutive calendar days that were school days
+     * A streak is consecutive school days with status 'hadir' or 'terlambat'
+     * (terlambat still counts because the student was physically present)
      */
     static async calculateStreak(siswaId) {
         try {
-            // Get last 30 attendance records
+            // Get last 60 attendance records for more accurate calculation
             const [rows] = await pool.query(`
                 SELECT tanggal, status 
                 FROM siswa_presensi 
                 WHERE siswa_id = ? 
                 ORDER BY tanggal DESC 
-                LIMIT 30
+                LIMIT 60
             `, [siswaId]);
 
             if (rows.length === 0) return 0;
 
             let streak = 0;
             for (const row of rows) {
-                if (row.status === 'hadir') {
+                if (row.status === 'hadir' || row.status === 'terlambat') {
                     streak++;
-                } else if (row.status === 'sakit' || row.status === 'izin') {
-                    // Sick/Permit breaks streak? Usually yes, but we could make it 'frozen'
-                    // For now, only 'hadir' increments, everything else breaks it.
-                    break;
                 } else {
+                    // sakit, izin, alpha — all break the streak
                     break;
                 }
             }
@@ -44,11 +41,42 @@ class AttendanceStreakService {
 
     /**
      * Get top streaks for a leaderboard
+     * Calculates current streak for all active students and returns top N
+     * @param {number} limit - Number of top students to return
+     * @returns {Array<{id, nama, kelas_nama, streak}>}
      */
     static async getLeaderboard(limit = 10) {
-        // This is tricky on-the-fly. In a real 'genius' app, 
-        // we'd have a 'current_streak' column in 'siswa' table updated on every scan.
-        // Let's implement that in the next step.
+        try {
+            // Get all active students with their recent attendance
+            const [students] = await pool.query(`
+                SELECT s.id, s.nama, k.nama as kelas_nama
+                FROM siswa s
+                LEFT JOIN kelas k ON s.kelas_id = k.id
+                WHERE s.status = 'aktif'
+                ORDER BY s.nama ASC
+            `);
+
+            // Calculate streak for each student
+            const results = [];
+            for (const student of students) {
+                const streak = await AttendanceStreakService.calculateStreak(student.id);
+                if (streak > 0) {
+                    results.push({
+                        id: student.id,
+                        nama: student.nama,
+                        kelas_nama: student.kelas_nama,
+                        streak
+                    });
+                }
+            }
+
+            // Sort by streak descending and return top N
+            results.sort((a, b) => b.streak - a.streak);
+            return results.slice(0, limit);
+        } catch (err) {
+            console.error('[StreakService] Leaderboard Error:', err.message);
+            return [];
+        }
     }
 }
 

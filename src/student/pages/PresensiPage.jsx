@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import * as LucideIcons from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useStudent } from '../StudentApp'
 
 const statusConfig = {
     hadir: { color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)', icon: LucideIcons.UserCheck, label: 'Hadir' },
+    terlambat: { color: '#F97316', bg: 'rgba(249, 115, 22, 0.1)', icon: LucideIcons.Clock, label: 'Terlambat' },
     sakit: { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.1)', icon: LucideIcons.HeartPulse, label: 'Sakit' },
     izin: { color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.1)', icon: LucideIcons.ClipboardList, label: 'Izin' },
     alpha: { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.1)', icon: LucideIcons.UserX, label: 'Alfa' },
@@ -12,7 +13,7 @@ const statusConfig = {
 
 export default function PresensiPage() {
     const { attendanceDocs } = useStudent()
-    
+
     // 1. Get unique available months from data
     const availableMonths = useMemo(() => {
         if (!attendanceDocs?.length) return []
@@ -22,17 +23,22 @@ export default function PresensiPage() {
         })
         // Unique and sorted by date (latest first relies on records being sorted or explicit sort)
         return [...new Set(months)].sort((a, b) => {
-            // Note: Simple string sort won't work for months, but since they come from records 
-            // that are mostly chronological, or we can parse them back. 
-            // Better: get months from chronological records.
-            return 0 
+            // Parse Indonesian month names back to dates for proper chronological sorting
+            const parseMonth = (str) => {
+                const bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+                const parts = str.split(' ')
+                const monthIdx = bulan.indexOf(parts[0])
+                const year = parseInt(parts[1]) || 2000
+                return year * 12 + monthIdx
+            }
+            return parseMonth(b) - parseMonth(a) // Latest first
         })
     }, [attendanceDocs])
 
     const [selectedMonth, setSelectedMonth] = useState(availableMonths[0] || new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }))
 
     // Update selectedMonth if data loads and nothing is selected
-    useMemo(() => {
+    useEffect(() => {
         if (availableMonths.length > 0 && !availableMonths.includes(selectedMonth)) {
             setSelectedMonth(availableMonths[0])
         }
@@ -54,17 +60,17 @@ export default function PresensiPage() {
             const s = curr.status.toLowerCase()
             if (acc[s] !== undefined) acc[s]++
             return acc
-        }, { hadir: 0, sakit: 0, izin: 0, alpha: 0 })
+        }, { hadir: 0, terlambat: 0, sakit: 0, izin: 0, alpha: 0 })
     }, [filteredRecords])
 
     const totalInMonth = filteredRecords.length
-    const percentage = totalInMonth > 0 ? Math.round((summary.hadir / totalInMonth) * 100) : 0
+    const percentage = totalInMonth > 0 ? Math.round(((summary.hadir + summary.terlambat) / totalInMonth) * 100) : 0
 
     // Trend Pulse (Latest 7 days of the selected month)
     const trendData = useMemo(() => {
         return filteredRecords.slice(0, 7).reverse().map(r => ({
             name: new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric' }),
-            status: r.status.toLowerCase() === 'hadir' ? 100 : 70
+            status: (r.status.toLowerCase() === 'hadir' || r.status.toLowerCase() === 'terlambat') ? 100 : 70
         }))
     }, [filteredRecords])
 
@@ -102,8 +108,8 @@ export default function PresensiPage() {
             {availableMonths.length > 1 && (
                 <div className="stu-month-filter stu-fade-up delay-1">
                     {availableMonths.map(m => (
-                        <div 
-                            key={m} 
+                        <div
+                            key={m}
                             className={`stu-month-pill ${selectedMonth === m ? 'active' : ''}`}
                             onClick={() => setSelectedMonth(m)}
                         >
@@ -122,7 +128,7 @@ export default function PresensiPage() {
                             <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" />
                             <circle cx="50" cy="50" r="44" fill="none" stroke="#fff" strokeWidth="8"
                                 strokeDasharray={`${percentage * 2.76} ${276 - percentage * 2.76}`}
-                                strokeDashoffset="69" strokeLinecap="round" 
+                                strokeDashoffset="69" strokeLinecap="round"
                                 style={{ transition: 'stroke-dasharray 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
                             />
                         </svg>
@@ -142,17 +148,17 @@ export default function PresensiPage() {
                             <AreaChart data={trendData}>
                                 <defs>
                                     <linearGradient id="colorAttComp" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--stu-primary)" stopOpacity={0.4}/>
-                                        <stop offset="95%" stopColor="var(--stu-primary)" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="var(--stu-primary)" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="var(--stu-primary)" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="status" 
-                                    stroke="var(--stu-primary)" 
-                                    strokeWidth={3} 
-                                    fillOpacity={1} 
-                                    fill="url(#colorAttComp)" 
+                                <Area
+                                    type="monotone"
+                                    dataKey="status"
+                                    stroke="var(--stu-primary)"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorAttComp)"
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -183,7 +189,7 @@ export default function PresensiPage() {
                         </button>
                     </div>
                 </div>
-                
+
                 <div className="stu-timeline-container">
                     {filteredRecords.length === 0 ? (
                         <div className="stu-empty-mini">Belum ada riwayat aktivitas</div>
@@ -191,7 +197,7 @@ export default function PresensiPage() {
                         filteredRecords.map((r, index) => {
                             const cfg = statusConfig[r.status.toLowerCase()] || statusConfig.alpha
                             const dateObj = new Date(r.date)
-                            const isPresent = r.status.toLowerCase() === 'hadir'
+                            const isPresent = r.status.toLowerCase() === 'hadir' || r.status.toLowerCase() === 'terlambat'
                             return (
                                 <div key={index} className="stu-timeline-item-v2 stu-fade-up" style={{ animationDelay: `${0.1 * index}s` }}>
                                     <div className="stu-timeline-dot-v2" style={{ borderColor: cfg.color }} />
@@ -223,7 +229,7 @@ export default function PresensiPage() {
                     )}
                 </div>
             </div>
-            
+
             <div style={{ height: '100px' }} />
         </div>
     )

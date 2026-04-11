@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../../db');
 const waService = require('../../services/whatsappService');
 const AttendanceController = require('../../controllers/AttendanceController');
+const { getWIBDate, isValidDateFormat, formatDateID } = require('../../utils/timezone');
 
 // Settings Routes
 router.get('/settings', AttendanceController.getSettings);
@@ -15,6 +16,9 @@ router.get('/', async (req, res) => {
         const { date, kelasId } = req.query;
         if (!date || !kelasId) {
             return res.status(400).json({ error: 'Tanggal dan KelasId wajib diisi' });
+        }
+        if (!isValidDateFormat(date)) {
+            return res.status(400).json({ error: 'Format tanggal tidak valid (YYYY-MM-DD)' });
         }
 
         // 1. Get all active students in the class
@@ -57,6 +61,9 @@ router.get('/rekap', async (req, res) => {
         const { kelasId, startDate, endDate } = req.query;
         if (!kelasId || !startDate || !endDate) {
             return res.status(400).json({ error: 'Kelas, Start Date, dan End Date wajib diisi' });
+        }
+        if (!isValidDateFormat(startDate) || !isValidDateFormat(endDate)) {
+            return res.status(400).json({ error: 'Format tanggal tidak valid (YYYY-MM-DD)' });
         }
 
         // R-7: Get students — include those who were active during the date range
@@ -105,12 +112,12 @@ router.get('/rekap', async (req, res) => {
         const detailsMap = {};
         rawLogs.forEach(row => {
             if (!detailsMap[row.siswa_id]) detailsMap[row.siswa_id] = {};
-            
+
             let jamStr = '-';
             if (row.jam_masuk) {
                 try {
                     jamStr = new Date(row.jam_masuk).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false });
-                } catch(e) {
+                } catch (e) {
                     jamStr = '-';
                 }
             }
@@ -119,7 +126,7 @@ router.get('/rekap', async (req, res) => {
             if (row.jam_pulang) {
                 try {
                     jamPulangStr = new Date(row.jam_pulang).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false });
-                } catch(e) {
+                } catch (e) {
                     jamPulangStr = '-';
                 }
             }
@@ -135,12 +142,12 @@ router.get('/rekap', async (req, res) => {
         // 4. Map attendance to students
         const attendanceMap = {};
         attendance.forEach(a => {
-            attendanceMap[a.siswa_id] = { 
+            attendanceMap[a.siswa_id] = {
                 hadir: parseInt(a.hadir) || 0,
                 terlambat: parseInt(a.terlambat) || 0,
-                sakit: parseInt(a.sakit) || 0, 
-                izin: parseInt(a.izin) || 0, 
-                alpha: parseInt(a.alpha) || 0 
+                sakit: parseInt(a.sakit) || 0,
+                izin: parseInt(a.izin) || 0,
+                alpha: parseInt(a.alpha) || 0
             };
         });
 
@@ -166,23 +173,40 @@ router.get('/rekap', async (req, res) => {
 // POST /api/admin/presensi/bulk
 // Batch insert/update attendance
 router.post('/bulk', async (req, res) => {
+    // Bug #4 Fix: Validate BEFORE acquiring connection to prevent connection leak
+    const { date, attendanceData, sendWA } = req.body;
+
+    if (!date || !attendanceData || !Array.isArray(attendanceData)) {
+        return res.status(400).json({ error: 'Data tidak valid' });
+    }
+    if (!isValidDateFormat(date)) {
+        return res.status(400).json({ error: 'Format tanggal tidak valid (YYYY-MM-DD)' });
+    }
+
     const connection = await pool.getConnection();
+
     try {
         await connection.beginTransaction();
-        const { date, attendanceData, sendWA } = req.body;
-
-        if (!date || !attendanceData || !Array.isArray(attendanceData)) {
-            return res.status(400).json({ error: 'Data tidak valid' });
-        }
 
         for (const item of attendanceData) {
             if (!item.status) continue;
 
+            // Primary table: siswa_presensi (source of truth)
             await connection.query(`
                 INSERT INTO siswa_presensi (siswa_id, tanggal, status, keterangan)
                 VALUES (?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE status = VALUES(status), keterangan = VALUES(keterangan)
             `, [item.siswa_id, date, item.status, item.keterangan || null]);
+
+            // Bug #5 Fix: Sync to attendances table to keep tap-log and stats consistent
+            if (item.status === 'hadir' || item.status === 'terlambat') {
+                const attendanceStatus = item.status === 'terlambat' ? 'Terlambat' : 'Hadir';
+                await connection.query(`
+                    INSERT INTO attendances (student_id, tanggal, status)
+                    VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE status = VALUES(status)
+                `, [item.siswa_id, date, attendanceStatus]);
+            }
         }
 
         await connection.commit();
@@ -192,8 +216,8 @@ router.post('/bulk', async (req, res) => {
         if (sendWA) {
             (async () => {
                 try {
-                    const absentStudents = attendanceData.filter(s => 
-                        s.status && s.status !== 'hadir'
+                    const absentStudents = attendanceData.filter(s =>
+                        s.status && s.status !== 'hadir' && s.status !== 'terlambat'
                     );
 
                     if (absentStudents.length === 0) return; // Semua hadir, tidak perlu kirim WA
@@ -202,7 +226,7 @@ router.post('/bulk', async (req, res) => {
                     const [settingsRows] = await pool.query('SELECT * FROM attendance_settings');
                     const settings = {};
                     settingsRows.forEach(r => { settings[r.key] = r.value });
-                    
+
                     if (settings.wa_notification_enabled !== 'true') return;
 
                     const statusLabel = { sakit: 'Sakit', izin: 'Izin', alpha: 'Alpha' };
@@ -243,14 +267,14 @@ router.post('/bulk', async (req, res) => {
                                     await pool.query(
                                         'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status) VALUES (?, ?, ?, ?)',
                                         [item.siswa_id, phone, item.status, 'sent']
-                                    ).catch(() => {});
+                                    ).catch(() => { });
                                 } catch (waErr) {
                                     console.error('[Presensi WA] Gagal kirim:', waErr.message);
                                     // Log WA failure
                                     await pool.query(
                                         'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status, error_message) VALUES (?, ?, ?, ?, ?)',
                                         [item.siswa_id, phone, item.status, 'failed', waErr.message]
-                                    ).catch(() => {});
+                                    ).catch(() => { });
                                 }
                             }
                         }
@@ -274,16 +298,7 @@ router.post('/bulk', async (req, res) => {
 // Quick attendance summary for today (dashboard widget)
 router.get('/stats', async (req, res) => {
     try {
-        // Get today in WIB
-        const rawNow = new Date();
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'Asia/Jakarta',
-            year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
-        });
-        const parts = formatter.formatToParts(rawNow);
-        const p = {};
-        parts.forEach(part => p[part.type] = part.value);
-        const today = `${p.year}-${p.month}-${p.day}`;
+        const today = getWIBDate();
 
         // Count from siswa_presensi (hadir, terlambat, sakit, izin, alpha)
         const [presensiStats] = await pool.query(`
@@ -300,12 +315,12 @@ router.get('/stats', async (req, res) => {
         const [totalRows] = await pool.query(`SELECT COUNT(*) as total FROM siswa WHERE status = 'aktif'`);
 
         const stats = presensiStats[0] || {};
-        const hadir     = parseInt(stats.hadir)     || 0;
+        const hadir = parseInt(stats.hadir) || 0;
         const terlambat = parseInt(stats.terlambat) || 0;
-        const sakit     = parseInt(stats.sakit)     || 0;
-        const izin      = parseInt(stats.izin)      || 0;
-        const alpha     = parseInt(stats.alpha)     || 0;
-        const total     = totalRows[0]?.total       || 0;
+        const sakit = parseInt(stats.sakit) || 0;
+        const izin = parseInt(stats.izin) || 0;
+        const alpha = parseInt(stats.alpha) || 0;
+        const total = totalRows[0]?.total || 0;
 
         res.json({
             tanggal: today,
@@ -327,15 +342,7 @@ router.get('/stats', async (req, res) => {
 // Returns last 20 tap events today for the Live Tap Log panel in GateMonitor
 router.get('/tap-log', async (req, res) => {
     try {
-        const rawNow = new Date();
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'Asia/Jakarta',
-            year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
-        });
-        const parts = formatter.formatToParts(rawNow);
-        const p = {};
-        parts.forEach(part => p[part.type] = part.value);
-        const today = `${p.year}-${p.month}-${p.day}`;
+        const today = getWIBDate();
 
         const [rows] = await pool.query(`
             SELECT 

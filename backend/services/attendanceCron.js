@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const pool = require('../db');
 const waService = require('./whatsappService');
 const socketService = require('./socket');
+const { getWIBDate, formatDateID } = require('../utils/timezone');
 
 /**
  * Attendance Cron Service
@@ -31,16 +32,14 @@ class AttendanceCronService {
 
     static async processAutoAlpha() {
         try {
-            // Bug #5 Fixed: Use WIB timezone via Intl.DateTimeFormat, not UTC toISOString()
-            const rawNow = new Date();
-            const formatter = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'Asia/Jakarta',
-                year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
-            });
-            const parts = formatter.formatToParts(rawNow);
-            const p = {};
-            parts.forEach(part => p[part.type] = part.value);
-            const today = `${p.year}-${p.month}-${p.day}`;
+            const today = getWIBDate();
+
+            // Bug #7 Fix: Skip weekends (Sunday = 0)
+            const dayOfWeek = new Date(today + 'T12:00:00+07:00').getDay();
+            if (dayOfWeek === 0) {
+                console.log('[Cron] Auto-Alpha: Skipped — today is Sunday.');
+                return;
+            }
 
             // Skip if today is holiday
             const [holidays] = await pool.query('SELECT 1 FROM harilibur WHERE tanggal = ?', [today]);
@@ -61,7 +60,7 @@ class AttendanceCronService {
 
             if (unmarked.length === 0) return;
 
-            const formattedDate = new Date(today).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            const formattedDate = formatDateID(today);
 
             for (const student of unmarked) {
                 // Insert as Alpha
@@ -91,17 +90,17 @@ class AttendanceCronService {
                             await pool.query(
                                 'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status) VALUES (?, ?, ?, ?)',
                                 [student.id, phone, 'alpha', 'sent']
-                            ).catch(() => {});
+                            ).catch(() => { });
                         } catch (waErr) {
                             await pool.query(
                                 'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status, error_message) VALUES (?, ?, ?, ?, ?)',
                                 [student.id, phone, 'alpha', 'failed', waErr.message]
-                            ).catch(() => {});
+                            ).catch(() => { });
                         }
                     }
                 }
             }
-            
+
             console.log(`[Cron] Auto-Alpha: Marked ${unmarked.length} students as Alpha.`);
         } catch (err) {
             console.error('[Cron] Auto-Alpha Error:', err.message);
@@ -110,29 +109,24 @@ class AttendanceCronService {
 
     static async analyzeLatePatterns() {
         try {
-            // Bug #1 Fixed: UNION kedua tabel — RFID (attendances) + Manual (siswa_presensi)
-            // Sebelumnya hanya membaca dari attendances, sehingga terlambat manual tidak terdeteksi
+            // Bug #6 Fix: Query only siswa_presensi (source of truth) to avoid double-counting
+            // from both attendances and siswa_presensi tables via UNION
             const [patterns] = await pool.query(`
                 SELECT s.id, s.nama, k.nama as kelas_nama, COUNT(*) as late_count
                 FROM siswa s
                 JOIN kelas k ON s.kelas_id = k.id
-                WHERE s.id IN (
-                    SELECT student_id FROM attendances
-                    WHERE status = 'Terlambat' 
-                    AND tanggal >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                    UNION ALL
-                    SELECT siswa_id FROM siswa_presensi
-                    WHERE status = 'terlambat'
-                    AND tanggal >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                )
-                GROUP BY s.id
+                JOIN siswa_presensi sp ON sp.siswa_id = s.id
+                    AND sp.status = 'terlambat'
+                    AND sp.tanggal >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                WHERE s.status = 'aktif'
+                GROUP BY s.id, s.nama, k.nama
                 HAVING late_count >= 3
             `);
 
             for (const p of patterns) {
                 // R-20: Notify admin or wall (via Socket)
                 const message = `🚨 *Peringatan Kedisiplinan*: Siswa *${p.nama}* (${p.kelas_nama}) telah terlambat ${p.late_count}x dalam seminggu terakhir.`;
-                
+
                 // Broadcast to admin dashboard
                 socketService.getIo().emit('late_pattern_alert', {
                     studentId: p.id,
@@ -152,20 +146,14 @@ class AttendanceCronService {
             console.log('[Cron] Starting Weekly Digest...');
 
             // Get WIB dates for the last 7 days
-            const rawNow = new Date();
-            const formatter = new Intl.DateTimeFormat('en-US', {
+            const today = getWIBDate();
+            const sevenDaysAgo = new Date(new Date().getTime() - 7 * 86400000);
+            const sevenFmt = new Intl.DateTimeFormat('en-US', {
                 timeZone: 'Asia/Jakarta',
                 year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
             });
-            const parts = formatter.formatToParts(rawNow);
-            const p = {};
-            parts.forEach(part => p[part.type] = part.value);
-            const today = `${p.year}-${p.month}-${p.day}`;
-            const sevenDaysAgo = new Date(rawNow);
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            const sevenDaysAgoParts = formatter.formatToParts(sevenDaysAgo);
             const sp = {};
-            sevenDaysAgoParts.forEach(part => sp[part.type] = part.value);
+            sevenFmt.formatToParts(sevenDaysAgo).forEach(part => sp[part.type] = part.value);
             const startDate = `${sp.year}-${sp.month}-${sp.day}`;
 
             // Get WA settings
@@ -227,13 +215,13 @@ class AttendanceCronService {
                         await pool.query(
                             'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status) VALUES (?, ?, ?, ?)',
                             [student.id, phone, 'weekly_digest', 'sent']
-                        ).catch(() => {});
+                        ).catch(() => { });
                         sentCount++;
                     } catch (waErr) {
                         await pool.query(
                             'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status, error_message) VALUES (?, ?, ?, ?, ?)',
                             [student.id, phone, 'weekly_digest', 'failed', waErr.message]
-                        ).catch(() => {});
+                        ).catch(() => { });
                     }
                 }
             }

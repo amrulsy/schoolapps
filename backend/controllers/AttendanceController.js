@@ -1,6 +1,7 @@
 const pool = require('../db');
 const socketService = require('../services/socket');
 const waService = require('../services/whatsappService');
+const { getWIBDate, getWIBDateTime, getWIBNow } = require('../utils/timezone');
 
 // R-3: In-memory cooldown map for RFID rate limiting (10 seconds per UID)
 const rfidCooldown = new Map();
@@ -81,7 +82,7 @@ class AttendanceController {
             );
 
             if (students.length === 0) {
-                io.emit('scan_info', { 
+                io.emit('scan_info', {
                     student: { nama: 'Tidak Dikenali' },
                     message: 'Kartu RFID tidak terdaftar atau siswa tidak aktif',
                     type: 'warning'
@@ -92,23 +93,8 @@ class AttendanceController {
             const student = students[0];
 
             // Dapatkan waktu persis di Jakarta mengabaikan timezone OS Server
-            const rawNow = new Date();
-            const formatter = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'Asia/Jakarta',
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-            });
-            const parts = formatter.formatToParts(rawNow);
-            const p = {};
-            parts.forEach(part => p[part.type] = part.value);
-
-            const today = `${p.year}-${p.month}-${p.day}`; // YYYY-MM-DD (WIB)
-            const hr = p.hour === '24' ? '00' : p.hour;
-            const nowTime = `${hr}:${p.minute}:${p.second}`; // HH:MM:SS (WIB)
-            const nowDateTime = `${today} ${nowTime}`; // YYYY-MM-DD HH:MM:SS
-            
-            // Epoch WIB murni untuk komputasi komparasi
-            const now = new Date(`${today}T${nowTime}+07:00`);
+            const { date: today, time: nowTime, dateTime: nowDateTime } = getWIBDateTime();
+            const now = getWIBNow();
 
             // R-2: Validasi Hari Libur
             const [holidays] = await pool.query(
@@ -147,7 +133,7 @@ class AttendanceController {
                 const entryStartTimeStr = settings['entry_start_time'] || '06:00';
                 const [entH, entM] = entryStartTimeStr.split(':');
                 const limitBukaAbsen = new Date(`${today}T${entH}:${entM}:00+07:00`);
-                
+
                 if (now < limitBukaAbsen) {
                     const infoData = {
                         student: { nama: student.nama, kelas: student.kelas_nama, nisn: student.nisn },
@@ -185,7 +171,7 @@ class AttendanceController {
             } else {
                 // --- KONDISI PULANG ---
                 const record = existing[0];
-                
+
                 if (record.jam_pulang) {
                     const infoData = {
                         student: { nama: student.nama, kelas: student.kelas_nama, nisn: student.nisn },
@@ -300,7 +286,7 @@ class AttendanceController {
                         .replace(/\[jam\]/g, nowTime)
                         .replace(/\[kelas\]/g, student.kelas_nama || '-')
                         .replace(/\[nisn\]/g, student.nisn || '-');
-                    
+
                     // Ambil kontak orang tua
                     const [ortuRows] = await pool.query('SELECT hp FROM siswa_orangtua WHERE siswa_id = ? AND hp IS NOT NULL AND hp != ""', [student.id]);
                     const phoneTargets = [];
@@ -308,7 +294,7 @@ class AttendanceController {
                     ortuRows.forEach(o => phoneTargets.push(o.hp));
 
                     const uniquePhones = [...new Set(phoneTargets)];
-                    
+
                     for (const phone of uniquePhones) {
                         try {
                             await waService.sendMessage(phone, waMessage);
@@ -316,14 +302,14 @@ class AttendanceController {
                             await pool.query(
                                 'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status) VALUES (?, ?, ?, ?)',
                                 [student.id, phone, waMessageType, 'sent']
-                            ).catch(() => {}); // Don't fail main flow for logging
+                            ).catch(() => { }); // Don't fail main flow for logging
                         } catch (waErr) {
                             console.error('[Presensi WA] Gagal kirim notifikasi:', waErr.message);
                             // R-5: Log failure
                             await pool.query(
                                 'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status, error_message) VALUES (?, ?, ?, ?, ?)',
                                 [student.id, phone, waMessageType, 'failed', waErr.message]
-                            ).catch(() => {}); // Don't fail main flow for logging
+                            ).catch(() => { }); // Don't fail main flow for logging
                         }
                     }
                 }
@@ -335,7 +321,7 @@ class AttendanceController {
             console.error('[RFID Scan Error]', err);
             try {
                 const ioFallback = socketService.getIo();
-                ioFallback.emit('scan_info', { 
+                ioFallback.emit('scan_info', {
                     student: { nama: 'Sistem' },
                     message: 'Kesalahan Sistem',
                     subMessage: err.message,
@@ -389,16 +375,7 @@ class AttendanceController {
      */
     static async broadcastStatsUpdate(io) {
         try {
-            // Get today in WIB
-            const rawNow = new Date();
-            const formatter = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'Asia/Jakarta',
-                year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
-            });
-            const parts = formatter.formatToParts(rawNow);
-            const p = {};
-            parts.forEach(part => p[part.type] = part.value);
-            const today = `${p.year}-${p.month}-${p.day}`;
+            const today = getWIBDate();
 
             const [presensiStats] = await pool.query(`
                 SELECT 
