@@ -5,7 +5,8 @@ import { API_BASE, getAuthHeaders } from '../../services/api';
 import {
     Calendar, Users, FileSpreadsheet, Printer, Search,
     Filter, Activity, UserCheck, Clock, AlertCircle, UserMinus,
-    Download, PieChart, ChevronRight, School, TrendingUp, Award
+    Download, PieChart, ChevronRight, School, TrendingUp, Award,
+    Loader2, BookOpen, Star
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { useReactToPrint } from 'react-to-print';
@@ -129,69 +130,124 @@ const styles = /*css*/`
   }
 
   @media print {
-    @page { margin: 12mm 10mm; size: landscape; }
+    @page { margin: 10mm 8mm; size: landscape; }
     .no-print { display: none !important; }
     .print-only { display: block !important; }
     body { background: white !important; color: black !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .glass-card { border: none !important; border-radius: 0; box-shadow: none; background: white; }
 
-    /* Professional Print Layout */
+    /* Premium Print Layout */
     .print-wrapper { padding: 0; font-family: 'Segoe UI', 'Inter', Arial, sans-serif; }
 
-    .print-kop { text-align: center; border-bottom: 3px double #1e293b; padding-bottom: 14px; margin-bottom: 24px; }
-    .print-kop h2 { font-size: 18pt; letter-spacing: 2px; margin: 0; font-weight: 900; color: #0f172a; }
-    .print-kop .print-sub { font-size: 9pt; color: #475569; margin: 2px 0 0 0; }
-    .print-kop .print-doc-title { font-size: 11pt; font-weight: 700; margin: 8px 0 0 0; color: #1e3a8a; text-transform: uppercase; letter-spacing: 1.5px; }
+    /* KOP SURAT — Premium with logo initials */
+    .print-kop { border-bottom: 3px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px; }
+    .print-kop-inner { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+    .print-school-logo {
+      width: 52px; height: 52px; border-radius: 12px;
+      background: #0f172a !important; color: white !important;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13pt; font-weight: 900; letter-spacing: -1px;
+      flex-shrink: 0;
+    }
+    .print-kop-text { flex: 1; }
+    .print-kop h2 { font-size: 17pt; letter-spacing: 1.5px; margin: 0 0 2px 0; font-weight: 900; color: #0f172a; }
+    .print-kop .print-sub { font-size: 8pt; color: #64748b; margin: 1px 0; line-height: 1.4; }
+    .print-kop-divider { height: 2px; background: linear-gradient(90deg, #0f172a 0%, #3b82f6 50%, transparent 100%); -webkit-print-color-adjust: exact; print-color-adjust: exact; margin-bottom: 6px; width: 100%; }
+    .print-doc-title { font-size: 10pt; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 2px; margin: 0; text-align: center; }
 
-    .print-meta-grid { display: flex; gap: 20px; margin-bottom: 16px; font-size: 8.5pt; }
+    .print-meta-grid { display: flex; gap: 16px; margin-bottom: 12px; font-size: 8pt; }
     .print-meta-item { flex: 1; }
-    .print-meta-label { color: #94a3b8; font-weight: 600; font-size: 7pt; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
-    .print-meta-value { font-weight: 700; color: #1e293b; }
+    .print-meta-label { color: #94a3b8; font-weight: 700; font-size: 6.5pt; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+    .print-meta-value { font-weight: 800; color: #1e293b; font-size: 8.5pt; }
 
-    .print-stat-row { display: flex; gap: 8px; margin-bottom: 18px; }
+    .print-stat-row { display: flex; gap: 6px; margin-bottom: 14px; }
     .print-stat-pill {
-      flex: 1; padding: 8px 12px; border-radius: 10px; text-align: center;
+      flex: 1; padding: 7px 10px; border-radius: 8px; text-align: center;
+      border: 1.5px solid currentColor;
       -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
-    .print-stat-pill .psp-label { font-size: 6pt; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-    .print-stat-pill .psp-value { font-size: 14pt; font-weight: 900; }
+    .print-stat-pill .psp-label { font-size: 5.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.8; }
+    .print-stat-pill .psp-value { font-size: 13pt; font-weight: 900; line-height: 1.2; }
 
+    /* Premium Table */
     .print-table { border-collapse: collapse; width: 100%; margin-top: 0; }
+    .col-no { width: 26px; }
+    .col-nisn { width: 80px; }
+    .col-nama { text-align: left !important; }
+    .col-day { width: 18px; padding: 3px 1px !important; }
+    .col-stat { width: 28px; }
+    .col-pct { width: 68px; }
+    .col-h { background: #059669 !important; } .col-t { background: #ea580c !important; }
+    .col-s { background: #d97706 !important; } .col-i { background: #2563eb !important; }
+    .col-a { background: #e11d48 !important; }
     .print-table thead th {
       background-color: #0f172a !important; color: white !important;
       -webkit-print-color-adjust: exact; print-color-adjust: exact;
-      padding: 6px 8px; font-size: 7pt; font-weight: 800; text-transform: uppercase;
+      padding: 5px 6px; font-size: 6.5pt; font-weight: 800; text-transform: uppercase;
       letter-spacing: 0.5px; text-align: center; border: 1px solid #334155;
     }
     .print-table tbody td {
-      padding: 5px 8px; font-size: 8pt; border: 1px solid #e2e8f0;
-      vertical-align: middle;
+      padding: 4px 6px; font-size: 7.5pt; border: 1px solid #e2e8f0; vertical-align: middle;
     }
-    .print-table tbody tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .print-table tfoot td {
-      padding: 6px 8px; font-size: 8pt; font-weight: 800; border: 1px solid #cbd5e1;
-      background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    .print-no { color: #94a3b8; font-size: 7pt; }
+    .print-nisn { font-size: 6.5pt; color: #64748b; }
+    .print-nama { font-weight: 700; color: #1e293b; }
+    .stat-h { color: #059669 !important; font-weight: 800; }
+    .stat-t { color: #ea580c !important; font-weight: 800; }
+    .stat-s { color: #d97706 !important; font-weight: 800; }
+    .stat-i { color: #2563eb !important; font-weight: 800; }
+    .stat-a { color: #e11d48 !important; font-weight: 800; }
+    .print-table tbody tr:nth-child(even) td { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .print-footer-row td {
+      padding: 5px 6px; font-size: 7.5pt; font-weight: 900; background: #0f172a !important;
+      color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      border: 1px solid #1e293b;
     }
+    .print-footer-row .stat-h,.print-footer-row .stat-t,.print-footer-row .stat-s,
+    .print-footer-row .stat-i,.print-footer-row .stat-a { color: white !important; }
+    .text-right { text-align: right; }
 
-    .pct-badge { padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 7.5pt; display: inline-block; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .pct-high { background: #ecfdf5; color: #059669; }
-    .pct-mid { background: #eff6ff; color: #2563eb; }
-    .pct-low { background: #fff1f2; color: #e11d48; }
+    .pct-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .pct-bar { width: 100%; height: 3px; background: #e2e8f0 !important; border-radius: 4px; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .pct-bar-fill { height: 100%; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .pct-badge { padding: 1px 6px; border-radius: 5px; font-weight: 800; font-size: 7pt; display: inline-block; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .pct-high { background: #ecfdf5 !important; color: #059669 !important; }
+    .pct-mid { background: #eff6ff !important; color: #2563eb !important; }
+    .pct-low { background: #fff1f2 !important; color: #e11d48 !important; }
 
-    .code-cell { font-weight: 800; font-size: 7pt; letter-spacing: 0.5px; }
+    .code-cell { font-weight: 800; font-size: 6.5pt; letter-spacing: 0.3px; }
     .code-H { color: #059669; } .code-T { color: #ea580c; } .code-S { color: #d97706; }
-    .code-I { color: #2563eb; } .code-A { color: #e11d48; } .code-none { color: #cbd5e1; }
+    .code-I { color: #2563eb; } .code-A { color: #e11d48; } .code-none { color: #e2e8f0; }
 
-    .print-sig-area { margin-top: 40px; display: flex; justify-content: space-between; page-break-inside: avoid; }
-    .print-sig-block { width: 200px; text-align: center; }
-    .print-sig-block .sig-title { font-size: 8pt; margin-bottom: 60px; }
-    .print-sig-line { border-bottom: 1px solid #1e293b; margin-bottom: 4px; }
-    .print-sig-name { font-size: 7pt; color: #94a3b8; }
+    /* Legend Section */
+    .print-legend {
+      margin-top: 10px; padding: 6px 10px; border: 1px solid #e2e8f0;
+      border-radius: 6px; display: flex; flex-wrap: wrap; gap: 10px;
+      font-size: 6.5pt; align-items: center;
+      background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .print-legend-title { font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .print-legend-item { font-weight: 600; }
 
-    .print-footer-note { margin-top: 20px; font-size: 7pt; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+    /* 3-column Signature Area */
+    .print-sig-area {
+      margin-top: 24px; display: flex; justify-content: space-between;
+      page-break-inside: avoid; gap: 16px;
+    }
+    .print-sig-block { flex: 1; text-align: center; }
+    .sig-title { font-size: 7.5pt; color: #475569; font-weight: 600; }
+    .sig-subtitle { font-size: 8pt; font-weight: 800; color: #1e293b; margin-bottom: 6px; }
+    .print-sig-space { height: 48px; }
+    .print-sig-line { border-bottom: 1px solid #1e293b; margin: 0 auto 3px auto; width: 80%; }
+    .print-sig-name { font-size: 7.5pt; font-weight: 700; color: #1e293b; }
+    .print-sig-nik { font-size: 6.5pt; color: #94a3b8; margin-top: 1px; }
+
+    .print-footer-note { margin-top: 14px; font-size: 6.5pt; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 6px; }
   }
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
 `;
 
@@ -284,10 +340,12 @@ export default function AttendanceRecap() {
     };
 
     // ═══════════════════════════════════════════════
-    // PREMIUM EXCEL EXPORT
+    // PREMIUM EXCEL EXPORT — Multi-Sheet Workbook
     // ═══════════════════════════════════════════════
+    const [exporting, setExporting] = useState(false);
     const handleExportExcel = async () => {
         if (data.length === 0) return;
+        setExporting(true);
 
         try {
             const workbook = new ExcelJS.Workbook();
@@ -490,12 +548,187 @@ export default function AttendanceRecap() {
             for (let i = sc; i < sc + 5; i++) ws.getColumn(i).width = 7;
             ws.getColumn(sc + 5).width = 8; ws.getColumn(sc + 6).width = 8;
 
+            // ── SHEET 2: DASHBOARD RINGKASAN ──────────────────────────────
+            const wsDash = workbook.addWorksheet('Dashboard Ringkasan', {
+                properties: { defaultRowHeight: 20 },
+                pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, paperSize: 9 }
+            });
+            wsDash.getColumn(1).width = 28;
+            wsDash.getColumn(2).width = 22;
+            wsDash.getColumn(3).width = 22;
+
+            const dR1 = wsDash.addRow([schoolName]);
+            wsDash.mergeCells(1, 1, 1, 3);
+            dR1.height = 36; dR1.getCell(1).font = { bold: true, size: 16, color: { argb: C.white } };
+            dR1.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.navy } };
+            dR1.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            const dR2 = wsDash.addRow(['DASHBOARD RINGKASAN KEHADIRAN']);
+            wsDash.mergeCells(2, 1, 2, 3);
+            dR2.height = 24; dR2.getCell(1).font = { bold: true, size: 10, color: { argb: C.white } };
+            dR2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.navyLight } };
+            dR2.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            wsDash.addRow([]);
+
+            const dashMeta = [
+                ['Kelas / Program', `${unitNama} — ${kelasNama}`],
+                ['Periode Laporan', `${appliedRange.start} s/d ${appliedRange.end}`],
+                ['Jumlah Siswa', totalStudents],
+                ['Tanggal Cetak', new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })],
+            ];
+            dashMeta.forEach(([k, v]) => {
+                const r = wsDash.addRow([k, v]);
+                r.getCell(1).font = { bold: true, size: 9, color: { argb: C.slate500 } };
+                r.getCell(2).font = { size: 9, bold: true, color: { argb: C.slate900 } };
+                wsDash.mergeCells(r.number, 2, r.number, 3);
+                r.height = 20;
+            });
+
+            wsDash.addRow([]);
+            const dLabel = wsDash.addRow(['STATISTIK KESELURUHAN', 'JUMLAH', 'PERSENTASE']);
+            dLabel.height = 24;
+            dLabel.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.navy } };
+                cell.font = { bold: true, size: 9, color: { argb: C.white } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            });
+
+            const statsTotal2 = data.reduce((s, x) => s + x.total, 0);
+            const dashStats = [
+                ['Hadir (Tepat Waktu)', summary.hadir, statsTotal2 ? `${((summary.hadir / statsTotal2) * 100).toFixed(1)}%` : '0%', C.emeraldBg, C.emerald],
+                ['Terlambat', summary.terlambat, statsTotal2 ? `${((summary.terlambat / statsTotal2) * 100).toFixed(1)}%` : '0%', C.orangeBg, C.orange],
+                ['Sakit', summary.sakit, statsTotal2 ? `${((summary.sakit / statsTotal2) * 100).toFixed(1)}%` : '0%', C.amberBg, C.amber],
+                ['Izin', summary.izin, statsTotal2 ? `${((summary.izin / statsTotal2) * 100).toFixed(1)}%` : '0%', C.blueBg, C.blue],
+                ['Alpha / Tanpa Keterangan', summary.alpha, statsTotal2 ? `${((summary.alpha / statsTotal2) * 100).toFixed(1)}%` : '0%', C.roseBg, C.rose],
+            ];
+            dashStats.forEach(([label, val, pct, bg, font]) => {
+                const rr = wsDash.addRow([label, val, pct]);
+                rr.height = 22;
+                rr.getCell(1).font = { size: 9, bold: true, color: { argb: font } };
+                rr.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+                rr.getCell(2).font = { size: 11, bold: true, color: { argb: font } };
+                rr.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+                rr.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+                rr.getCell(3).font = { size: 9, bold: true, color: { argb: font } };
+                rr.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+                rr.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+                ['A1', 'B2', 'C3'].forEach((_, ci) => {
+                    rr.getCell(ci + 1).border = { bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+                });
+            });
+
+            const avgRow2 = wsDash.addRow(['Rata-rata Kehadiran', `${avgPct}%`, '']);
+            avgRow2.height = 28;
+            wsDash.mergeCells(avgRow2.number, 2, avgRow2.number, 3);
+            avgRow2.getCell(1).font = { bold: true, size: 10, color: { argb: C.white } };
+            avgRow2.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.navy } };
+            avgRow2.getCell(2).font = { bold: true, size: 14, color: { argb: parseFloat(avgPct) >= 90 ? C.emerald : parseFloat(avgPct) >= 75 ? C.blue : C.rose } };
+            avgRow2.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.slate50 } };
+            avgRow2.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            wsDash.addRow([]);
+            const topLabel = wsDash.addRow(['TOP 5 KEHADIRAN TERTINGGI', 'SISWA', '%']);
+            topLabel.height = 22;
+            topLabel.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.emerald } };
+                cell.font = { bold: true, size: 8, color: { argb: C.white } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            });
+            const sorted = [...filteredData].sort((a, b) => b.persentase - a.persentase);
+            sorted.slice(0, 5).forEach((s, i) => {
+                const rr = wsDash.addRow([`#${i + 1}`, s.nama, `${s.persentase}%`]);
+                rr.height = 18;
+                rr.getCell(1).font = { bold: true, size: 8, color: { argb: C.emerald } };
+                rr.getCell(2).font = { size: 9, color: { argb: C.slate900 } };
+                rr.getCell(3).font = { bold: true, size: 9, color: { argb: C.emerald } };
+                rr.getCell(3).alignment = { horizontal: 'center' };
+            });
+
+            wsDash.addRow([]);
+            const botLabel = wsDash.addRow(['PERLU PERHATIAN — KEHADIRAN RENDAH', 'SISWA', '%']);
+            botLabel.height = 22;
+            botLabel.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.rose } };
+                cell.font = { bold: true, size: 8, color: { argb: C.white } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            });
+            sorted.slice(-5).reverse().forEach((s, i) => {
+                const rr = wsDash.addRow([`#${i + 1}`, s.nama, `${s.persentase}%`]);
+                rr.height = 18;
+                rr.getCell(1).font = { bold: true, size: 8, color: { argb: C.rose } };
+                rr.getCell(2).font = { size: 9, color: { argb: C.slate900 } };
+                rr.getCell(3).font = { bold: true, size: 9, color: { argb: C.rose } };
+                rr.getCell(3).alignment = { horizontal: 'center' };
+            });
+
+            // ── SHEET 3: LEGENDA ──────────────────────────────────────────
+            const wsLeg = workbook.addWorksheet('Legenda & Keterangan');
+            wsLeg.getColumn(1).width = 20; wsLeg.getColumn(2).width = 36;
+
+            const legTitle = wsLeg.addRow(['KETERANGAN KODE STATUS KEHADIRAN']);
+            wsLeg.mergeCells(1, 1, 1, 2);
+            legTitle.height = 30; legTitle.getCell(1).font = { bold: true, size: 13, color: { argb: C.white } };
+            legTitle.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.navy } };
+            legTitle.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            wsLeg.addRow([]);
+            const legItems = [
+                ['H — Hadir', 'Siswa masuk sekolah tepat waktu sesuai jadwal.', C.emeraldBg, C.emerald],
+                ['T — Terlambat', 'Siswa hadir namun melewati batas waktu masuk (tap RFID terlambat).', C.orangeBg, C.orange],
+                ['S — Sakit', 'Siswa tidak hadir karena sakit, disertai surat keterangan.', C.amberBg, C.amber],
+                ['I — Izin', 'Siswa tidak hadir karena izin yang disetujui wali kelas/sekolah.', C.blueBg, C.blue],
+                ['A — Alpha', 'Siswa tidak hadir tanpa keterangan/izin yang sah.', C.roseBg, C.rose],
+            ];
+            legItems.forEach(([code, desc, bg, font]) => {
+                const rr = wsLeg.addRow([code, desc]);
+                rr.height = 28;
+                rr.getCell(1).font = { bold: true, size: 10, color: { argb: font } };
+                rr.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+                rr.getCell(1).alignment = { vertical: 'middle', indent: 1 };
+                rr.getCell(2).font = { size: 9, color: { argb: C.slate700 } };
+                rr.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+                rr.getCell(2).alignment = { vertical: 'middle', wrapText: true };
+                rr.getCell(1).border = { bottom: { style: 'thin', color: { argb: C.slate100 } } };
+                rr.getCell(2).border = { bottom: { style: 'thin', color: { argb: C.slate100 } } };
+            });
+
+            wsLeg.addRow([]);
+            const pctTitle = wsLeg.addRow(['SKALA PERSENTASE KEHADIRAN']);
+            wsLeg.mergeCells(pctTitle.number, 1, pctTitle.number, 2);
+            pctTitle.height = 24; pctTitle.getCell(1).font = { bold: true, size: 10, color: { argb: C.white } };
+            pctTitle.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.navyLight } };
+            pctTitle.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+            const pctItems = [
+                ['≥ 90% — Sangat Baik', 'Kehadiran sangat baik, siswa aktif dan disiplin.', C.emeraldBg, C.emerald],
+                ['75% – 89% — Cukup', 'Kehadiran cukup, perlu sedikit peningkatan kedisiplinan.', C.blueBg, C.blue],
+                ['< 75% — Perlu Perhatian', 'Kehadiran rendah, perlu tindak lanjut dari wali kelas.', C.roseBg, C.rose],
+            ];
+            pctItems.forEach(([scale, desc, bg, font]) => {
+                const rr = wsLeg.addRow([scale, desc]);
+                rr.height = 24;
+                rr.getCell(1).font = { bold: true, size: 9, color: { argb: font } };
+                rr.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+                rr.getCell(1).alignment = { vertical: 'middle', indent: 1 };
+                rr.getCell(2).font = { size: 9, color: { argb: C.slate700 } };
+                rr.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+                rr.getCell(2).alignment = { vertical: 'middle' };
+            });
+
+            wsLeg.addRow([]);
+            const legFooter = wsLeg.addRow([`Dicetak oleh: SIAS — Sistem Informasi Absensi Siswa | ${schoolName} | ${new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}`]);
+            wsLeg.mergeCells(legFooter.number, 1, legFooter.number, 2);
+            legFooter.getCell(1).font = { italic: true, size: 8, color: { argb: C.slate500 } };
+            legFooter.getCell(1).alignment = { horizontal: 'center' };
+
             // Generate & Download
             const buffer = await workbook.xlsx.writeBuffer();
             const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const url = window.URL.createObjectURL(blob);
-            const cleanKelas = (kelasNama || 'Data').replace(/[^a-z0-9]/gi, '');
-            const safeFileName = `Rekap_Presensi_${cleanKelas}_${(appliedRange.start || '').replace(/-/g, '')}.xlsx`;
+            const cleanKelas = (kelasNama || 'Data').replace(/[^a-z0-9]/gi, '_');
+            const cleanDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const safeFileName = `Rekap_Presensi_${cleanKelas}_${(appliedRange.start || '').replace(/-/g, '')}_${cleanDate}.xlsx`;
             const anchor = document.createElement('a');
             anchor.style.display = 'none'; anchor.href = url; anchor.download = safeFileName;
             document.body.appendChild(anchor);
@@ -504,6 +737,8 @@ export default function AttendanceRecap() {
         } catch (err) {
             console.error(err);
             showError('Kesalahan Export', 'Gagal membuat file Excel: ' + err.message);
+        } finally {
+            setExporting(false);
         }
     };
 
@@ -546,23 +781,34 @@ export default function AttendanceRecap() {
         <div className="recap-container animate-fade">
             <style dangerouslySetInnerHTML={{ __html: styles }} />
 
-            {/* ═══════════════════════════════════════ */}
-            {/* PREMIUM PRINT AREA (hidden on screen) */}
-            {/* ═══════════════════════════════════════ */}
+            {/* ═══════════════════════════════════════════════════════ */}
+            {/* PREMIUM PRINT AREA — modern PDF layout (hidden on screen) */}
+            {/* ═══════════════════════════════════════════════════════ */}
             <div className="print-only">
                 <div ref={printRef} className="print-wrapper">
-                    {/* KOP SURAT */}
+                    {/* ── KOP SURAT PREMIUM ── */}
                     <div className="print-kop">
-                        <h2>{schoolSettings?.nama?.toUpperCase() || 'SIAS SMK PPRQ'}</h2>
-                        <p className="print-sub">{schoolSettings?.alamat || 'Alamat Sekolah'}</p>
-                        <p className="print-doc-title">Laporan Rekapitulasi Presensi Siswa</p>
+                        <div className="print-kop-inner">
+                            <div className="print-school-logo">
+                                {(schoolSettings?.nama || 'SIAS').split(' ').map(w => w[0]).join('').slice(0, 3)}
+                            </div>
+                            <div className="print-kop-text">
+                                <h2>{schoolSettings?.nama?.toUpperCase() || 'SMK PPRQ'}</h2>
+                                <p className="print-sub">{schoolSettings?.alamat || 'Jl. Raya Kauman, Demak'}</p>
+                                {schoolSettings?.telp && <p className="print-sub">Telp: {schoolSettings.telp}</p>}
+                            </div>
+                        </div>
+                        <div className="print-kop-divider"></div>
+                        <p className="print-doc-title">Laporan Rekapitulasi Kehadiran Siswa</p>
                     </div>
 
-                    {/* METADATA GRID */}
+                    {/* ── METADATA GRID ── */}
                     <div className="print-meta-grid">
                         <div className="print-meta-item">
                             <div className="print-meta-label">Kelas / Program</div>
-                            <div className="print-meta-value">{allDetailKelas.find(k => k.id.toString() === kelasId)?.unitNama} — {allDetailKelas.find(k => k.id.toString() === kelasId)?.nama}</div>
+                            <div className="print-meta-value">
+                                {allDetailKelas.find(k => k.id.toString() === kelasId)?.unitNama} — {allDetailKelas.find(k => k.id.toString() === kelasId)?.nama}
+                            </div>
                         </div>
                         <div className="print-meta-item">
                             <div className="print-meta-label">Periode Laporan</div>
@@ -578,7 +824,7 @@ export default function AttendanceRecap() {
                         </div>
                     </div>
 
-                    {/* STAT PILLS */}
+                    {/* ── STAT PILLS ── */}
                     <div className="print-stat-row">
                         {[
                             { label: 'Hadir', value: summary.hadir, bg: '#ecfdf5', color: '#059669' },
@@ -586,68 +832,73 @@ export default function AttendanceRecap() {
                             { label: 'Sakit', value: summary.sakit, bg: '#fffbeb', color: '#d97706' },
                             { label: 'Izin', value: summary.izin, bg: '#eff6ff', color: '#2563eb' },
                             { label: 'Alpha', value: summary.alpha, bg: '#fff1f2', color: '#e11d48' },
-                            { label: 'Kehadiran', value: summary.avg + '%', bg: '#f0f9ff', color: '#0369a1' },
+                            { label: 'Rata-rata', value: summary.avg + '%', bg: '#0f172a', color: '#ffffff' },
                         ].map((s, i) => (
-                            <div key={i} className="print-stat-pill" style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}22` }}>
+                            <div key={i} className="print-stat-pill" style={{ background: s.bg, color: s.color, borderColor: s.color }}>
                                 <div className="psp-label">{s.label}</div>
                                 <div className="psp-value">{s.value}</div>
                             </div>
                         ))}
                     </div>
 
-                    {/* DATA TABLE */}
+                    {/* ── DATA TABLE ── */}
                     <table className="print-table">
                         <thead>
                             <tr>
-                                <th style={{ width: 30 }}>No</th>
-                                <th style={{ width: 90 }}>NISN</th>
-                                <th style={{ textAlign: 'left' }}>Nama Siswa</th>
+                                <th className="col-no">No</th>
+                                <th className="col-nisn">NISN</th>
+                                <th className="col-nama">Nama Siswa</th>
                                 {viewMode === 'detail' && uiDateColumns.map(d => (
-                                    <th key={d} style={{ width: 22, padding: '4px 2px' }}>{d.split('-')[2]}</th>
+                                    <th key={d} className="col-day">{d.split('-')[2]}</th>
                                 ))}
-                                <th style={{ width: 32 }}>H</th>
-                                <th style={{ width: 32 }}>T</th>
-                                <th style={{ width: 32 }}>S</th>
-                                <th style={{ width: 32 }}>I</th>
-                                <th style={{ width: 32 }}>A</th>
-                                <th style={{ width: 48 }}>%</th>
+                                <th className="col-stat col-h">H</th>
+                                <th className="col-stat col-t">T</th>
+                                <th className="col-stat col-s">S</th>
+                                <th className="col-stat col-i">I</th>
+                                <th className="col-stat col-a">A</th>
+                                <th className="col-pct">%</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredData.map((s, idx) => (
                                 <tr key={idx}>
-                                    <td className="text-center">{idx + 1}</td>
-                                    <td className="text-center" style={{ fontSize: '7pt', color: '#64748b' }}>{s.nisn}</td>
-                                    <td style={{ fontWeight: 600 }}>{s.nama}</td>
+                                    <td className="text-center print-no">{idx + 1}</td>
+                                    <td className="text-center print-nisn">{s.nisn}</td>
+                                    <td className="print-nama">{s.nama}</td>
                                     {viewMode === 'detail' && uiDateColumns.map(d => {
                                         const code = getCode(s.details?.[d]?.status);
                                         return (
                                             <td key={d} className={`text-center code-cell code-${code === '-' ? 'none' : code}`}>
-                                                {code}
+                                                {code === '-' ? '' : code}
                                             </td>
                                         );
                                     })}
-                                    <td className="text-center fw-bold" style={{ color: '#059669' }}>{s.hadir}</td>
-                                    <td className="text-center fw-bold" style={{ color: '#ea580c' }}>{s.terlambat || 0}</td>
-                                    <td className="text-center fw-bold" style={{ color: '#d97706' }}>{s.sakit}</td>
-                                    <td className="text-center fw-bold" style={{ color: '#2563eb' }}>{s.izin}</td>
-                                    <td className="text-center fw-bold" style={{ color: '#e11d48' }}>{s.alpha}</td>
+                                    <td className="text-center stat-h">{s.hadir}</td>
+                                    <td className="text-center stat-t">{s.terlambat || 0}</td>
+                                    <td className="text-center stat-s">{s.sakit}</td>
+                                    <td className="text-center stat-i">{s.izin}</td>
+                                    <td className="text-center stat-a">{s.alpha}</td>
                                     <td className="text-center">
-                                        <span className={`pct-badge ${getPctClass(s.persentase)}`}>{s.persentase}%</span>
+                                        <div className="pct-bar-wrap">
+                                            <span className={`pct-badge ${getPctClass(s.persentase)}`}>{s.persentase}%</span>
+                                            <div className="pct-bar">
+                                                <div className="pct-bar-fill" style={{ width: `${Math.min(s.persentase, 100)}%`, background: s.persentase >= 90 ? '#059669' : s.persentase >= 75 ? '#2563eb' : '#e11d48' }}></div>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                         <tfoot>
-                            <tr>
-                                <td colSpan={3 + (viewMode === 'detail' ? uiDateColumns.length : 0)} style={{ textAlign: 'right', fontWeight: 800 }}>
-                                    TOTAL
+                            <tr className="print-footer-row">
+                                <td colSpan={3 + (viewMode === 'detail' ? uiDateColumns.length : 0)} className="text-right">
+                                    TOTAL KESELURUHAN
                                 </td>
-                                <td className="text-center" style={{ color: '#059669' }}>{summary.hadir}</td>
-                                <td className="text-center" style={{ color: '#ea580c' }}>{summary.terlambat}</td>
-                                <td className="text-center" style={{ color: '#d97706' }}>{summary.sakit}</td>
-                                <td className="text-center" style={{ color: '#2563eb' }}>{summary.izin}</td>
-                                <td className="text-center" style={{ color: '#e11d48' }}>{summary.alpha}</td>
+                                <td className="text-center stat-h">{summary.hadir}</td>
+                                <td className="text-center stat-t">{summary.terlambat}</td>
+                                <td className="text-center stat-s">{summary.sakit}</td>
+                                <td className="text-center stat-i">{summary.izin}</td>
+                                <td className="text-center stat-a">{summary.alpha}</td>
                                 <td className="text-center">
                                     <span className={`pct-badge ${getPctClass(parseFloat(summary.avg))}`}>{summary.avg}%</span>
                                 </td>
@@ -655,22 +906,56 @@ export default function AttendanceRecap() {
                         </tfoot>
                     </table>
 
-                    {/* SIGNATURES */}
+                    {/* ── KETERANGAN KODE ── */}
+                    <div className="print-legend">
+                        <span className="print-legend-title">Keterangan:</span>
+                        {[
+                            { code: 'H', label: 'Hadir', color: '#059669' },
+                            { code: 'T', label: 'Terlambat', color: '#ea580c' },
+                            { code: 'S', label: 'Sakit', color: '#d97706' },
+                            { code: 'I', label: 'Izin', color: '#2563eb' },
+                            { code: 'A', label: 'Alpha', color: '#e11d48' },
+                        ].map(item => (
+                            <span key={item.code} className="print-legend-item" style={{ color: item.color }}>
+                                <strong>{item.code}</strong> = {item.label}
+                            </span>
+                        ))}
+                        &nbsp;|&nbsp;
+                        <span className="print-legend-item" style={{ color: '#059669' }}>&#9670; ≥90% Sangat Baik</span>
+                        <span className="print-legend-item" style={{ color: '#2563eb' }}>&#9670; 75–89% Cukup</span>
+                        <span className="print-legend-item" style={{ color: '#e11d48' }}>&#9670; &lt;75% Perlu Perhatian</span>
+                    </div>
+
+                    {/* ── SIGNATURES (3 columns) ── */}
                     <div className="print-sig-area">
                         <div className="print-sig-block">
-                            <div className="sig-title">Mengetahui,<br />Kepala Sekolah</div>
+                            <div className="sig-title">Mengetahui,</div>
+                            <div className="sig-subtitle">Kepala Sekolah</div>
+                            <div className="print-sig-space"></div>
                             <div className="print-sig-line"></div>
-                            <div className="print-sig-name">(Nama Terang & Cap Sekolah)</div>
+                            <div className="print-sig-name">(________________________________)</div>
+                            <div className="print-sig-nik">NIP. ________________________________</div>
                         </div>
                         <div className="print-sig-block">
-                            <div className="sig-title">{schoolSettings?.kota || 'Demak'}, {new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}<br />Wali Kelas,</div>
+                            <div className="sig-title">&nbsp;</div>
+                            <div className="sig-subtitle">Wali Kelas</div>
+                            <div className="print-sig-space"></div>
                             <div className="print-sig-line"></div>
-                            <div className="print-sig-name">(Nama Terang Wali Kelas)</div>
+                            <div className="print-sig-name">(________________________________)</div>
+                            <div className="print-sig-nik">NIP. ________________________________</div>
+                        </div>
+                        <div className="print-sig-block" style={{ textAlign: 'right' }}>
+                            <div className="sig-title">{schoolSettings?.kota || 'Demak'},</div>
+                            <div className="sig-subtitle">{new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}</div>
+                            <div className="print-sig-space"></div>
+                            <div className="print-sig-line"></div>
+                            <div className="print-sig-name">(________________________________)</div>
+                            <div className="print-sig-nik">Petugas / Operator</div>
                         </div>
                     </div>
 
                     <div className="print-footer-note">
-                        Dokumen ini dicetak secara otomatis oleh SIAS — Sistem Informasi Absensi Siswa · {new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}
+                        Dokumen ini dicetak secara otomatis oleh <strong>SIAS</strong> — Sistem Informasi Absensi Siswa &nbsp;·&nbsp; {schoolSettings?.nama || 'SMK PPRQ'} &nbsp;·&nbsp; {new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}
                     </div>
                 </div>
             </div>
@@ -784,11 +1069,19 @@ export default function AttendanceRecap() {
                                         <button className={`btn btn-sm rounded-pill px-3 fw-bold ${viewMode === 'detail' ? 'btn-white shadow-sm' : 'btn-link text-muted'}`} onClick={() => setViewMode('detail')}>Detail</button>
                                     </div>
                                 )}
-                                <button className="btn btn-success rounded-pill px-4 fw-bold border-0 d-flex align-items-center gap-2" onClick={handleExportExcel}>
-                                    <FileSpreadsheet size={16} /> Excel
+                                <button
+                                    className="btn btn-success rounded-pill px-4 fw-bold border-0 d-flex align-items-center gap-2"
+                                    onClick={handleExportExcel}
+                                    disabled={exporting}
+                                    style={{ minWidth: 120, transition: 'all 0.2s' }}
+                                >
+                                    {exporting
+                                        ? <><Loader2 size={16} className="spinner-border-sm" style={{ animation: 'spin 1s linear infinite' }} /> Membuat...</>
+                                        : <><FileSpreadsheet size={16} /> Export Excel</>
+                                    }
                                 </button>
                                 <button className="btn btn-danger rounded-pill px-4 fw-bold border-0 d-flex align-items-center gap-2" onClick={handlePrint}>
-                                    <Printer size={16} /> PDF
+                                    <Printer size={16} /> Cetak / PDF
                                 </button>
                             </div>
                         </div>

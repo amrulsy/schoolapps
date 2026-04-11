@@ -32,16 +32,15 @@ class AttendanceController {
         const { id } = req.params;
         const { rfid_uid } = req.body;
 
-        if (!rfid_uid) {
-            return res.status(400).json({ error: 'RFID UID wajib diisi' });
-        }
-
         try {
             await pool.query(
                 'UPDATE siswa SET rfid_uid = ? WHERE id = ?',
-                [rfid_uid, id]
+                [rfid_uid || null, id]
             );
-            res.json({ success: true, message: 'RFID berhasil didaftarkan' });
+            res.json({
+                success: true,
+                message: rfid_uid ? 'RFID berhasil didaftarkan' : 'RFID berhasil dikosongkan'
+            });
         } catch (err) {
             if (err.code === 'ER_DUP_ENTRY') {
                 return res.status(400).json({ error: 'RFID UID sudah terdaftar di siswa lain' });

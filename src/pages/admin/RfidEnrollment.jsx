@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
-import { Search, CreditCard, User, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Search, CreditCard, User, CheckCircle, XCircle, Loader2, Trash2 } from 'lucide-react'
 import { usePagination } from '../../hooks/usePagination'
 import EmptyState from '../../components/EmptyState'
 import api from '../../services/api'
 
 export default function RfidEnrollment({ hideHeader = false }) {
-    const { students, units, addToast } = useApp()
+    const { students, setStudents, units, addToast } = useApp()
     const [search, setSearch] = useState('')
     const [filterKelas, setFilterKelas] = useState('')
     const [enrollModal, setEnrollModal] = useState({ show: false, student: null, rfid: '' })
@@ -37,9 +37,8 @@ export default function RfidEnrollment({ hideHeader = false }) {
             })
             if (data.success) {
                 addToast('success', 'Berhasil', `RFID berhasil didaftarkan untuk ${enrollModal.student.nama}`)
+                setStudents(prev => prev.map(s => s.id === enrollModal.student.id ? { ...s, rfid_uid: enrollModal.rfid } : s))
                 setEnrollModal({ show: false, student: null, rfid: '' })
-                // Refresh local state if needed, but since we use context, we might need to re-fetch
-                // stay on registration page; data will refresh via context
             } else {
                 addToast('danger', 'Gagal', data.error || 'Terjadi kesalahan')
                 setEnrollModal(prev => ({ ...prev, rfid: '' }))
@@ -48,6 +47,23 @@ export default function RfidEnrollment({ hideHeader = false }) {
             console.error('[RFID Enroll Error]', err)
             const errorMsg = err.response?.data?.error || err.message || 'Gagal menghubungi server'
             addToast('danger', 'Error', errorMsg)
+        }
+    }
+
+    const handleClearRfid = async (student) => {
+        if (!window.confirm(`Hapus pendaftaran RFID untuk ${student.nama}?`)) return
+
+        try {
+            const { data } = await api.put(`/students/${student.id}/rfid`, { rfid_uid: '' })
+            if (data.success) {
+                addToast('success', 'Berhasil', `RFID berhasil dikosongkan untuk ${student.nama}`)
+                setStudents(prev => prev.map(s => s.id === student.id ? { ...s, rfid_uid: null } : s))
+            } else {
+                addToast('danger', 'Gagal', data.error || 'Terjadi kesalahan')
+            }
+        } catch (err) {
+            console.error('[RFID Clear Error]', err)
+            addToast('danger', 'Error', 'Gagal menghubungi server')
         }
     }
 
@@ -83,7 +99,7 @@ export default function RfidEnrollment({ hideHeader = false }) {
                             </div>
                         </div>
                         <div className="col-md-4">
-                            <select 
+                            <select
                                 className="form-select py-3 rounded-3 border-light bg-light"
                                 value={filterKelas}
                                 onChange={e => setFilterKelas(e.target.value)}
@@ -133,12 +149,23 @@ export default function RfidEnrollment({ hideHeader = false }) {
                                             )}
                                         </td>
                                         <td className="text-end px-4">
-                                            <button 
-                                                className={`btn btn-sm rounded-pill px-4 ${s.rfid_uid ? 'btn-outline-primary' : 'btn-primary'}`}
-                                                onClick={() => setEnrollModal({ show: true, student: s, rfid: '' })}
-                                            >
-                                                {s.rfid_uid ? 'Ganti Kartu' : 'Daftarkan'}
-                                            </button>
+                                            <div className="d-flex align-items-center justify-content-end gap-2">
+                                                {s.rfid_uid && (
+                                                    <button
+                                                        className="btn btn-sm btn-outline-danger rounded-circle p-2"
+                                                        onClick={() => handleClearRfid(s)}
+                                                        title="Hapus RFID"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className={`btn btn-sm rounded-pill px-4 ${s.rfid_uid ? 'btn-outline-primary' : 'btn-primary'}`}
+                                                    onClick={() => setEnrollModal({ show: true, student: s, rfid: '' })}
+                                                >
+                                                    {s.rfid_uid ? 'Ganti Kartu' : 'Daftarkan'}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -157,7 +184,7 @@ export default function RfidEnrollment({ hideHeader = false }) {
                                 <CreditCard size={64} />
                             </div>
                             <h3 className="fw-black mb-1">Tempelkan Kartu</h3>
-                            <p className="text-muted">Menunggu input dari alat scanner RFID untuk siswa:<br/><strong className="text-primary">{enrollModal.student?.nama}</strong></p>
+                            <p className="text-muted">Menunggu input dari alat scanner RFID untuk siswa:<br /><strong className="text-primary">{enrollModal.student?.nama}</strong></p>
                         </div>
 
                         <form onSubmit={handleEnroll}>
