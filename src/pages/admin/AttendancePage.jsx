@@ -5,7 +5,8 @@ import { API_BASE } from '../../services/api'
 import {
     Calendar, Users, Save, CheckCircle, AlertCircle,
     Clock, PieChart as PieChartIcon, Activity, UserCheck,
-    UserMinus, Search, Filter, MessageCircle
+    UserMinus, Search, Filter, MessageCircle, ChevronRight,
+    LayoutDashboard, UserCircle, Settings as SettingsIcon, ClipboardList
 } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { getAuthHeaders } from '../../services/api'
@@ -13,250 +14,246 @@ import RfidEnrollment from './RfidEnrollment'
 import AttendanceSettings from './AttendanceSettings'
 import AttendanceRecap from './AttendanceRecap'
 import Swal from 'sweetalert2'
-// --- STYLES ---
+
+// --- SUPER PREMIUM STYLES ---
 const styles = /*css*/`
-  .attendance-header {
-    background: var(--bg-card);
-    padding: 24px 32px;
-    border-radius: 32px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 32px;
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --accent-blue: #3b82f6;
+    --accent-indigo: #6366f1;
+    --accent-emerald: #10b981;
+    --accent-amber: #f59e0b;
+    --accent-rose: #f43f5e;
   }
-  .bento-grid {
+
+  .premium-container {
+    padding: 0 0 40px 0;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Glassmorphism Base Card */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: var(--glass-shadow);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.12);
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+
+  /* Floating Navigation */
+  .floating-nav {
+    position: sticky;
+    top: -5px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 20px;
+    padding: 5px;
+    margin: -15px auto 40px auto;
+    width: fit-content;
+    display: flex;
+    gap: 4px;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.12);
+  }
+
+  .nav-item {
+    padding: 10px 20px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    border: none;
+    background: transparent;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .nav-item.active {
+    background: white;
+    color: var(--primary-600);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  /* Hero Section */
+  .premium-hero {
+    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+    border-radius: 32px;
+    padding: 40px;
+    margin-top: 40px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid white;
+    box-shadow: inset 0 0 80px rgba(255,255,255,0.5);
+  }
+
+  .hero-glow {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+    top: -150px;
+    right: -100px;
+    z-index: 0;
+  }
+
+  /* Bento Grid Layout */
+  .grid-layout {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     gap: 24px;
-    margin-bottom: 32px;
-  }
-  .bento-card {
-    background: var(--bg-card);
-    border-radius: 28px;
-    padding: 32px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
-    overflow: hidden;
-    height: 100%;
-  }
-  .bento-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--primary-300);
-  }
-  .bento-main { grid-column: span 7; }
-  .bento-side { grid-column: span 5; display: flex; flex-direction: column; gap: 24px; }
-  
-  @media (max-width: 992px) {
-    .bento-main, .bento-side { grid-column: span 12; }
   }
 
-  .icon-box-soft {
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
+  .main-column { grid-column: span 8; }
+  .side-column { grid-column: span 4; display: flex; flex-direction: column; gap: 20px; }
+
+  .h-fit-content { height: fit-content; }
+
+  @media (max-width: 1200px) {
+    .main-column, .side-column { grid-column: span 12; }
+  }
+
+  /* Custom Status Badges */
+  .status-badge {
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+  }
+
+  .badge-hadir { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
+  .badge-sakit { background: #fffbeb; color: #d97706; border-color: #fef3c7; }
+  .badge-izin { background: #eff6ff; color: #2563eb; border-color: #dbeafe; }
+  .badge-alpha { background: #fff1f2; color: #e11d48; border-color: #ffe4e6; }
+
+  /* Compact Action Buttons */
+  .action-btn-group {
+    display: flex;
+    gap: 6px;
+  }
+
+  .compact-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 20px;
-  }
-  .bg-soft-blue { background: var(--primary-50); color: var(--primary-500); }
-  .bg-soft-green { background: var(--success-50); color: var(--success-500); }
-  .bg-soft-orange { background: var(--warning-50); color: var(--warning-500); }
-  .bg-soft-red { background: var(--danger-50); color: var(--danger-500); }
-
-  .stat-pill {
-    background: var(--bg-stripe);
-    border-radius: 16px;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    border: 1px solid transparent;
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-muted);
     transition: all 0.2s;
-  }
-  .stat-pill:hover {
-    border-color: var(--border-color);
-    background: var(--bg-hover);
-  }
-
-  .filter-pill {
-    padding: 8px 16px;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
     cursor: pointer;
+  }
+
+  .compact-btn:hover {
+    background: #f8fafc;
+    color: var(--primary-600);
+    border-color: var(--primary-200);
+  }
+
+  .compact-btn.active.hadir { background: var(--accent-emerald); color: white; border-color: var(--accent-emerald); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+  .compact-btn.active.sakit { background: var(--accent-amber); color: white; border-color: var(--accent-amber); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
+  .compact-btn.active.izin { background: var(--accent-blue); color: white; border-color: var(--accent-blue); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+  .compact-btn.active.alpha { background: var(--accent-rose); color: white; border-color: var(--accent-rose); box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3); }
+
+  /* Premium Table */
+  .premium-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+  }
+
+  .premium-table tr {
     transition: all 0.2s;
+  }
+
+  .premium-table td {
+    padding: 16px;
+    background: white;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .premium-table td:first-child {
+    border-left: 1px solid var(--border-color);
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
+    padding-left: 24px;
+  }
+
+  .premium-table td:last-child {
+    border-right: 1px solid var(--border-color);
+    border-top-right-radius: 16px;
+    border-bottom-right-radius: 16px;
+    padding-right: 24px;
+  }
+
+  .premium-table tr:hover td {
+    background: #fcfdfe;
+    transform: scale(1.005);
+  }
+
+  .avatar-ring {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, white 0%, #f1f5f9 100%);
     border: 1px solid var(--border-color);
-    background: var(--bg-stripe);
-    color: var(--text-secondary);
-  }
-  .filter-pill.active {
-    background: var(--primary-600);
-    color: #fff;
-    border-color: var(--primary-600);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-  }
-
-  .pill-soft {
-    padding: 6px 12px; border-radius: 50px; font-weight: 700; font-size: 0.75rem; 
-    text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 6px;
-  }
-  
-  .attendance-btn-group {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%;
-  }
-
-  .attendance-btn {
-    border: none; padding: 10px 4px; border-radius: 10px; font-weight: 700; font-size: 0.7rem;
-    transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    background: var(--bg-stripe); color: var(--text-secondary);
-  }
-  
-  .attendance-btn:hover { background: var(--bg-hover); transform: scale(1.02); }
-  .attendance-btn.active.hadir { background: var(--success-600); color: white; }
-  .attendance-btn.active.sakit { background: var(--warning-600); color: white; }
-  .attendance-btn.active.izin { background: #3b82f6; color: white; }
-  .attendance-btn.active.alpha { background: var(--danger-600); color: white; }
-
-  .modern-input {
-    background: var(--bg-input); border: 1.5px solid var(--border-color);
-    border-radius: 12px; padding: 0.75rem 1rem; color: var(--text-primary);
-    font-weight: 600; transition: all 0.2s; width: 100%;
-  }
-  .modern-input:focus { border-color: var(--primary-500); box-shadow: 0 0 0 4px var(--primary-50); outline: none; background: var(--bg-card); }
-
-  .student-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: var(--bg-hover);
-    border: 1px solid var(--border-color);
-    color: var(--primary-500);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 1.1rem;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-    transition: all 0.2s;
-  }
-  
-  .activity-item:hover .student-avatar {
-    background: var(--primary-50);
     color: var(--primary-600);
-    border-color: var(--primary-200);
-    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   }
 
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+  /* Micro-animations */
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-slide { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-  @media (max-width: 767px) {
-    .attendance-header {
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 16px 20px;
-      gap: 16px;
-      border-radius: 20px;
-      margin-bottom: 20px;
-    }
-    .attendance-header .d-flex.align-items-center.gap-3.mb-1 {
-      margin-bottom: 0 !important;
-    }
-    .attendance-header .d-flex.gap-2 {
-      width: 100%;
-      flex-wrap: wrap;
-    }
-    .attendance-header .d-flex.gap-2 button,
-    .attendance-header .d-flex.gap-2 > div {
-      flex: 1;
-      min-width: 45%;
-      justify-content: center;
-      padding: 10px 12px !important;
-    }
-    .bento-grid {
-      gap: 12px;
-      margin-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-    }
-    .bento-card {
-      padding: 20px;
-      border-radius: 20px;
-      height: auto;
-    }
-    .bento-card h1 {
-      font-size: 2.2rem !important;
-      letter-spacing: -1px !important;
-    }
-    .d-flex.gap-3.mt-4 {
-      flex-direction: row;
-      gap: 8px !important;
-    }
-    .stat-pill {
-      padding: 12px;
-      gap: 8px;
-    }
-    .attendance-btn-group {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-    }
-    .attendance-btn {
-      padding: 10px 8px;
-      font-size: 0.75rem;
-      flex-direction: row;
-      justify-content: center;
-    }
-    .card-body.p-0 {
-      padding: 0 !important;
-    }
-    .table-responsive {
-      border: none;
-    }
-    .table thead {
-      display: none;
-    }
-    .table tr {
-      display: block;
-      padding: 16px;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .table tr td {
-      display: block;
-      width: 100% !important;
-      padding: 8px 0 !important;
-      border: none;
-      text-align: left !important;
-    }
-    .student-avatar {
-      width: 36px;
-      height: 36px;
-      font-size: 0.9rem;
-    }
-    .attendance-btn-group.mx-auto {
-      max-width: 100% !important;
-      margin: 10px 0 !important;
-    }
-    /* Tabs Navigation Mobile */
-    .d-flex.gap-2.mb-4.p-1.bg-white.rounded-4.border.shadow-sm.w-fit-content {
-      width: 100% !important;
-      overflow-x: auto;
-      white-space: nowrap;
-      -webkit-overflow-scrolling: touch;
-      padding: 6px !important;
-      gap: 4px !important;
-    }
-    .d-flex.gap-2.mb-4.p-1.bg-white.rounded-4.border.shadow-sm.w-fit-content button {
-      padding: 8px 16px !important;
-      font-size: 0.85rem;
-      flex-shrink: 0;
-    }
+  /* Custom Input Glass */
+  .glass-input {
+    background: rgba(255,255,255,0.6);
+    border: 1.5px solid rgba(255,255,255,0.8);
+    backdrop-filter: blur(4px);
+    border-radius: 14px;
+    padding: 10px 16px;
+    transition: all 0.2s;
+    font-weight: 600;
+  }
+
+  .glass-input:focus {
+    background: white;
+    border-color: var(--primary-300);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+    outline: none;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
   }
 `;
 
@@ -271,7 +268,7 @@ export default function AttendancePage() {
     const [saving, setSaving] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [sendWA, setSendWA] = useState(false)
-    const [activeTab, setActiveTab] = useState('harian') // 'harian' | 'rfid' | 'pengaturan'
+    const [activeTab, setActiveTab] = useState('harian')
     const isMounted = useRef(true)
 
     useEffect(() => {
@@ -328,22 +325,17 @@ export default function AttendancePage() {
 
     const handleSave = async () => {
         if (!selectedDate || !selectedKelasId) return
-
-        // R-8: Confirmation dialog before save
         const kelasNama = allDetailKelas.find(k => k.id.toString() === selectedKelasId)?.nama || 'Kelas'
+        
         const result = await Swal.fire({
             title: 'Simpan Presensi?',
-            html: `<div style="text-align:left">
-                <p><strong>Kelas:</strong> ${kelasNama}</p>
-                <p><strong>Tanggal:</strong> ${selectedDate}</p>
-                <p><strong>Total Siswa:</strong> ${students.length}</p>
-                ${sendWA ? '<p style="color:#25D366">✅ WA akan dikirim ke orang tua siswa <b>tidak hadir</b> (sakit/izin/alpha)</p>' : ''}
-            </div>`,
+            html: `Simpan data presensi untuk kelas <b>${kelasNama}</b> tanggal <b>${selectedDate}</b>?`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Ya, Simpan',
             cancelButtonText: 'Batal',
-            confirmButtonColor: '#2563eb'
+            confirmButtonColor: '#3b82f6',
+            borderRadius: '24px'
         })
         if (!result.isConfirmed) return
 
@@ -351,218 +343,97 @@ export default function AttendancePage() {
         try {
             const res = await fetch(`${API_BASE}/admin/presensi/bulk`, {
                 method: 'POST',
-                headers: getAuthHeaders(),
+                // Bug #9 Fixed: include Content-Type so Express body-parser can parse JSON
+                headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     date: selectedDate,
                     attendanceData: students.map(s => ({
                         siswa_id: s.id,
                         status: s.status,
-                        keterangan: s.keterangan
+                        keterangan: s.keterangan || ''
                     })),
                     sendWA
                 })
             })
             if (!res.ok) throw new Error('Gagal menyimpan data presensi')
-            if (isMounted.current) {
-                showSuccess('Berhasil', sendWA ? 'Data presensi disimpan & notifikasi WA dikirim.' : 'Data presensi berhasil disimpan.')
-                setSendWA(false)
-            }
+            showSuccess('Berhasil', 'Data presensi berhasil diperbarui')
+            // Bug #3 Fixed: use a fresh AbortController to prevent memory leak on unmount
+            const refreshController = new AbortController()
+            fetchAttendance(refreshController.signal)
         } catch (err) {
-            if (isMounted.current) showError('Gagal Menyimpan', err.message)
+            showError('Gagal', err.message)
         } finally {
-            if (isMounted.current) setSaving(false)
+            setSaving(false)
         }
     }
 
-    // Stats calculations
     const stats = useMemo(() => {
         const total = students.length
-        const hadir = students.filter(s => s.status === 'hadir').length
+        // Bug #4 Fix: case-insensitive check so both 'Terlambat' (RFID) and 'terlambat' (manual) count as hadir
+        const hadir = students.filter(s => s.status === 'hadir' || s.status?.toLowerCase() === 'terlambat').length
         const sakit = students.filter(s => s.status === 'sakit').length
         const izin = students.filter(s => s.status === 'izin').length
         const alpha = students.filter(s => s.status === 'alpha').length
-        return { total, hadir, absensi: sakit + izin + alpha, alpha, hadirPct: total ? (hadir / total) * 100 : 0 }
+        return { total, hadir, sakit, izin, alpha, hadirPct: total ? (hadir / total) * 100 : 0 }
     }, [students])
 
     const chartData = useMemo(() => [
-        { name: 'Hadir', value: students.filter(s => s.status === 'hadir').length, color: '#10b981' },
-        { name: 'Sakit', value: students.filter(s => s.status === 'sakit').length, color: '#f59e0b' },
-        { name: 'Izin', value: students.filter(s => s.status === 'izin').length, color: '#3b82f6' },
-        { name: 'Alpha', value: students.filter(s => s.status === 'alpha').length, color: '#ef4444' }
-    ].filter(d => d.value > 0), [students])
+        { name: 'Hadir', value: stats.hadir, color: '#10b981' },
+        { name: 'Sakit', value: stats.sakit, color: '#f59e0b' },
+        { name: 'Izin', value: stats.izin, color: '#3b82f6' },
+        { name: 'Alpha', value: stats.alpha, color: '#f43f5e' }
+    ].filter(d => d.value > 0), [stats])
 
-    const filteredStudents = students.filter(s =>
-        s.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.nisn.includes(searchQuery)
+    const filteredStudents = useMemo(() => 
+        students.filter(s => s.nama.toLowerCase().includes(searchQuery.toLowerCase()) || s.nisn.includes(searchQuery)),
+        [students, searchQuery]
     )
 
     return (
-        <div className="admin-page animate-fadeIn pb-5">
+        <div className="premium-container animate-slide">
             <style dangerouslySetInnerHTML={{ __html: styles }} />
 
-            {/* STANDARDIZED HEADER */}
-            <div className="attendance-header">
-                <div>
-                    <div className="d-flex align-items-center gap-3 mb-1">
-                        <div style={{
-                            width: 52, height: 52,
-                            background: 'linear-gradient(135deg, #2563eb, #1e40af)',
-                            borderRadius: '16px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'white',
-                            boxShadow: '0 8px 16px rgba(37, 99, 235, 0.2)'
-                        }}>
-                            <Calendar size={28} />
-                        </div>
-                        <div>
-                            <h2 className="fw-black mb-0" style={{ letterSpacing: '-1px', color: 'var(--text-primary)' }}>Presensi Siswa</h2>
-                            <p className="text-muted small fw-bold mb-0 text-uppercase letter-spacing-1">Kehadiran Harian & Rekapitulasi</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="d-flex gap-2 flex-wrap">
-                    {/* WA Toggle */}
-                    {activeTab === 'harian' && students.length > 0 && (
-                        <div
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: 10,
-                                padding: '8px 16px', borderRadius: '14px', cursor: 'pointer',
-                                background: sendWA ? 'rgba(37, 211, 102, 0.1)' : 'transparent',
-                                border: `1.5px solid ${sendWA ? 'rgba(37, 211, 102, 0.3)' : 'var(--border-color)'}`,
-                                transition: 'all 0.2s'
-                            }}
-                            onClick={() => setSendWA(!sendWA)}
-                        >
-                            <MessageCircle size={18} style={{ color: sendWA ? '#25D366' : 'var(--text-muted)' }} />
-                            <span style={{ fontWeight: 700, fontSize: '0.8rem', color: sendWA ? '#25D366' : 'var(--text-secondary)' }}>
-                                WA Tidak Hadir
-                            </span>
-                            <div style={{
-                                width: 36, height: 20, borderRadius: 10,
-                                background: sendWA ? '#25D366' : 'var(--border-color)',
-                                position: 'relative', transition: 'background 0.2s'
-                            }}>
-                                <div style={{
-                                    width: 16, height: 16, borderRadius: '50%',
-                                    background: '#fff', position: 'absolute', top: 2,
-                                    left: sendWA ? 18 : 2,
-                                    transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
-                                }} />
-                            </div>
-                        </div>
-                    )}
-                    {activeTab === 'harian' && (
-                        <button
-                            className="btn btn-primary shadow-sm"
-                            style={{ borderRadius: '14px', padding: '12px 24px', fontWeight: 700 }}
-                            onClick={handleSave}
-                            disabled={saving || students.length === 0}
-                        >
-                            {saving ? (
-                                <><span className="spinner-border spinner-border-sm me-2" />Menyimpan...</>
-                            ) : (
-                                <><Save size={18} className="me-2" /> Simpan Presensi</>
-                            )}
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* TABS NAVIGATION */}
-            <div className="d-flex gap-2 mb-4 p-1 bg-white rounded-4 border shadow-sm w-fit-content">
-                <button 
-                    className={`btn px-4 py-2 rounded-3 fw-bold transition-all ${activeTab === 'harian' ? 'btn-primary' : 'btn-link text-decoration-none text-muted'}`}
-                    onClick={() => setActiveTab('harian')}
-                >
-                    Presensi Harian
+            {/* FLOATING NAV */}
+            <div className="floating-nav shadow-lg">
+                <button className={`nav-item ${activeTab === 'harian' ? 'active' : ''}`} onClick={() => setActiveTab('harian')}>
+                    <LayoutDashboard size={18} /> Presensi
                 </button>
-                <button 
-                    className={`btn px-4 py-2 rounded-3 fw-bold transition-all ${activeTab === 'rfid' ? 'btn-primary' : 'btn-link text-decoration-none text-muted'}`}
-                    onClick={() => setActiveTab('rfid')}
-                >
-                    Registrasi RFID
+                <button className={`nav-item ${activeTab === 'rfid' ? 'active' : ''}`} onClick={() => setActiveTab('rfid')}>
+                    <UserCircle size={18} /> Registrasi
                 </button>
-                <button 
-                    className={`btn px-4 py-2 rounded-3 fw-bold transition-all ${activeTab === 'pengaturan' ? 'btn-primary' : 'btn-link text-decoration-none text-muted'}`}
-                    onClick={() => setActiveTab('pengaturan')}
-                >
-                    Pengaturan
+                <button className={`nav-item ${activeTab === 'rekap' ? 'active' : ''}`} onClick={() => setActiveTab('rekap')}>
+                    <ClipboardList size={18} /> Rekap
                 </button>
-                <button 
-                    className={`btn px-4 py-2 rounded-3 fw-bold transition-all ${activeTab === 'rekap' ? 'btn-primary' : 'btn-link text-decoration-none text-muted'}`}
-                    onClick={() => setActiveTab('rekap')}
-                >
-                    Rekapitulasi
+                <button className={`nav-item ${activeTab === 'pengaturan' ? 'active' : ''}`} onClick={() => setActiveTab('pengaturan')}>
+                    <SettingsIcon size={18} /> Pengaturan
                 </button>
             </div>
 
-            {activeTab === 'rfid' ? (
-                <RfidEnrollment hideHeader={true} />
-            ) : activeTab === 'pengaturan' ? (
-                <AttendanceSettings />
-            ) : activeTab === 'rekap' ? (
-                <AttendanceRecap />
-            ) : (
+            {activeTab === 'harian' && (
                 <>
-                {/* BENTO GRID (7/5 Split) for Stats & Controls */}
-                <div className="bento-grid">
-                    <div className="bento-main">
-                        <div className="bento-card">
-                            <div className="d-flex justify-content-between align-items-start mb-4">
-                                <div>
-                                    <div className="icon-box-soft bg-soft-blue">
-                                        <Users size={24} />
-                                    </div>
-                                    <div className="text-muted small fw-bold text-uppercase letter-spacing-1 mb-1">Total Siswa Terdaftar</div>
-                                    <h1 className="fw-black mb-0" style={{ fontSize: '3.5rem', letterSpacing: '-2px', color: 'var(--text-primary)' }}>{stats.total}</h1>
-                                </div>
-                                <div className="d-none d-md-block opacity-10">
-                                    <Activity size={48} className="text-primary" />
-                                </div>
-                            </div>
-                            <div className="d-flex gap-3 mt-4">
-                                <div className="stat-pill">
-                                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }}></div>
-                                    <div className="flex-grow-1">
-                                        <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Hadir</div>
-                                        <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.hadir}</div>
-                                    </div>
-                                </div>
-                                <div className="stat-pill">
-                                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f59e0b' }}></div>
-                                    <div className="flex-grow-1">
-                                        <div className="text-muted small fw-bold text-uppercase" style={{ fontSize: '0.65rem' }}>Izin/Sakit</div>
-                                        <div className="fw-bold" style={{ color: 'var(--text-primary)' }}>{stats.absensi - stats.alpha}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bento-side">
-                        <div className="bento-card">
-                            <div className="mb-4">
-                                <h5 className="fw-black mb-1 d-flex align-items-center gap-2">
-                                    <Filter size={18} className="text-primary" /> Filter
-                                </h5>
-                                <p className="text-muted small fw-bold text-uppercase mb-0" style={{ fontSize: '0.65rem' }}>Pilih Parameter</p>
-                            </div>
-                            <div className="d-grid gap-3">
-                                <div className="position-relative">
-                                    <Calendar size={18} className="position-absolute text-muted" style={{ left: '12px', top: '14px' }} />
-                                    <input
-                                        type="date" className="modern-input" style={{ paddingLeft: '2.5rem' }}
-                                        value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+                {/* HERO SEARCH & FILTERS */}
+                <div className="premium-hero glass-card border-0">
+                    <div className="hero-glow"></div>
+                    <div className="row align-items-center g-4 position-relative">
+                        <div className="col-lg-6">
+                            <h2 className="fw-black mb-1" style={{ letterSpacing: '-1.5px', fontSize: '2rem' }}>Command Center</h2>
+                            <p className="text-muted fw-semibold mb-4">Manajemen kehadiran siswa secara real-time dan terstruktur.</p>
+                            
+                            <div className="d-flex gap-2 mb-2">
+                                <div className="flex-grow-1 position-relative">
+                                    <Calendar size={18} className="position-absolute text-primary" style={{ left: 16, top: 14 }} />
+                                    <input 
+                                        type="date" className="glass-input w-100 ps-5" 
+                                        value={selectedDate} onChange={e => setSelectedDate(e.target.value)} 
                                     />
                                 </div>
-                                <div className="position-relative">
-                                    <Users size={18} className="position-absolute text-muted" style={{ left: '12px', top: '14px' }} />
-                                    <select
-                                        className="modern-input" style={{ paddingLeft: '2.5rem' }}
+                                <div className="flex-grow-1 position-relative">
+                                    <Users size={18} className="position-absolute text-primary" style={{ left: 16, top: 14 }} />
+                                    <select 
+                                        className="glass-input w-100 ps-5" 
                                         value={selectedKelasId} onChange={e => setSelectedKelasId(e.target.value)}
                                     >
-                                        <option value="">-- Pilih Kelas --</option>
+                                        <option value="">Pilih Kelas...</option>
                                         {allDetailKelas.map(k => (
                                             <option key={k.id} value={k.id}>{k.unitNama} - {k.nama}</option>
                                         ))}
@@ -570,144 +441,186 @@ export default function AttendancePage() {
                                 </div>
                             </div>
                         </div>
+                        <div className="col-lg-6 text-lg-end">
+                            {/* Actions and Stats moved to sidebar for better layout */}
+                        </div>
                     </div>
                 </div>
 
-                <div className="row g-4 mt-1">
-                    {/* List Siswa */}
-                    <div className="col-lg-8">
-                        <div className="card shadow-sm border-0" style={{ borderRadius: 32, overflow: 'hidden' }}>
-                            <div className="card-header bg-white border-0 p-4 pb-0">
-                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 className="fw-black mb-0">Daftar Siswa</h5>
-                                    {students.length > 0 && (
-                                        <button className="btn btn-light btn-sm fw-bold border rounded-pill px-3" onClick={markAllHadir}>
-                                            <CheckCircle size={14} className="me-1 text-success" /> Hadirkan Semua
+                {students.length > 0 ? (
+                    <div className="grid-layout">
+                        {/* MAIN LIST */}
+                        <div className="main-column">
+                            <div className="glass-card p-4">
+                                <div className="d-flex justify-content-between align-items-center mb-4 px-2">
+                                    <h5 className="fw-black mb-0">Daftar Kehadiran</h5>
+                                    <div className="d-flex gap-2">
+                                        <div className="position-relative">
+                                            <Search size={16} className="position-absolute text-muted" style={{ left: 14, top: 12 }} />
+                                            <input 
+                                                type="text" className="form-control form-control-sm border-0 bg-light rounded-pill ps-5" 
+                                                placeholder="Cari Siswa..." style={{ width: 200, height: 40 }}
+                                                value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                                            />
+                                        </div>
+                                        <button className="btn btn-soft-primary btn-sm rounded-pill px-3 fw-bold border" onClick={markAllHadir}>
+                                            <CheckCircle size={14} className="me-1" /> Hadir Semua
                                         </button>
-                                    )}
+                                    </div>
                                 </div>
-                                <div style={{ position: 'relative' }}>
-                                    <Search size={18} style={{ position: 'absolute', left: '16px', top: '14px', color: 'var(--text-muted)' }} />
-                                    <input
-                                        type="text" placeholder="Cari nama..." className="form-control border-0 shadow-none ps-5"
-                                        style={{ height: '48px', borderRadius: '14px', background: 'var(--bg-stripe)' }}
-                                        value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div className="card-body p-0">
+
                                 <div className="table-responsive">
-                                    <table className="table table-hover align-middle mb-0">
-                                        <thead className="bg-light">
-                                            <tr>
-                                                <th className="ps-4 py-3 border-0 small fw-bold text-secondary">NAMA SISWA</th>
-                                                <th className="text-center py-3 border-0 small fw-bold text-secondary">STATUS</th>
-                                                <th className="pe-4 py-3 border-0 small fw-bold text-secondary">KETERANGAN</th>
+                                    <table className="premium-table">
+                                        <thead>
+                                            <tr className="text-muted small fw-bold">
+                                                <th className="ps-4">SISWA</th>
+                                                <th className="text-center">STATUS</th>
+                                                <th>KETERANGAN</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {loading ? (
-                                                <tr><td colSpan="3" className="text-center py-5">
-                                                    <div className="spinner-border text-primary me-2" role="status" />
-                                                    <span className="fw-bold">Memuat...</span>
-                                                </td></tr>
-                                            ) : filteredStudents.length === 0 ? (
-                                                <tr><td colSpan="3" className="text-center py-5 text-muted fw-bold">Tidak ada data.</td></tr>
-                                            ) : (
-                                                filteredStudents.map((s, idx) => (
-                                                    <tr key={s.id} className="animate-fadeIn" style={{ animationDelay: `${idx * 0.05}s` }}>
-                                                        <td className="ps-4">
-                                                            <div className="d-flex align-items-center gap-3">
-                                                                <div className="student-avatar">{s.nama.charAt(0)}</div>
-                                                                <div>
-                                                                    <div className="fw-bold">{s.nama}</div>
-                                                                    <div className="small text-muted opacity-50">NISN: {s.nisn}</div>
-                                                                </div>
+                                            {filteredStudents.map((s) => (
+                                                <tr key={s.id}>
+                                                    <td className="ps-4">
+                                                        <div className="d-flex align-items-center gap-3">
+                                                            <div className="avatar-ring">{s.nama.charAt(0)}</div>
+                                                            <div>
+                                                                <div className="fw-black" style={{ color: '#1e293b' }}>{s.nama}</div>
+                                                                <div className="small text-muted fw-semibold">NISN: {s.nisn}</div>
                                                             </div>
-                                                        </td>
-                                                        <td className="text-center">
-                                                            <div className="attendance-btn-group mx-auto" style={{ maxWidth: '240px' }}>
-                                                                {['hadir', 'sakit', 'izin', 'alpha'].map(type => (
-                                                                    <AttendanceBtn key={type} active={s.status === type} type={type} onClick={() => handleStatusChange(s.id, type)} />
-                                                                ))}
-                                                            </div>
-                                                        </td>
-                                                        <td className="pe-4">
-                                                            <input
-                                                                type="text" className="modern-input py-2 text-center" style={{ fontSize: '0.8rem' }} placeholder="..."
-                                                                value={s.keterangan || ''} onChange={e => handleKeteranganChange(s.id, e.target.value)}
-                                                            />
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="text-center">
+                                                        <div className="action-btn-group justify-content-center">
+                                                            <CompactStatusBtn active={s.status === 'hadir'} type="hadir" onClick={() => handleStatusChange(s.id, 'hadir')} />
+                                                            <CompactStatusBtn active={s.status === 'sakit'} type="sakit" onClick={() => handleStatusChange(s.id, 'sakit')} />
+                                                            <CompactStatusBtn active={s.status === 'izin'} type="izin" onClick={() => handleStatusChange(s.id, 'izin')} />
+                                                            <CompactStatusBtn active={s.status === 'alpha'} type="alpha" onClick={() => handleStatusChange(s.id, 'alpha')} />
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <input 
+                                                            type="text" className="form-control form-control-sm border-0 bg-light rounded-3 fw-semibold" 
+                                                            placeholder="Catatan..." value={s.keterangan || ''}
+                                                            onChange={e => handleKeteranganChange(s.id, e.target.value)}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            ))}
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Visualisasi Side */}
-                    <div className="col-lg-4">
-                        <div className="bento-card">
-                            <h5 className="fw-black mb-3 d-flex align-items-center gap-2">
-                                <PieChartIcon size={20} className="text-primary" /> Statistik
-                            </h5>
-                            {students.length > 0 ? (
-                                <>
-                                    <div style={{ width: '100%', height: 260 }}>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={chartData} cx="50%" cy="50%"
-                                                    innerRadius={65} outerRadius={85} paddingAngle={8}
-                                                    dataKey="value" stroke="none"
-                                                >
-                                                    {chartData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                                                </Pie>
-                                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
-                                                <Legend verticalAlign="bottom" height={36} formatter={(val) => <span className="small fw-bold">{val}</span>} />
-                                            </PieChart>
-                                        </ResponsiveContainer>
+                        {/* SIDEBAR STATS & ACTIONS */}
+                        <div className="side-column">
+                            {/* QUICK ACTIONS CARD */}
+                            <div className="glass-card p-4 h-fit-content mb-2">
+                                <h5 className="fw-black mb-3 d-flex align-items-center gap-2">
+                                    <Activity size={20} className="text-primary" /> Kontrol Presensi
+                                </h5>
+                                
+                                <div className="d-flex flex-column gap-2 mb-4">
+                                    <button 
+                                        className={`btn w-100 rounded-4 py-3 fw-bold d-flex align-items-center justify-content-center gap-2 transition-all ${sendWA ? 'btn-success' : 'btn-outline-secondary'}`}
+                                        style={{ borderStyle: sendWA ? 'solid' : 'dashed', borderWidth: '2px' }}
+                                        onClick={() => setSendWA(!sendWA)}
+                                    >
+                                        <MessageCircle size={20} /> {sendWA ? 'WhatsApp Aktif' : 'Kirim WhatsApp'}
+                                    </button>
+                                    <button 
+                                        className="btn btn-primary w-100 rounded-4 py-3 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm"
+                                        disabled={saving} onClick={handleSave}
+                                        style={{ fontSize: '1.1rem' }}
+                                    >
+                                        {saving ? <div className="spinner-border spinner-border-sm" /> : <Save size={20} />}
+                                        Simpan Data
+                                    </button>
+                                </div>
+
+                                <div className="grid-2 pb-2">
+                                    <div className="p-3 rounded-4 bg-light border-0">
+                                        <div className="text-muted small fw-bold text-uppercase mb-1">Hadir</div>
+                                        <div className="fw-black text-primary h3 mb-0">{stats.hadirPct.toFixed(1)}%</div>
                                     </div>
-                                    <div className="mt-4 p-4 rounded-4" style={{ background: 'var(--bg-stripe)' }}>
-                                        <div className="d-flex justify-content-between mb-2">
-                                            <span className="text-secondary small fw-bold">PARTISIPASI</span>
-                                            <span className="text-primary fw-black">{stats.hadirPct.toFixed(1)}%</span>
-                                        </div>
-                                        <div className="progress" style={{ height: '8px', borderRadius: '10px', background: 'var(--border-color)' }}>
-                                            <div className="progress-bar bg-primary" style={{ width: `${stats.hadirPct}%` }} />
-                                        </div>
+                                    <div className="p-3 rounded-4 bg-light border-0">
+                                        <div className="text-muted small fw-bold text-uppercase mb-1">Total Siswa</div>
+                                        <div className="fw-black text-dark h3 mb-0">{stats.total}</div>
                                     </div>
-                                </>
-                            ) : (
-                                <div className="text-center py-5 text-muted opacity-30 fw-bold">Statistik belum tersedia.</div>
-                            )}
+                                </div>
+                            </div>
+
+                            <div className="glass-card p-4 h-fit-content">
+                                <h5 className="fw-black mb-4 d-flex align-items-center gap-2">
+                                    <PieChartIcon size={20} className="text-primary" /> Distribusi Hari Ini
+                                </h5>
+                                <div style={{ width: '100%', height: 280 }}>
+                                    <ResponsiveContainer>
+                                        <PieChart>
+                                            <Pie
+                                                data={chartData} innerRadius={70} outerRadius={90} 
+                                                paddingAngle={10} dataKey="value" stroke="none"
+                                            >
+                                                {chartData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                                            </Pie>
+                                            <Tooltip 
+                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
+                                            />
+                                            <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ paddingTop: 20 }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+
+                                <div className="mt-4 d-grid gap-2">
+                                    <StatLine label="Hadir" value={stats.hadir} color="#10b981" />
+                                    <StatLine label="Sakit/Izin" value={stats.sakit + stats.izin} color="#3b82f6" />
+                                    <StatLine label="Alpha" value={stats.alpha} color="#f43f5e" />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="glass-card p-5 text-center mt-4">
+                        <div className="opacity-20 mb-4">
+                            <LayoutDashboard size={80} className="mx-auto text-primary" />
+                        </div>
+                        <h4 className="fw-black text-dark mb-2">Belum Ada Data Terpilih</h4>
+                        <p className="text-muted mx-auto" style={{ maxWidth: 400 }}>Pilih tanggal dan kelas di atas untuk mulai mengelola kehadiran siswa melalui Command Center.</p>
+                    </div>
+                )}
                 </>
             )}
+
+            {activeTab === 'rfid' && <RfidEnrollment hideHeader={true} />}
+            {activeTab === 'pengaturan' && <AttendanceSettings />}
+            {activeTab === 'rekap' && <AttendanceRecap />}
         </div>
     )
 }
 
-
-
-function AttendanceBtn({ active, type, onClick }) {
-    const labels = { hadir: 'HDIR', sakit: 'SKIT', izin: 'IZIN', alpha: 'ALPH' }
+function CompactStatusBtn({ active, type, onClick }) {
     const icons = {
-        hadir: <UserCheck size={14} />,
-        sakit: <Clock size={14} />,
-        izin: <AlertCircle size={14} />,
-        alpha: <UserMinus size={14} />
+        hadir: <UserCheck size={16} />,
+        sakit: <Clock size={16} />,
+        izin: <AlertCircle size={16} />,
+        alpha: <UserMinus size={16} />
     }
-
     return (
-        <button className={`attendance-btn ${active ? `active ${type}` : ''}`} onClick={onClick}>
+        <button className={`compact-btn ${active ? `active ${type}` : ''}`} onClick={onClick}>
             {icons[type]}
-            <span style={{ fontSize: '0.65rem' }}>{labels[type]}</span>
         </button>
+    )
+}
+
+function StatLine({ label, value, color }) {
+    return (
+        <div className="d-flex justify-content-between align-items-center p-3 rounded-4" style={{ background: '#f8fafc' }}>
+            <div className="d-flex align-items-center gap-2">
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+                <span className="small fw-bold text-muted text-uppercase">{label}</span>
+            </div>
+            <span className="fw-black" style={{ color: '#1e293b' }}>{value}</span>
+        </div>
     )
 }

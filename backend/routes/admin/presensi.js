@@ -70,13 +70,15 @@ router.get('/rekap', async (req, res) => {
         );
 
         if (students.length === 0) return res.json([]);
-
+        // Bug #6: Guard verified — studentIds is guaranteed non-empty here,
+        // preventing "IN ()" SQL syntax error from empty array.
         const studentIds = students.map(s => s.id);
 
         // 2. Get attendance aggregation (R-10: use parameterized IN list)
         const [attendance] = await pool.query(
             `SELECT siswa_id, 
                     SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN status = 'terlambat' THEN 1 ELSE 0 END) as terlambat,
                     SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
                     SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
                     SUM(CASE WHEN status = 'alpha' THEN 1 ELSE 0 END) as alpha
@@ -134,7 +136,8 @@ router.get('/rekap', async (req, res) => {
         const attendanceMap = {};
         attendance.forEach(a => {
             attendanceMap[a.siswa_id] = { 
-                hadir: parseInt(a.hadir) || 0, 
+                hadir: parseInt(a.hadir) || 0,
+                terlambat: parseInt(a.terlambat) || 0,
                 sakit: parseInt(a.sakit) || 0, 
                 izin: parseInt(a.izin) || 0, 
                 alpha: parseInt(a.alpha) || 0 
@@ -142,13 +145,14 @@ router.get('/rekap', async (req, res) => {
         });
 
         const result = students.map(s => {
-            const stats = attendanceMap[s.id] || { hadir: 0, sakit: 0, izin: 0, alpha: 0 };
-            const total = stats.hadir + stats.sakit + stats.izin + stats.alpha;
+            const stats = attendanceMap[s.id] || { hadir: 0, terlambat: 0, sakit: 0, izin: 0, alpha: 0 };
+            const total = stats.hadir + stats.terlambat + stats.sakit + stats.izin + stats.alpha;
             return {
                 ...s,
                 ...stats,
                 total,
-                persentase: total > 0 ? parseFloat(((stats.hadir / total) * 100).toFixed(1)) : 0,
+                // Bug #6 Fix: terlambat dihitung hadir secara fisik, ikut ke persentase kehadiran
+                persentase: total > 0 ? parseFloat((((stats.hadir + stats.terlambat) / total) * 100).toFixed(1)) : 0,
                 details: detailsMap[s.id] || {}
             };
         });
@@ -194,19 +198,19 @@ router.post('/bulk', async (req, res) => {
 
                     if (absentStudents.length === 0) return; // Semua hadir, tidak perlu kirim WA
 
-                    // Ambil nama kelas
-                    const [kelasRows] = await pool.query(
-                        'SELECT k.nama FROM kelas k JOIN siswa s ON s.kelas_id = k.id WHERE s.id = ? LIMIT 1',
-                        [absentStudents[0].siswa_id]
-                    );
-                    const kelasNama = kelasRows[0]?.nama || '';
+                    // Ambil Pengaturan dari Database untuk Template WA
+                    const [settingsRows] = await pool.query('SELECT * FROM attendance_settings');
+                    const settings = {};
+                    settingsRows.forEach(r => { settings[r.key] = r.value });
+                    
+                    if (settings.wa_notification_enabled !== 'true') return;
 
-                    const statusLabel = { sakit: 'Sakit 🤒', izin: 'Izin 📋', alpha: 'Alpha (Tanpa Keterangan) ⚠️' };
+                    const statusLabel = { sakit: 'Sakit', izin: 'Izin', alpha: 'Alpha' };
                     const formattedDate = new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
                     for (const item of absentStudents) {
                         const [siswaRows] = await pool.query('SELECT nama, telp FROM siswa WHERE id = ?', [item.siswa_id]);
-                        const [ortuRows] = await pool.query('SELECT hp, jenis FROM siswa_orangtua WHERE siswa_id = ?', [item.siswa_id]);
+                        const [ortuRows] = await pool.query('SELECT hp FROM siswa_orangtua WHERE siswa_id = ?', [item.siswa_id]);
 
                         const siswa = siswaRows[0];
                         const phoneTargets = [];
@@ -214,7 +218,22 @@ router.post('/bulk', async (req, res) => {
                         ortuRows.forEach(o => { if (o.hp) phoneTargets.push(o.hp); });
 
                         if (phoneTargets.length > 0) {
-                            const message = `*📢 INFORMASI KEHADIRAN*\n*SMK PPRQ - SIAS*\n\nYth. Bapak/Ibu Orang Tua/Wali,\n\nDengan ini kami informasikan bahwa:\n\nNama: *${siswa?.nama || '-'}*\nKelas: *${kelasNama}*\nTanggal: *${formattedDate}*\nStatus: *${statusLabel[item.status] || item.status}*${item.keterangan ? `\nKeterangan: ${item.keterangan}` : ''}\n\nMohon perhatian dan konfirmasi dari Bapak/Ibu.\nTerima kasih. 🙏`;
+                            // Pilih template berdasarkan status
+                            let template = '';
+                            if (item.status === 'sakit') template = settings.wa_template_sakit;
+                            else if (item.status === 'izin') template = settings.wa_template_izin;
+                            else if (item.status === 'alpha') template = settings.wa_template_alfa;
+
+                            // Fallback jika template belum diisi
+                            if (!template) {
+                                template = `*📢 INFORMASI KEHADIRAN*\nNama: *[nama]*\nTanggal: *[tanggal]*\nStatus: *[status]*\nKeterangan: [keterangan]`;
+                            }
+
+                            const message = template
+                                .replace(/\[nama\]/g, siswa?.nama || '-')
+                                .replace(/\[status\]/g, statusLabel[item.status] || item.status)
+                                .replace(/\[tanggal\]/g, formattedDate)
+                                .replace(/\[keterangan\]/g, item.keterangan || '-');
 
                             const uniquePhones = [...new Set(phoneTargets)];
                             for (const phone of uniquePhones) {
@@ -266,36 +285,97 @@ router.get('/stats', async (req, res) => {
         parts.forEach(part => p[part.type] = part.value);
         const today = `${p.year}-${p.month}-${p.day}`;
 
-        // Count from siswa_presensi
+        // Count from siswa_presensi (hadir, terlambat, sakit, izin, alpha)
         const [presensiStats] = await pool.query(`
             SELECT 
                 SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN status = 'terlambat' THEN 1 ELSE 0 END) as terlambat,
                 SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
                 SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
                 SUM(CASE WHEN status = 'alpha' THEN 1 ELSE 0 END) as alpha
             FROM siswa_presensi WHERE tanggal = ?
         `, [today]);
 
-        // Count terlambat from attendances
-        const [terlambatStats] = await pool.query(`
-            SELECT COUNT(*) as terlambat 
-            FROM attendances WHERE tanggal = ? AND status = 'Terlambat'
-        `, [today]);
-
         // Total active students
         const [totalRows] = await pool.query(`SELECT COUNT(*) as total FROM siswa WHERE status = 'aktif'`);
 
         const stats = presensiStats[0] || {};
+        const hadir     = parseInt(stats.hadir)     || 0;
+        const terlambat = parseInt(stats.terlambat) || 0;
+        const sakit     = parseInt(stats.sakit)     || 0;
+        const izin      = parseInt(stats.izin)      || 0;
+        const alpha     = parseInt(stats.alpha)     || 0;
+        const total     = totalRows[0]?.total       || 0;
+
         res.json({
             tanggal: today,
-            total_siswa_aktif: totalRows[0]?.total || 0,
-            hadir: parseInt(stats.hadir) || 0,
-            terlambat: parseInt(terlambatStats[0]?.terlambat) || 0,
-            sakit: parseInt(stats.sakit) || 0,
-            izin: parseInt(stats.izin) || 0,
-            alpha: parseInt(stats.alpha) || 0,
-            belum_absen: (totalRows[0]?.total || 0) - (parseInt(stats.hadir) || 0) - (parseInt(stats.sakit) || 0) - (parseInt(stats.izin) || 0) - (parseInt(stats.alpha) || 0)
+            total_siswa_aktif: total,
+            hadir,
+            terlambat,
+            sakit,
+            izin,
+            alpha,
+            // Fix: terlambat dihitung sudah absen (hadir tapi telat)
+            belum_absen: total - hadir - terlambat - sakit - izin - alpha
         });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/admin/presensi/tap-log
+// Returns last 20 tap events today for the Live Tap Log panel in GateMonitor
+router.get('/tap-log', async (req, res) => {
+    try {
+        const rawNow = new Date();
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Jakarta',
+            year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
+        });
+        const parts = formatter.formatToParts(rawNow);
+        const p = {};
+        parts.forEach(part => p[part.type] = part.value);
+        const today = `${p.year}-${p.month}-${p.day}`;
+
+        const [rows] = await pool.query(`
+            SELECT 
+                a.id,
+                a.jam_masuk,
+                a.jam_pulang,
+                a.status,
+                a.tanggal,
+                s.nama,
+                s.nisn,
+                k.nama as kelas_nama
+            FROM attendances a
+            JOIN siswa s ON a.student_id = s.id
+            LEFT JOIN kelas k ON s.kelas_id = k.id
+            WHERE a.tanggal = ?
+            ORDER BY GREATEST(
+                COALESCE(a.jam_masuk, '1970-01-01'),
+                COALESCE(a.jam_pulang, '1970-01-01')
+            ) DESC
+            LIMIT 20
+        `, [today]);
+
+        const logs = rows.map(r => {
+            const jamMasuk = r.jam_masuk ? new Date(r.jam_masuk).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }) : null;
+            const jamPulang = r.jam_pulang ? new Date(r.jam_pulang).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }) : null;
+
+            return {
+                id: r.id,
+                nama: r.nama,
+                nisn: r.nisn,
+                kelas: r.kelas_nama,
+                status: r.status,           // 'Hadir' | 'Terlambat'
+                jam_masuk: jamMasuk,
+                jam_pulang: jamPulang,
+                // latest event type for the row
+                last_event: r.jam_pulang ? 'pulang' : 'masuk'
+            };
+        });
+
+        res.json(logs);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

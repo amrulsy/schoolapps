@@ -4,153 +4,145 @@ import { useCustomAlert } from '../../hooks/useCustomAlert';
 import { API_BASE, getAuthHeaders } from '../../services/api';
 import { 
     Calendar, Users, FileSpreadsheet, Printer, Search, 
-    Filter, Activity, UserCheck, Clock, AlertCircle, UserMinus 
+    Filter, Activity, UserCheck, Clock, AlertCircle, UserMinus,
+    Download, PieChart, ChevronRight, School
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { useReactToPrint } from 'react-to-print';
 
-// --- STYLES ---
+// --- SUPER PREMIUM STYLES ---
 const styles = /*css*/`
-  .recap-bento-grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 24px;
-    margin-bottom: 24px;
+  .recap-container {
+    padding-bottom: 40px;
+    font-family: 'Inter', sans-serif;
   }
-  .recap-bento-card {
-    background: var(--bg-card);
-    border-radius: 28px;
+
+  /* Glassmorphism Classes (Shared with AttendancePage) */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-input {
+    background: rgba(255,255,255,0.6);
+    border: 1.5px solid rgba(255,255,255,0.8);
+    backdrop-filter: blur(4px);
+    border-radius: 14px;
+    padding: 10px 16px;
+    transition: all 0.2s;
+    font-weight: 600;
+  }
+
+  .glass-input:focus {
+    background: white;
+    border-color: var(--primary-300);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+    outline: none;
+  }
+
+  /* Premium Stat Cards */
+  .vibrant-stat-card {
     padding: 24px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .recap-filter-panel { grid-column: span 12; }
-  .recap-summary-panel { grid-column: span 12; display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px;}
-  
-  .recap-stat-card {
-    flex: 1;
-    min-width: 180px;
-    background: var(--bg-stripe);
-    border-radius: 20px;
-    padding: 20px;
+    border-radius: 24px;
+    background: white;
     border: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     gap: 12px;
+    flex: 1;
+    min-width: 160px;
+    transition: all 0.3s;
   }
 
-  .modern-select, .modern-input {
-    background: var(--bg-input); 
-    border: 1.5px solid var(--border-color);
-    border-radius: 12px; 
-    padding: 0.75rem 1rem; 
-    color: var(--text-primary);
-    font-weight: 600; 
-    transition: all 0.2s; 
-    width: 100%;
-    font-size: 0.9rem;
-  }
-  .modern-select:focus, .modern-input:focus { 
-    border-color: var(--primary-500); 
-    box-shadow: 0 0 0 4px var(--primary-50); 
-    outline: none; 
-    background: var(--bg-card); 
+  .vibrant-stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
   }
 
-  .export-btn {
-    border: none;
-    padding: 10px 20px;
+  .icon-ring {
+    width: 44px;
+    height: 44px;
     border-radius: 14px;
-    font-weight: 700;
-    font-size: 0.85rem;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-    cursor: pointer;
+    justify-content: center;
+    margin-bottom: 4px;
   }
-  .export-btn.excel {
-    background: #10b981;
-    color: white;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-  }
-  .export-btn.excel:hover { background: #059669; transform: translateY(-2px); }
-  
-  .export-btn.pdf {
-    background: #ef4444;
-    color: white;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
-  }
-  .export-btn.pdf:hover { background: #dc2626; transform: translateY(-2px); }
 
-  .recap-table th {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-secondary);
-    font-weight: 800;
-    padding: 16px;
-    background: var(--bg-stripe);
-    border-bottom: 2px solid var(--border-color);
+  /* Premium Table Styling */
+  .premium-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
   }
-  
-  .recap-table td {
+
+  .premium-table th {
+    padding: 12px 16px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+  }
+
+  .premium-table td {
     padding: 16px;
-    vertical-align: middle;
-    font-weight: 600;
-    color: var(--text-primary);
+    background: white;
+    border-top: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
   }
 
-  .badge-stat {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
+  .premium-table td:first-child {
+    border-left: 1px solid var(--border-color);
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
+  }
+
+  .premium-table td:last-child {
+    border-right: 1px solid var(--border-color);
+    border-top-right-radius: 16px;
+    border-bottom-right-radius: 16px;
+  }
+
+  /* Status Badges */
+  .status-badge {
+    padding: 4px 10px;
+    border-radius: 8px;
     font-weight: 800;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
+    min-width: 30px;
+    text-align: center;
   }
-  .badge-hadir { background: var(--success-50); color: var(--success-600); }
-  .badge-sakit { background: var(--warning-50); color: var(--warning-600); }
-  .badge-izin { background: #eff6ff; color: #3b82f6; }
-  .badge-alpha { background: var(--danger-50); color: var(--danger-600); }
-  
-  /* Print Styles */
+  .bg-hadir { background: #ecfdf5; color: #059669; }
+  .bg-terlambat { background: #fff7ed; color: #c2410c; }
+  .bg-sakit { background: #fffbeb; color: #d97706; }
+  .bg-izin { background: #eff6ff; color: #3b82f6; }
+  .bg-alpha { background: #fff1f2; color: #e11d48; }
+
+  @media screen {
+    .print-only { display: none !important; }
+  }
+
   @media print {
-    @page { size: A4 landscape; margin: 15mm; }
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { margin: 1cm; size: landscape; }
     .no-print { display: none !important; }
-    .print-container { padding: 0; margin: 0; background: white; }
-    .print-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-    .print-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
-    .print-table th, .print-table td { border: 1px solid #000; padding: 6px; text-align: center; }
-    .print-table th { background-color: #f3f4f6 !important; font-weight: bold; }
-    .print-table td.text-left { text-align: left; }
+    .print-only { display: block !important; }
+    body { background: white !important; color: black !important; }
+    .glass-card { border: none !important; border-radius: 0; box-shadow: none; background: white; }
+    .print-table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+    .print-table th { background-color: #f1f5f9 !important; color: #1e293b !important; -webkit-print-color-adjust: exact; }
+    .print-table th, .print-table td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 8pt; vertical-align: middle; }
+    .status-badge { border: 1px solid #ddd !important; -webkit-print-color-adjust: exact; }
+    .print-header-line { border-bottom: 3px double #000; margin-bottom: 20px; padding-bottom: 10px; }
   }
 
-  @media (max-width: 768px) {
-    .recap-summary-panel { flex-wrap: wrap; }
-    .recap-stat-card { min-width: calc(50% - 8px); }
-    .filter-row { flex-direction: column; gap: 12px; }
-  }
-
-  .table-container {
-    overflow-x: auto;
-    width: 100%;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-  }
-  
-  .recap-table th.sunday-col {
-    color: var(--danger-500);
-    background: var(--danger-50);
-  }
-  .recap-table td.sunday-col {
-    background: var(--bg-stripe);
-  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
 `;
 
 function getSemesterDates(tahunAjaran, semester) {
@@ -167,22 +159,15 @@ function getMonthDates(yearMonth) {
     const [year, month] = yearMonth.split('-');
     const startDate = `${year}-${month}-01`;
     const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${month}-${lastDay}`;
-    return { start: startDate, end: endDate };
+    return { start: startDate, end: `${year}-${month}-${lastDay}` };
 }
 
 function generateDateRange(start, end) {
     const dates = [];
-    const [sY, sM, sD] = start.split('-');
-    const [eY, eM, eD] = end.split('-');
-    // Gunakan jam 12 siang untuk mencegah pergeseran timezone
-    let current = new Date(parseInt(sY), parseInt(sM) - 1, parseInt(sD), 12, 0, 0); 
-    const last = new Date(parseInt(eY), parseInt(eM) - 1, parseInt(eD), 12, 0, 0);
+    let current = new Date(start + 'T12:00:00');
+    const last = new Date(end + 'T12:00:00');
     while (current <= last) {
-        const y = current.getFullYear();
-        const m = String(current.getMonth() + 1).padStart(2, '0');
-        const d = String(current.getDate()).padStart(2, '0');
-        dates.push(`${y}-${m}-${d}`);
+        dates.push(current.toISOString().split('T')[0]);
         current.setDate(current.getDate() + 1);
     }
     return dates;
@@ -192,24 +177,21 @@ export default function AttendanceRecap() {
     const { units, tahunAjaranList, schoolSettings } = useApp();
     const { showError, showSuccess } = useCustomAlert();
     
-    // Filters
     const [kelasId, setKelasId] = useState('');
-    const [filterMode, setFilterMode] = useState('semester'); // 'semester', 'bulan', 'kustom'
+    const [filterMode, setFilterMode] = useState('semester'); 
     const [selectedTA, setSelectedTA] = useState('');
     const [selectedSemester, setSelectedSemester] = useState('Ganjil');
-    const [selectedBulan, setSelectedBulan] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }).slice(0, 7));
+    const [selectedBulan, setSelectedBulan] = useState(new Date().toISOString().slice(0, 7));
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
     
-    // Data
     const [data, setData] = useState([]);
     const [appliedRange, setAppliedRange] = useState({ start: '', end: '' });
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [viewMode, setViewMode] = useState('rekap'); // 'rekap' | 'detail'
+    const [viewMode, setViewMode] = useState('rekap'); 
 
     const printRef = useRef();
-
     const allDetailKelas = useMemo(() =>
         (units || []).flatMap(u => (u.kelas || []).map(k => ({ ...k, unitNama: u.nama }))),
     [units]);
@@ -220,53 +202,30 @@ export default function AttendanceRecap() {
     }, [tahunAjaranList]);
 
     const handleFetchRecap = async () => {
-        if (!kelasId) {
-            showError('Peringatan', 'Silakan pilih kelas terlebih dahulu');
-            return;
-        }
+        if (!kelasId) return showError('Peringatan', 'Silakan pilih kelas terlebih dahulu');
 
-        let startDate = '';
-        let endDate = '';
-
+        let start = '', end = '';
         if (filterMode === 'semester') {
             const dates = getSemesterDates(selectedTA, selectedSemester);
-            startDate = dates.start;
-            endDate = dates.end;
+            start = dates.start; end = dates.end;
         } else if (filterMode === 'bulan') {
             const dates = getMonthDates(selectedBulan);
-            startDate = dates.start;
-            endDate = dates.end;
+            start = dates.start; end = dates.end;
         } else {
-            startDate = customStart;
-            endDate = customEnd;
+            start = customStart; end = customEnd;
         }
 
-        if (!startDate || !endDate) {
-            showError('Peringatan', 'Rentang tanggal tidak valid');
-            return;
-        }
-
-        if (new Date(startDate) > new Date(endDate)) {
-            showError('Peringatan', 'Tanggal awal tidak boleh lebih dari tanggal akhir');
-            return;
-        }
+        if (!start || !end) return showError('Peringatan', 'Rentang tanggal tidak valid');
 
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/admin/presensi/rekap?kelasId=${kelasId}&startDate=${startDate}&endDate=${endDate}`, {
+            const res = await fetch(`${API_BASE}/admin/presensi/rekap?kelasId=${kelasId}&startDate=${start}&endDate=${end}`, {
                 headers: getAuthHeaders()
             });
-            if (!res.ok) {
-                const errObj = await res.json().catch(() => ({}));
-                throw new Error(errObj.error || 'Gagal mengambil data rekap');
-            }
+            if (!res.ok) throw new Error('Gagal mengambil data rekap');
             const result = await res.json();
             setData(result);
-            if (result.length === 0) {
-                showSuccess('Info', 'Tidak ada data siswa untuk kelas ini');
-            }
-            setAppliedRange({ start: startDate, end: endDate });
-            if (filterMode === 'bulan') setViewMode('rekap'); // Reset to rekap mode after fetch
+            setAppliedRange({ start, end });
         } catch (err) {
             showError('Kesalahan', err.message);
         } finally {
@@ -275,548 +234,499 @@ export default function AttendanceRecap() {
     };
 
     const handleExportExcel = async () => {
-        if (data.length === 0) return showError('Perhatian', 'Tidak ada data untuk diekspor');
-        
-        const dateColumns = generateDateRange(appliedRange.start, appliedRange.end);
-        let periodeText = '';
-        if (filterMode === 'semester') periodeText = `Semester ${selectedSemester} ${selectedTA}`;
-        else if (filterMode === 'bulan') periodeText = `Bulan ${selectedBulan}`;
-        else periodeText = `Tgl ${customStart} sd ${customEnd}`;
-        
-        const kelasNama = allDetailKelas.find(k => k.id.toString() === kelasId)?.nama || 'Unknown';
+        if (data.length === 0) return;
         
         try {
             const workbook = new ExcelJS.Workbook();
-            workbook.creator = 'School Portal SIAS';
-            workbook.created = new Date();
-
-            // ==========================================
-            // SHEET 1: REKAP TOTAL
-            // ==========================================
-            const ws1 = workbook.addWorksheet('Rekap Total', { views: [{ state: 'frozen', xSplit: 3, ySplit: 3 }] });
+            const worksheet = workbook.addWorksheet('Rekap Presensi');
             
-            // Title
-            ws1.mergeCells('A1', 'J1');
-            ws1.getCell('A1').value = 'LAPORAN REKAPITULASI ABSENSI SISWA';
-            ws1.getCell('A1').font = { size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
-            ws1.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
-            ws1.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+            const kelasNama = allDetailKelas.find(k => k.id.toString() === kelasId)?.nama || '-';
+            const unitNama = allDetailKelas.find(k => k.id.toString() === kelasId)?.unitNama || '-';
 
-            ws1.mergeCells('A2', 'J2');
-            ws1.getCell('A2').value = `Kelas: ${kelasNama}  |  Periode: ${periodeText}`;
-            ws1.getCell('A2').font = { size: 11, bold: true, color: { argb: 'FF1E3A8A' } };
-            ws1.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center' };
+            // Title & Info
+            worksheet.addRow(['REKAPITULASI PRESENSI SISWA']);
+            worksheet.addRow([`${unitNama} - ${kelasNama}`]);
+            worksheet.addRow([`Periode: ${appliedRange.start} s/d ${appliedRange.end}`]);
+            worksheet.addRow([]);
 
-            // Headers
-            const headers1 = ['No', 'NISN', 'Nama Siswa', 'Hadir', 'Sakit', 'Izin', 'Alpha', 'Total Efektif', 'Total Hadir', 'Persentase (%)'];
-            const headerRow1 = ws1.addRow(headers1);
+            // Merge titles
+            worksheet.mergeCells('A1:J1');
+            worksheet.mergeCells('A2:J2');
+            worksheet.mergeCells('A3:J3');
             
-            // Style headers
-            headerRow1.eachCell((cell) => {
+            worksheet.getRow(1).font = { bold: true, size: 16, color: { argb: 'FF1E293B' } };
+            worksheet.getRow(1).alignment = { horizontal: 'center' };
+            worksheet.getRow(2).font = { bold: true, size: 12, color: { argb: 'FF475569' } };
+            worksheet.getRow(2).alignment = { horizontal: 'center' };
+            worksheet.getRow(3).font = { italic: true, size: 10, color: { argb: 'FF64748B' } };
+            worksheet.getRow(3).alignment = { horizontal: 'center' };
+
+            // Header Row
+            const headers = ['No', 'NISN', 'Nama Siswa'];
+            
+            // Add Daily Columns if in Detail View
+            const isDetail = viewMode === 'detail' && uiDateColumns.length > 0;
+            if (isDetail) {
+                uiDateColumns.forEach(d => headers.push(d.split('-')[2]));
+            }
+            
+            // H=Hadir, T=Terlambat, S=Sakit, I=Izin, A=Alpha
+            headers.push('H', 'T', 'S', 'I', 'A', 'Total', '%');
+
+            const headerRow = worksheet.addRow(headers);
+            headerRow.height = 25;
+            headerRow.eachCell((cell) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF1E3A8A' } // Deep Blue
+                };
                 cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
-                cell.alignment = { vertical: 'middle', horizontal: 'center' };
-                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border = {
+                    top: { style: 'thin' }, left: { style: 'thin' },
+                    bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
             });
-
-            // Columns width
-            ws1.columns = [
-                { width: 5 }, { width: 15 }, { width: 35 },
-                { width: 10 }, { width: 10 }, { width: 10 }, { width: 10 },
-                { width: 15 }, { width: 15 }, { width: 15 }
-            ];
 
             // Data Rows
-            data.forEach((s, idx) => {
-                const row = ws1.addRow([
-                    idx + 1, s.nisn, s.nama, s.hadir, s.sakit, s.izin, s.alpha, s.total, s.hadir, s.persentase + '%'
-                ]);
-                row.eachCell((cell, colNumber) => {
-                    cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-                    if (colNumber > 3) cell.alignment = { horizontal: 'center' };
-                    
-                    // Highlight low attendance (<80%)
-                    if (colNumber === 10 && s.persentase < 80) {
-                        cell.font = { color: { argb: 'FFDC2626' }, bold: true };
-                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
-                    }
-                });
-            });
-
-            // ==========================================
-            // SHEET 2: DETAIL HARIAN (MATRIKS)
-            // ==========================================
-            const ws2 = workbook.addWorksheet('Detail Harian', { views: [{ state: 'frozen', xSplit: 3, ySplit: 3 }] });
-
-            // Title
-            const lastColLetter = ws2.getColumn(3 + dateColumns.length + 1).letter; 
-            ws2.mergeCells(`A1:${lastColLetter}1`);
-            ws2.getCell('A1').value = 'MATRIKS KEHADIRAN HARIAN SISWA';
-            ws2.getCell('A1').font = { size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
-            ws2.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
-            ws2.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
-
-            ws2.mergeCells(`A2:${lastColLetter}2`);
-            ws2.getCell('A2').value = `Kelas: ${kelasNama}  |  Periode: ${periodeText}`;
-            ws2.getCell('A2').font = { size: 11, bold: true, color: { argb: 'FF1E3A8A' } };
-            ws2.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center' };
-
-            // Headers
-            const headers2 = ['No', 'NISN', 'Nama Siswa'];
-            dateColumns.forEach(d => headers2.push(dateRangeLabel(d, appliedRange.start, appliedRange.end)));
-            headers2.push('Total H');
-
-            const headerRow2 = ws2.addRow(headers2);
-            headerRow2.eachCell((cell) => {
-                const isDateHeader = cell.col > 3 && cell.col <= 3 + dateColumns.length;
-                let bgArgb = 'FF3B82F6'; // Default Blue
-                
-                if (isDateHeader) {
-                    const dateStr = dateColumns[cell.col - 4];
-                    if (new Date(dateStr).getDay() === 0) bgArgb = 'FFEF4444'; // Red for Sundays
-                }
-
-                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
-                cell.alignment = { vertical: 'middle', horizontal: 'center', textRotation: isDateHeader ? 90 : 0 };
-                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-            });
-
-            // Columns width
-            const ws2Cols = [{ width: 5 }, { width: 15 }, { width: 35 }];
-            dateColumns.forEach(() => ws2Cols.push({ width: 6 }));
-            ws2Cols.push({ width: 10 });
-            ws2.columns = ws2Cols;
-
-            // Row Height for vertical text
-            headerRow2.height = 40;
-
-            // Data Rows
-            data.forEach((s, idx) => {
+            filteredData.forEach((s, idx) => {
                 const rowData = [idx + 1, s.nisn, s.nama];
-                dateColumns.forEach(date => {
-                    const rawStatusObj = s.details && s.details[date];
-                    rowData.push(rawStatusObj ? parseStatus(rawStatusObj.status) : '');
-                });
-                rowData.push(s.hadir);
                 
-                const row = ws2.addRow(rowData);
+                if (isDetail) {
+                    uiDateColumns.forEach(d => {
+                        const status = s.details?.[d]?.status;
+                        const code = status === 'hadir' ? 'H' : status === 'terlambat' ? 'T' : status === 'sakit' ? 'S' : status === 'izin' ? 'I' : status === 'alpha' ? 'A' : '-';
+                        rowData.push(code);
+                    });
+                }
+                
+                rowData.push(s.hadir, s.terlambat, s.sakit, s.izin, s.alpha, s.total, String(s.persentase) + '%');
+                
+                const row = worksheet.addRow(rowData);
                 row.eachCell((cell, colNumber) => {
-                    cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
-                    if (colNumber > 3) cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, 
+                        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, 
+                        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+                    };
                     
-                    // Status Color Coding
-                    if (colNumber > 3 && colNumber <= 3 + dateColumns.length) {
-                        const dateStr = dateColumns[colNumber - 4];
-                        const isSunday = new Date(dateStr).getDay() === 0;
+                    // Center alignment for code/stats columns
+                    if (colNumber >= 4) cell.alignment = { horizontal: 'center' };
 
+                    // Conditional Formatting for Status Codes (In Detail View)
+                    if (isDetail && colNumber > 3 && colNumber < 4 + uiDateColumns.length) {
                         const val = cell.value;
-                        if (val === 'H') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4EA' } }; cell.font = { color: { argb: 'FF16A34A' }, bold: true }; }
-                        else if (val === 'S') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF9C3' } }; cell.font = { color: { argb: 'FFCA8A04' }, bold: true }; }
-                        else if (val === 'I') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } }; cell.font = { color: { argb: 'FF2563EB' }, bold: true }; }
-                        else if (val === 'A') { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } }; cell.font = { color: { argb: 'FFDC2626' }, bold: true }; }
-                        else if (isSunday) { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } }; } // Light Gray for Empty Sundays
-                        
-                        // Set comment Note for timing (R-17: show masuk + pulang)
-                        const rawStatusObj = s.details && s.details[dateStr];
-                        if (rawStatusObj) {
-                            let noteLines = [];
-                            if (rawStatusObj.jam && rawStatusObj.jam !== '-') noteLines.push(`Masuk: ${rawStatusObj.jam}`);
-                            if (rawStatusObj.jam_pulang && rawStatusObj.jam_pulang !== '-') noteLines.push(`Pulang: ${rawStatusObj.jam_pulang}`);
-                            if (noteLines.length > 0) cell.note = noteLines.join('\n');
-                        }
+                        if (val === 'H') cell.font = { color: { argb: 'FF059669' }, bold: true };
+                        if (val === 'T') cell.font = { color: { argb: 'FFF97316' }, bold: true };
+                        if (val === 'S') cell.font = { color: { argb: 'FFD97706' }, bold: true };
+                        if (val === 'I') cell.font = { color: { argb: 'FF2563EB' }, bold: true };
+                        if (val === 'A') cell.font = { color: { argb: 'FFE11D48' }, bold: true };
                     }
                 });
             });
 
-            // Trigger Download
+            // Summary Footer
+            const lastDataCol = 3 + (isDetail ? uiDateColumns.length : 0);
+            const footerRow = worksheet.addRow([]);
+            footerRow.getCell(3).value = 'TOTAL KESELURUHAN';
+            footerRow.getCell(3).font = { bold: true };
+            footerRow.getCell(3).alignment = { horizontal: 'right' };
+
+            const metrics = ['hadir', 'terlambat', 'sakit', 'izin', 'alpha', 'total'];
+            metrics.forEach((m, i) => {
+                const colIdx = lastDataCol + i + 1;
+                const totalVal = data.reduce((sum, x) => sum + (x[m] || 0), 0);
+                footerRow.getCell(colIdx).value = totalVal;
+                footerRow.getCell(colIdx).font = { bold: true };
+                footerRow.getCell(colIdx).alignment = { horizontal: 'center' };
+                footerRow.getCell(colIdx).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+                footerRow.getCell(colIdx).border = {
+                    top: { style: 'thin' }, left: { style: 'thin' },
+                    bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
+            });
+
+            // Column Widths
+            worksheet.getColumn(1).width = 6;
+            worksheet.getColumn(2).width = 18;
+            worksheet.getColumn(3).width = 38;
+            
+            // Auto width for date columns
+            if (isDetail) {
+                for (let i = 4; i < 4 + uiDateColumns.length; i++) {
+                    worksheet.getColumn(i).width = 4.5;
+                }
+            }
+
+            // Generate File
             const buffer = await workbook.xlsx.writeBuffer();
             const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Rekap_Absensi_Kelas_${kelasNama}_${periodeText.replace(/\//g, '-')}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showSuccess('Berhasil', 'File Excel berhasil diunduh');
-        } catch (error) {
-            console.error(error);
-            showError('Gagal Export', 'Terjadi kesalahan saat membuat file Excel');
-        }
-    };
-
-    const dateRangeLabel = (dateStr, start, end) => {
-        const spanDays = (new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24);
-        if (spanDays <= 31) {
-            return parseInt(dateStr.split('-')[2], 10).toString(); // Hanya tanggal (1-31)
-        }
-        return `${dateStr.split('-')[2]}/${dateStr.split('-')[1]}`; // DD/MM (contoh: 01/07)
-    };
-
-    const parseStatus = (str) => {
-        if (!str) return '';
-        switch(str.toLowerCase()) {
-            case 'hadir': return 'H';
-            case 'sakit': return 'S';
-            case 'izin': return 'I';
-            case 'alpha': return 'A';
-            default: return '';
+            const url = window.URL.createObjectURL(blob);
+            
+            const cleanKelas = (kelasNama || 'Data').replace(/[^a-z0-9]/gi, '');
+            const safeFileName = `Rekap_${viewMode}_${cleanKelas}_${(appliedRange.start || '').replace(/-/g, '')}.xlsx`;
+            
+            const anchor = document.createElement('a');
+            anchor.style.display = 'none';
+            anchor.href = url;
+            anchor.download = safeFileName;
+            
+            document.body.appendChild(anchor);
+            
+            // Show alert BEFORE trigger to avoid focus steal during download
+            showSuccess('Berhasil', 'Hampir selesai! File Excel sedang diunduh...');
+            
+            setTimeout(() => {
+                anchor.click();
+                document.body.removeChild(anchor);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+        } catch (err) {
+            console.error(err);
+            showError('Kesalahan', 'Gagal membuat file Excel: ' + err.message);
         }
     };
 
     const handlePrint = useReactToPrint({
-        content: () => printRef.current,
-        documentTitle: 'Rekap Absensi Siswa',
+        contentRef: printRef,
+        documentTitle: `Rekap_Presensi_${kelasId}`,
     });
-
-    const filteredData = useMemo(() => 
-        data.filter(s => s.nama.toLowerCase().includes(searchQuery.toLowerCase()) || s.nisn.includes(searchQuery)),
-    [data, searchQuery]);
 
     const summary = useMemo(() => {
         if (data.length === 0) return { hadir: 0, sakit: 0, izin: 0, alpha: 0, avg: 0 };
-        const totalSakit = data.reduce((sum, s) => sum + s.sakit, 0);
-        const totalIzin = data.reduce((sum, s) => sum + s.izin, 0);
-        const totalAlpha = data.reduce((sum, s) => sum + s.alpha, 0);
-        const totalHadir = data.reduce((sum, s) => sum + s.hadir, 0);
-        const totalDays = data.reduce((sum, s) => sum + s.total, 0);
-        const avg = totalDays > 0 ? ((totalHadir / totalDays) * 100).toFixed(1) : 0;
-        return { hadir: totalHadir, sakit: totalSakit, izin: totalIzin, alpha: totalAlpha, avg };
+        const h = data.reduce((s, x) => s + x.hadir, 0);
+        const tl = data.reduce((s, x) => s + (x.terlambat || 0), 0);
+        const sl = data.reduce((s, x) => s + x.sakit, 0);
+        const iz = data.reduce((s, x) => s + x.izin, 0);
+        const al = data.reduce((s, x) => s + x.alpha, 0);
+        const total = data.reduce((s, x) => s + x.total, 0);
+        return { hadir: h, terlambat: tl, sakit: sl, izin: iz, alpha: al, avg: total ? ((h / total) * 100).toFixed(1) : 0 };
     }, [data]);
-
-    const getFilterLabel = () => {
-        if (filterMode === 'semester') return `Semester ${selectedSemester} TA ${selectedTA}`;
-        if (filterMode === 'bulan') return `Bulan ${selectedBulan}`;
-        return `${customStart} s/d ${customEnd}`;
-    };
 
     const uiDateColumns = useMemo(() => {
         if (!appliedRange.start || !appliedRange.end) return [];
-        const spanDays = (new Date(appliedRange.end) - new Date(appliedRange.start)) / (1000 * 60 * 60 * 24);
-        if (spanDays > 31) return []; // Terlalu lebar untuk web UI, sembunyikan matriks
-        return generateDateRange(appliedRange.start, appliedRange.end);
+        const diff = (new Date(appliedRange.end) - new Date(appliedRange.start)) / 86400000;
+        // Increase limit to 200 days to support full semester matrix
+        return diff <= 200 ? generateDateRange(appliedRange.start, appliedRange.end) : [];
     }, [appliedRange]);
 
-    const kelasObj = allDetailKelas.find(k => k.id.toString() === kelasId);
+    const filteredData = data.filter(s => s.nama.toLowerCase().includes(searchQuery.toLowerCase()) || s.nisn.includes(searchQuery));
 
     return (
-        <div className="recap-container animate-fadeIn">
+        <div className="recap-container animate-fade">
             <style dangerouslySetInnerHTML={{ __html: styles }} />
 
-            {/* Hidden Print Container */}
-            <div style={{ display: 'none' }}>
-                <div ref={printRef} className="print-container">
-                    <div className="print-header">
-                        <h2>{schoolSettings?.namaSekolah || 'REKAPITULASI ABSENSI SISWA'}</h2>
-                        <p>{schoolSettings?.alamat || ''}</p>
-                        <h3 style={{ marginTop: '10px' }}>REKAP KEHADIRAN SISWA</h3>
-                        <p>Kelas: {kelasObj ? `${kelasObj.unitNama} - ${kelasObj.nama}` : '-'}</p>
-                        <p>Periode: {getFilterLabel()}</p>
+            {/* PRINT AREA (Hidden on screen, shown in PDF) */}
+            <div className="print-only">
+                <div ref={printRef} className="p-5" style={{ color: '#000', backgroundColor: '#fff' }}>
+                    {/* KOP SURAT / PROFESSIONAL HEADER */}
+                    <div className="print-header-line d-flex align-items-center gap-4">
+                        <div style={{ width: 80, height: 80, background: '#f1f5f9', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0' }}>
+                           <School size={40} className="text-muted" />
+                        </div>
+                        <div className="flex-grow-1 text-center pr-5">
+                            <h2 className="fw-black mb-0" style={{ letterSpacing: '1px' }}>{schoolSettings?.nama?.toUpperCase() || 'SIAS SMK PPRQ'}</h2>
+                            <p className="mb-0 text-muted small">{schoolSettings?.alamat || 'Alamat Sekolah Belum Diatur'}</p>
+                            <p className="mb-0 fw-bold small">Laporan Rekapitulasi Presensi Siswa</p>
+                        </div>
                     </div>
+
+                    {/* REPORT METADATA */}
+                    <div className="row mt-4 mb-2 small">
+                        <div className="col-4">
+                            <div className="mb-1 text-muted">Kelas / Program:</div>
+                            <div className="fw-bold">{allDetailKelas.find(k => k.id.toString() === kelasId)?.unitNama} - {allDetailKelas.find(k => k.id.toString() === kelasId)?.nama}</div>
+                        </div>
+                        <div className="col-4 text-center">
+                            <div className="mb-1 text-muted">Periode Laporan:</div>
+                            <div className="fw-bold">{appliedRange.start} s/d {appliedRange.end}</div>
+                        </div>
+                        <div className="col-4 text-end">
+                            <div className="mb-1 text-muted">Tanggal Cetak:</div>
+                            <div className="fw-bold">{new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}</div>
+                        </div>
+                    </div>
+
+                    {/* ATTENDANCE SNAPSHOT (Summary Cards for Print) */}
+                    <div className="d-flex gap-3 mt-4 mb-4">
+                        {[
+                            { label: 'Hadir', value: summary.hadir, color: '#059669' },
+                            { label: 'Terlambat', value: summary.terlambat, color: '#d97706' },
+                            { label: 'Sakit', value: summary.sakit, color: '#b45309' },
+                            { label: 'Izin', value: summary.izin, color: '#2563eb' },
+                            { label: 'Alpha', value: summary.alpha, color: '#dc2626' },
+                            { label: 'Avg %', value: summary.avg + '%', color: '#1e293b' }
+                        ].map((stat, i) => (
+                            <div key={i} className="p-2 flex-grow-1 border rounded" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+                                <div className="small text-muted mb-0" style={{ fontSize: '0.65rem' }}>{stat.label.toUpperCase()}</div>
+                                <div className="fw-bold" style={{ color: stat.color }}>{stat.value}</div>
+                            </div>
+                        ))}
+                    </div>
+
                     <table className="print-table">
                         <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>NISN</th>
-                                <th className="text-left">Nama Siswa</th>
-                                <th>Hadir</th>
-                                <th>Sakit</th>
-                                <th>Izin</th>
-                                <th>Alpha</th>
-                                <th>Total Efektif</th>
-                                <th>Persentase</th>
+                            <tr style={{ backgroundColor: '#f1f5f9' }}>
+                                <th style={{ width: 30 }}>No</th>
+                                <th style={{ width: 100 }}>NISN</th>
+                                <th style={{ textAlign: 'left' }}>Nama Siswa</th>
+                                {viewMode === 'detail' && uiDateColumns.map(d => (
+                                    <th key={d} style={{ width: 25, textAlign: 'center' }}>{d.split('-')[2]}</th>
+                                ))}
+                                <th style={{ width: 35 }}>H</th>
+                                <th style={{ width: 35 }}>T</th>
+                                <th style={{ width: 35 }}>S</th>
+                                <th style={{ width: 35 }}>I</th>
+                                <th style={{ width: 35 }}>A</th>
+                                <th style={{ width: 45 }}>%</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {data.map((s, idx) => (
-                                <tr key={s.id}>
-                                    <td>{idx + 1}</td>
-                                    <td>{s.nisn}</td>
-                                    <td className="text-left">{s.nama}</td>
-                                    <td>{s.hadir}</td>
-                                    <td>{s.sakit}</td>
-                                    <td>{s.izin}</td>
-                                    <td>{s.alpha}</td>
-                                    <td>{s.total}</td>
-                                    <td>{s.persentase}%</td>
+                            {filteredData.map((s, idx) => (
+                                <tr key={idx}>
+                                    <td className="text-center">{idx + 1}</td>
+                                    <td className="text-center">{s.nisn}</td>
+                                    <td>{s.nama}</td>
+                                    {viewMode === 'detail' && uiDateColumns.map(d => {
+                                        const status = s.details?.[d]?.status;
+                                        const code = status === 'hadir' ? 'H' : status === 'terlambat' ? 'T' : status === 'sakit' ? 'S' : status === 'izin' ? 'I' : status === 'alpha' ? 'A' : '-';
+                                        return (
+                                            <td key={d} className="text-center" style={{ 
+                                                fontSize: '7pt', 
+                                                color: code === 'A' ? 'red' : code === 'T' ? 'orange' : 'inherit',
+                                                fontWeight: code !== '-' ? 'bold' : 'normal'
+                                            }}>
+                                                {code}
+                                            </td>
+                                        )
+                                    })}
+                                    <td className="text-center fw-bold">{s.hadir}</td>
+                                    <td className="text-center fw-bold">{s.terlambat || 0}</td>
+                                    <td className="text-center fw-bold">{s.sakit}</td>
+                                    <td className="text-center fw-bold">{s.izin}</td>
+                                    <td className="text-center fw-bold text-danger">{s.alpha}</td>
+                                    <td className="text-center fw-bold">{s.persentase}%</td>
                                 </tr>
                             ))}
-                            {data.length === 0 && (
-                                <tr>
-                                    <td colSpan="9">Tidak ada data</td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
+
+                    {/* SIGNATURE SECTION */}
+                    <div className="mt-5 pt-3" style={{ pageBreakInside: 'avoid' }}>
+                        <div className="row">
+                            <div className="col-4">
+                                <p className="mb-0">Mengetahui,</p>
+                                <p className="mb-5 pb-3">Kepala Sekolah</p>
+                                <div className="border-bottom w-75 mt-4" style={{ borderBottom: '1px solid black !important' }}></div>
+                                <p className="small text-muted mt-1">(Nama Terang & Cap Sekolah)</p>
+                            </div>
+                            <div className="col-4"></div>
+                            <div className="col-4 text-end">
+                                <p className="mb-0">{schoolSettings?.kota || 'Demak'}, {new Date().toLocaleDateString('id-ID', { dateStyle: 'long' })}</p>
+                                <p className="mb-5 pb-3">Wali Kelas,</p>
+                                <div className="border-bottom w-75 ms-auto mt-4" style={{ borderBottom: '1px solid black !important' }}></div>
+                                <p className="small text-muted mt-1">(Nama Terang Wali Kelas)</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="recap-bento-grid">
-                {/* Filter Panel */}
-                <div className="recap-bento-card recap-filter-panel">
-                    <div className="d-flex align-items-center gap-2 mb-4">
-                        <Filter size={20} className="text-primary" />
-                        <h5 className="fw-black mb-0">Filter Rekapitulasi</h5>
+            {/* FILTER PANEL */}
+            <div className="glass-card p-4 mb-4">
+                <div className="d-flex align-items-center gap-2 mb-4">
+                    <div className="icon-ring bg-primary text-white mb-0" style={{ width: 32, height: 32 }}>
+                        <Filter size={18} />
                     </div>
-                    <div className="d-flex gap-3 filter-row">
-                        <div style={{ flex: 1 }}>
-                            <label className="small fw-bold text-muted mb-2">Kelas</label>
-                            <select className="modern-select" value={kelasId} onChange={e => setKelasId(e.target.value)}>
-                                <option value="">-- Pilih Kelas --</option>
-                                {allDetailKelas.map(k => (
-                                    <option key={k.id} value={k.id}>{k.unitNama} - {k.nama}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <label className="small fw-bold text-muted mb-2">Mode Rentang Waktu</label>
-                            <select className="modern-select" value={filterMode} onChange={e => setFilterMode(e.target.value)}>
-                                <option value="semester">Per Semester</option>
-                                <option value="bulan">Per Bulan</option>
-                                <option value="kustom">Kustom Tanggal</option>
-                            </select>
-                        </div>
-                        
-                        {/* Dynamic Inputs based on filterMode */}
-                        {filterMode === 'semester' && (
-                            <>
-                                <div style={{ flex: 1 }}>
-                                    <label className="small fw-bold text-muted mb-2">Tahun Ajaran</label>
-                                    <select className="modern-select" value={selectedTA} onChange={e => setSelectedTA(e.target.value)}>
-                                        <option value="">-- Pilih TA --</option>
-                                        {tahunAjaranList?.map(t => (
-                                            <option key={t.id} value={t.tahun}>{t.tahun}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <label className="small fw-bold text-muted mb-2">Semester</label>
-                                    <select className="modern-select" value={selectedSemester} onChange={e => setSelectedSemester(e.target.value)}>
-                                        <option value="Ganjil">Ganjil (Jul - Des)</option>
-                                        <option value="Genap">Genap (Jan - Jun)</option>
-                                    </select>
-                                </div>
-                            </>
-                        )}
+                    <h5 className="fw-black mb-0">Parameter Rekapitulasi</h5>
+                </div>
+                
+                <div className="row g-3">
+                    <div className="col-md-3">
+                        <label className="small fw-bold text-muted mb-2">Kelas</label>
+                        <select className="glass-input w-100" value={kelasId} onChange={e => setKelasId(e.target.value)}>
+                            <option value="">Pilih Kelas...</option>
+                            {allDetailKelas.map(k => <option key={k.id} value={k.id}>{k.unitNama} - {k.nama}</option>)}
+                        </select>
+                    </div>
+                    <div className="col-md-2">
+                        <label className="small fw-bold text-muted mb-2">Mode</label>
+                        <select className="glass-input w-100" value={filterMode} onChange={e => setFilterMode(e.target.value)}>
+                            <option value="semester">Semester</option>
+                            <option value="bulan">Bulan</option>
+                            <option value="kustom">Kustom</option>
+                        </select>
+                    </div>
 
-                        {filterMode === 'bulan' && (
-                            <div style={{ flex: 2 }}>
-                                <label className="small fw-bold text-muted mb-2">Pilih Bulan</label>
-                                <input type="month" className="modern-input" value={selectedBulan} onChange={e => setSelectedBulan(e.target.value)} />
+                    {filterMode === 'semester' && (
+                        <>
+                            <div className="col-md-2">
+                                <label className="small fw-bold text-muted mb-2">Tahun Ajaran</label>
+                                <select className="glass-input w-100" value={selectedTA} onChange={e => setSelectedTA(e.target.value)}>
+                                    {tahunAjaranList?.map(t => <option key={t.id} value={t.tahun}>{t.tahun}</option>)}
+                                </select>
                             </div>
-                        )}
+                            <div className="col-md-3">
+                                <label className="small fw-bold text-muted mb-2">Semester</label>
+                                <select className="glass-input w-100" value={selectedSemester} onChange={e => setSelectedSemester(e.target.value)}>
+                                    <option value="Ganjil">Ganjil (Jul - Des)</option>
+                                    <option value="Genap">Genap (Jan - Jun)</option>
+                                </select>
+                            </div>
+                        </>
+                    )}
 
-                        {filterMode === 'kustom' && (
-                            <>
-                                <div style={{ flex: 1 }}>
-                                    <label className="small fw-bold text-muted mb-2">Dari Tanggal</label>
-                                    <input type="date" className="modern-input" value={customStart} onChange={e => setCustomStart(e.target.value)} />
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <label className="small fw-bold text-muted mb-2">Sampai Tanggal</label>
-                                    <input type="date" className="modern-input" value={customEnd} onChange={e => setCustomEnd(e.target.value)} />
-                                </div>
-                            </>
-                        )}
+                    {filterMode === 'bulan' && (
+                        <div className="col-md-5">
+                            <label className="small fw-bold text-muted mb-2">Pilih Bulan</label>
+                            <input type="month" className="glass-input w-100" value={selectedBulan} onChange={e => setSelectedBulan(e.target.value)} />
+                        </div>
+                    )}
 
-                        <div className="d-flex align-items-end">
-                            <button className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: 700 }} onClick={handleFetchRecap} disabled={loading}>
-                                {loading ? 'Memuat...' : 'Terapkan'}
+                    {filterMode === 'kustom' && (
+                        <>
+                            {/* Bug #8 Fixed: col-md-2.5 is not a valid Bootstrap class, use col-md-3 */}
+                            <div className="col-md-3">
+                                <label className="small fw-bold text-muted mb-2">Mulai</label>
+                                <input type="date" className="glass-input w-100" value={customStart} onChange={e => setCustomStart(e.target.value)} />
+                            </div>
+                            <div className="col-md-3">
+                                <label className="small fw-bold text-muted mb-2">Sampai</label>
+                                <input type="date" className="glass-input w-100" value={customEnd} onChange={e => setCustomEnd(e.target.value)} />
+                            </div>
+                        </>
+                    )}
+
+                    <div className="col-md-2 d-flex align-items-end">
+                        <button className="btn btn-primary w-100 rounded-pill fw-bold py-2" onClick={handleFetchRecap} disabled={loading}>
+                            {loading ? '...' : 'Terapkan'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {data.length > 0 && (
+                <>
+                {/* SUMMARY CARDS */}
+                <div className="d-flex gap-3 mb-4 overflow-auto pb-2">
+                    <SummaryCard label="Siswa" value={data.length} icon={<Users size={20} />} color="#6366f1" />
+                    <SummaryCard label="Kehadiran" value={`${summary.avg}%`} icon={<Activity size={20} />} color="#3b82f6" />
+                    <SummaryCard label="Hadir" value={summary.hadir} icon={<UserCheck size={20} />} color="#10b981" />
+                    <SummaryCard label="Terlambat" value={summary.terlambat} icon={<Clock size={20} />} color="#f97316" />
+                    <SummaryCard label="Sakit" value={summary.sakit} icon={<Clock size={20} />} color="#f59e0b" />
+                    <SummaryCard label="Alpha" value={summary.alpha} icon={<UserMinus size={20} />} color="#f43f5e" />
+                </div>
+
+                {/* DATA PANEL */}
+                <div className="glass-card p-4">
+                    <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                        <div className="d-flex align-items-center gap-3">
+                            {viewMode === 'detail' && (
+                                <div className="bg-primary bg-opacity-10 px-3 py-2 rounded-4 border border-primary border-opacity-10">
+                                    <h6 className="fw-black text-primary mb-0" style={{ letterSpacing: '0.5px' }}>MATRIKS KEHADIRAN HARIAN SISWA</h6>
+                                </div>
+                            )}
+                            <div className="position-relative" style={{ width: 300 }}>
+                                <Search size={18} className="position-absolute text-muted" style={{ left: 16, top: 12 }} />
+                                <input 
+                                    type="text" className="form-control form-control-sm border-0 bg-light rounded-pill ps-5" 
+                                    style={{ height: 42 }} placeholder="Cari NISN atau Nama..." 
+                                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="d-flex gap-2">
+                            {uiDateColumns.length > 0 && (
+                                <div className="btn-group p-1 bg-light rounded-pill">
+                                    <button className={`btn btn-sm rounded-pill px-3 fw-bold ${viewMode === 'rekap' ? 'btn-white shadow-sm' : 'btn-link text-muted'}`} onClick={() => setViewMode('rekap')}>Ringkasan</button>
+                                    <button className={`btn btn-sm rounded-pill px-3 fw-bold ${viewMode === 'detail' ? 'btn-white shadow-sm' : 'btn-link text-muted'}`} onClick={() => setViewMode('detail')}>Detail</button>
+                                </div>
+                            )}
+                            <button className="btn btn-success rounded-pill px-4 fw-bold border-0 d-flex align-items-center gap-2" onClick={handleExportExcel}>
+                                <FileSpreadsheet size={16} /> Excel
+                            </button>
+                            <button className="btn btn-danger rounded-pill px-4 fw-bold border-0 d-flex align-items-center gap-2" onClick={handlePrint}>
+                                <Printer size={16} /> PDF
                             </button>
                         </div>
                     </div>
-                </div>
 
-                {/* Summary Panel */}
-                {data.length > 0 && (
-                    <div className="recap-summary-panel">
-                        <div className="recap-stat-card">
-                            <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
-                                <Users size={16} /> Total Siswa
-                            </div>
-                            <h2 className="fw-black mb-0">{data.length}</h2>
-                        </div>
-                        <div className="recap-stat-card">
-                            <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
-                                <Activity size={16} /> Rata-Rata Kehadiran
-                            </div>
-                            <h2 className="fw-black mb-0 text-primary">{summary.avg}%</h2>
-                        </div>
-                        <div className="recap-stat-card">
-                            <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
-                                <UserCheck size={16} className="text-success" /> Total Hadir (Hari)
-                            </div>
-                            <h2 className="fw-black mb-0 text-success">{summary.hadir}</h2>
-                        </div>
-                        <div className="recap-stat-card">
-                            <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
-                                <Clock size={16} className="text-warning" /> Total Sakit (Hari)
-                            </div>
-                            <h2 className="fw-black mb-0 text-warning">{summary.sakit}</h2>
-                        </div>
-                        <div className="recap-stat-card">
-                            <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
-                                <AlertCircle size={16} className="text-info" /> Total Izin (Hari)
-                            </div>
-                            <h2 className="fw-black mb-0 text-info">{summary.izin}</h2>
-                        </div>
-                        <div className="recap-stat-card">
-                            <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
-                                <UserMinus size={16} className="text-danger" /> Total Alpha (Hari)
-                            </div>
-                            <h2 className="fw-black mb-0 text-danger">{summary.alpha}</h2>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Data Table Panel */}
-            <div className="recap-bento-card pb-0" style={{ overflow: 'hidden' }}>
-                <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                    <div style={{ position: 'relative', minWidth: '250px' }}>
-                        <Search size={18} style={{ position: 'absolute', left: '16px', top: '12px', color: 'var(--text-muted)' }} />
-                        <input
-                            type="text" placeholder="Cari NISN atau Nama..." 
-                            className="form-control border-0 shadow-none ps-5"
-                            style={{ height: '42px', borderRadius: '12px', background: 'var(--bg-stripe)', fontWeight: 600 }}
-                            value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <div className="d-flex gap-2 align-items-center">
-                        {uiDateColumns.length > 0 && (
-                            <div className="btn-group me-2 shadow-sm rounded-3" role="group">
-                                <button 
-                                    className={`btn btn-sm ${viewMode === 'rekap' ? 'btn-primary' : 'btn-light border'}`} 
-                                    onClick={() => setViewMode('rekap')}
-                                    style={{ fontWeight: 600, padding: '0.4rem 1rem' }}
-                                >
-                                    Ringkasan
-                                </button>
-                                <button 
-                                    className={`btn btn-sm ${viewMode === 'detail' ? 'btn-primary' : 'btn-light border'}`} 
-                                    onClick={() => setViewMode('detail')}
-                                    style={{ fontWeight: 600, padding: '0.4rem 1rem' }}
-                                >
-                                    Detail Harian
-                                </button>
-                            </div>
-                        )}
-                        <button className="export-btn excel" onClick={handleExportExcel} disabled={data.length === 0}>
-                            <FileSpreadsheet size={16} /> Excel
-                        </button>
-                        <button className="export-btn pdf" onClick={handlePrint} disabled={data.length === 0}>
-                            <Printer size={16} /> Print/PDF
-                        </button>
-                    </div>
-                </div>
-
-                <div className="table-responsive" style={{ margin: '0 -24px' }}>
-                    <table className="table mb-0 recap-table align-middle">
-                        <thead>
-                            <tr>
-                                <th className="ps-4">No</th>
-                                <th style={{ minWidth: '180px' }}>NISN / Nama Siswa</th>
-                                {viewMode === 'detail' && uiDateColumns.map(d => {
-                                    const isSunday = new Date(d).getDay() === 0;
-                                    return <th key={d} className={`text-center ${isSunday ? 'sunday-col' : ''}`}>{parseInt(d.split('-')[2], 10)}</th>
-                                })}
-                                {viewMode === 'detail' && <th className="text-center">Total H</th>}
-                                
-                                {viewMode === 'rekap' && (
-                                    <>
-                                        <th className="text-center">Hadir</th>
-                                        <th className="text-center">Sakit</th>
-                                        <th className="text-center">Izin</th>
-                                        <th className="text-center">Alpha</th>
-                                        <th className="text-center">Total Efektif</th>
-                                        <th className="text-center">Kehadiran</th>
-                                    </>
-                                )}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={7 + uiDateColumns.length} className="text-center py-5">
-                                        <div className="spinner-border text-primary mb-3" role="status" /><br/>
-                                        <span className="fw-bold text-muted">Menghitung rekapitulasi...</span>
-                                    </td>
+                    <div className="table-responsive">
+                        <table className="premium-table">
+                            <thead>
+                                <tr className="text-muted small fw-bold">
+                                    <th className="ps-4">No</th>
+                                    <th>Identitas Siswa</th>
+                                    {viewMode === 'detail' && uiDateColumns.map(d => (
+                                        <th key={d} className="text-center">{d.split('-')[2]}</th>
+                                    ))}
+                                    {viewMode === 'rekap' && (
+                                        <>
+                                            <th className="text-center">H</th><th className="text-center">T</th><th className="text-center">S</th><th className="text-center">I</th><th className="text-center">A</th><th className="text-center">%</th>
+                                        </>
+                                    )}
                                 </tr>
-                            ) : filteredData.length === 0 ? (
-                                <tr>
-                                    <td colSpan={viewMode === 'detail' ? 3 + uiDateColumns.length : 8} className="text-center py-5 text-muted fw-bold">
-                                        Data rekapitulasi belum tersedia. Silakan terapkan filter terlebih dahulu.
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredData.map((s, idx) => (
+                            </thead>
+                            <tbody>
+                                {filteredData.map((s, idx) => (
                                     <tr key={s.id}>
-                                        <td className="ps-4 text-muted">{idx + 1}</td>
+                                        <td className="ps-4 text-muted small">{idx + 1}</td>
                                         <td>
-                                            <div className="fw-bold">{s.nama}</div>
-                                            <div className="small text-muted">{s.nisn}</div>
+                                            <div className="fw-black text-dark">{s.nama}</div>
+                                            <div className="small text-muted">NISN: {s.nisn}</div>
                                         </td>
-                                        
                                         {viewMode === 'detail' && uiDateColumns.map(d => {
-                                            const isSunday = new Date(d).getDay() === 0;
-                                            const rawObj = s.details && s.details[d];
-                                            const rawStatus = rawObj ? rawObj.status : null;
-                                            const jam = rawObj ? rawObj.jam : '-';
-                                            const st = rawStatus ? parseStatus(rawStatus) : '';
-                                            
-                                            // Make title for hover
-                                            let tooltip = '';
-                                            if (rawStatus) tooltip = `Status: ${rawStatus.toUpperCase()}\nWaktu: ${jam !== '-' ? jam : 'Tidak tercatat'}`;
-                                            else if (isSunday) tooltip = 'Hari Libur (Minggu)';
-
+                                            const status = s.details?.[d]?.status;
+                                            const code = status === 'hadir' ? 'H' : status === 'terlambat' ? 'T' : status === 'sakit' ? 'S' : status === 'izin' ? 'I' : status === 'alpha' ? 'A' : '-';
                                             return (
-                                                <td key={d} className={`text-center ${isSunday ? 'sunday-col' : ''}`} title={tooltip}>
-                                                    {st ? (
-                                                        <div className={`badge-stat badge-${rawStatus.toLowerCase()}`} style={{ cursor: 'help' }}>{st}</div>
-                                                    ) : (
-                                                        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8em', cursor: isSunday ? 'help' : 'default' }}>-</span>
-                                                    )}
+                                                <td key={d} className="text-center">
+                                                    {code !== '-' ? <div className={`status-badge mx-auto bg-${status.toLowerCase()}`}>{code}</div> : '-'}
                                                 </td>
                                             )
                                         })}
-                                        {viewMode === 'detail' && <td className="text-center fw-bold">{s.hadir}</td>}
-
                                         {viewMode === 'rekap' && (
                                             <>
-                                                <td className="text-center">
-                                                    <div className="badge-stat badge-hadir">{s.hadir}</div>
-                                                </td>
-                                                <td className="text-center">
-                                                    <div className="badge-stat badge-sakit">{s.sakit}</div>
-                                                </td>
-                                                <td className="text-center">
-                                                    <div className="badge-stat badge-izin">{s.izin}</div>
-                                                </td>
-                                                <td className="text-center">
-                                                    <div className="badge-stat badge-alpha">{s.alpha}</div>
-                                                </td>
-                                                <td className="text-center">
-                                                    <span className="fw-bold text-muted">{s.total}</span>
-                                                </td>
-                                                <td>
-                                                    <div className="d-flex align-items-center gap-2 justify-content-center">
-                                                        <div className="progress flex-grow-1" style={{ height: '8px', borderRadius: '10px', background: 'var(--border-color)', maxWidth: '100px' }}>
-                                                            <div className="progress-bar bg-primary" style={{ width: `${s.persentase}%` }} />
-                                                        </div>
-                                                        <span className="fw-black text-primary small" style={{ minWidth: '40px' }}>{s.persentase}%</span>
-                                                    </div>
-                                                </td>
+                                                <td className="text-center fw-bold text-success">{s.hadir}</td>
+                                                <td className="text-center fw-bold" style={{color:'#f97316'}}>{s.terlambat || 0}</td>
+                                                <td className="text-center fw-bold text-warning">{s.sakit}</td>
+                                                <td className="text-center fw-bold text-primary">{s.izin}</td>
+                                                <td className="text-center fw-bold text-danger">{s.alpha}</td>
+                                                <td className="text-center"><span className="badge rounded-pill bg-primary px-3">{s.persentase}%</span></td>
                                             </>
                                         )}
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+                </>
+            )}
+
+            {!loading && data.length === 0 && (
+                <div className="glass-card p-5 text-center">
+                    <PieChart size={64} className="text-muted opacity-20 mb-3 mx-auto" />
+                    <h5 className="fw-black text-muted">Belum Ada Data Rekapitulasi</h5>
+                    <p className="text-muted small">Pilih parameter di atas untuk melihat ringkasan kehadiran siswa.</p>
+                </div>
+            )}
         </div>
     );
 }
+
+function SummaryCard({ label, value, icon, color }) {
+    return (
+        <div className="vibrant-stat-card">
+            <div className="icon-ring" style={{ background: `${color}15`, color: color }}>
+                {icon}
+            </div>
+            <div>
+                <div className="text-muted small fw-bold text-uppercase">{label}</div>
+                <div className="fw-black h3 mb-0" style={{ color: '#1e293b' }}>{value}</div>
+            </div>
+        </div>
+    )
+}
+

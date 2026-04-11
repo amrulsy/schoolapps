@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { io } from 'socket.io-client'
-import { User, School, Clock, CheckCircle, ArrowRight, ArrowLeft, AlertTriangle, Volume2 } from 'lucide-react'
+import { School, Clock, CheckCircle, ArrowRight, ArrowLeft, AlertTriangle, Volume2, History } from 'lucide-react'
 import api, { API_BASE } from '../../services/api'
 
 export default function GateMonitor() {
@@ -12,14 +12,20 @@ export default function GateMonitor() {
     const [isProcessing, setIsProcessing] = useState(false)
     const [lastError, setLastError] = useState(null)
     const [audioUnlocked, setAudioUnlocked] = useState(false)
+    const [tapLog, setTapLog] = useState([])
     
     const inputRef = useRef(null)
     const timerRef = useRef(null)
 
-    // Load Settings
+    // Load Settings + initial tap log
     useEffect(() => {
         api.get('/admin/school-settings')
            .then(res => setSchoolSettings(res.data))
+           .catch(console.error)
+
+        // Load existing tap history for today
+        api.get('/admin/presensi/tap-log')
+           .then(res => setTapLog(res.data || []))
            .catch(console.error)
     }, [])
 
@@ -32,7 +38,13 @@ export default function GateMonitor() {
         })
 
         socket.on('connect', () => console.log('[Socket] Connected'))
-        socket.on('scan_success', (data) => showScanResult(data))
+        socket.on('scan_success', (data) => {
+            showScanResult(data)
+            // Refresh tap log from server to get the latest persisted entry
+            api.get('/admin/presensi/tap-log')
+               .then(res => setTapLog(res.data || []))
+               .catch(() => {})
+        })
         socket.on('scan_info', (data) => showScanInfo(data))
 
         return () => socket.disconnect()
@@ -221,6 +233,12 @@ export default function GateMonitor() {
         return '#0f172a'; // idle
     }
 
+    const getLogBadgeStyle = (entry) => {
+        if (entry.last_event === 'pulang') return { bg: '#0369a1', label: 'Pulang' }
+        if (entry.status === 'Terlambat') return { bg: '#b45309', label: 'Terlambat' }
+        return { bg: '#059669', label: 'Masuk' }
+    }
+
     return (
         <div className="gate-monitor-container" style={{ 
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
@@ -265,7 +283,9 @@ export default function GateMonitor() {
                 </div>
             </header>
 
-            <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+            <main style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
+                {/* CENTER: Main scan area */}
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                 
                 {/* AUDIO UNLOCK OVERLAY (For browser compatibility) */}
                 {!audioUnlocked && (
@@ -409,6 +429,78 @@ export default function GateMonitor() {
                                         : 'Sampai Jumpa, Hati-hati di Jalan!'}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+                </div>{/* end center area */}
+
+                {/* RIGHT: Live Tap Log Panel */}
+                {audioUnlocked && (
+                    <div style={{
+                        width: 260,
+                        background: 'rgba(0,0,0,0.35)',
+                        backdropFilter: 'blur(12px)',
+                        borderLeft: '1px solid rgba(255,255,255,0.08)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        flexShrink: 0
+                    }}>
+                        {/* Log Header */}
+                        <div style={{
+                            padding: '14px 16px',
+                            borderBottom: '1px solid rgba(255,255,255,0.08)',
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            background: 'rgba(0,0,0,0.2)'
+                        }}>
+                            <History size={16} style={{ color: '#60a5fa' }} />
+                            <span style={{ fontWeight: 800, fontSize: '0.8rem', letterSpacing: '1px', color: '#94a3b8', textTransform: 'uppercase' }}>
+                                Log Tap Hari Ini
+                            </span>
+                            <span style={{
+                                marginLeft: 'auto', background: '#3b82f6', color: '#fff',
+                                borderRadius: 20, fontSize: '0.7rem', fontWeight: 800,
+                                padding: '2px 8px'
+                            }}>{tapLog.length}</span>
+                        </div>
+
+                        {/* Log Entries */}
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+                            {tapLog.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '30px 16px', color: '#475569', fontSize: '0.85rem' }}>
+                                    Belum ada tap hari ini
+                                </div>
+                            ) : tapLog.map((entry, i) => {
+                                const badge = getLogBadgeStyle(entry)
+                                const isNew = i === 0
+                                return (
+                                    <div key={entry.id} style={{
+                                        padding: '10px 14px',
+                                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                        background: isNew ? 'rgba(59,130,246,0.12)' : 'transparent',
+                                        transition: 'background 0.5s',
+                                        display: 'flex', flexDirection: 'column', gap: 4
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>
+                                                {entry.nama}
+                                            </span>
+                                            <span style={{
+                                                fontSize: '0.65rem', fontWeight: 800,
+                                                background: badge.bg, color: '#fff',
+                                                borderRadius: 6, padding: '2px 7px',
+                                                flexShrink: 0
+                                            }}>{badge.label}</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>{entry.kelas || '—'}</span>
+                                            <span style={{ fontFamily: 'monospace', color: '#94a3b8' }}>
+                                                {entry.last_event === 'pulang' ? entry.jam_pulang : entry.jam_masuk}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )
+                            })}
                         </div>
                     </div>
                 )}

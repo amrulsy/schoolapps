@@ -31,7 +31,16 @@ class AttendanceCronService {
 
     static async processAutoAlpha() {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            // Bug #5 Fixed: Use WIB timezone via Intl.DateTimeFormat, not UTC toISOString()
+            const rawNow = new Date();
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
+            });
+            const parts = formatter.formatToParts(rawNow);
+            const p = {};
+            parts.forEach(part => p[part.type] = part.value);
+            const today = `${p.year}-${p.month}-${p.day}`;
 
             // Skip if today is holiday
             const [holidays] = await pool.query('SELECT 1 FROM harilibur WHERE tanggal = ?', [today]);
@@ -45,7 +54,14 @@ class AttendanceCronService {
                 AND id NOT IN (SELECT siswa_id FROM siswa_presensi WHERE tanggal = ?)
             `, [today]);
 
+            // Get Settings for WA
+            const [settingsRows] = await pool.query('SELECT * FROM attendance_settings');
+            const settings = {};
+            settingsRows.forEach(r => { settings[r.key] = r.value });
+
             if (unmarked.length === 0) return;
+
+            const formattedDate = new Date(today).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
             for (const student of unmarked) {
                 // Insert as Alpha
@@ -54,8 +70,36 @@ class AttendanceCronService {
                     VALUES (?, ?, 'alpha', 'Otomatis oleh sistem (Auto-Alpha)')
                 `, [student.id, today]);
 
-                // R-18: Option to notify? 
-                // Let's log it or send WA if enabled
+                // R-18: Send WA if enabled
+                if (settings.wa_notification_enabled === 'true' && settings.wa_template_alfa) {
+                    const waMessage = settings.wa_template_alfa
+                        .replace(/\[nama\]/g, student.nama)
+                        .replace(/\[tanggal\]/g, formattedDate)
+                        .replace(/\[status\]/g, 'Alpha')
+                        .replace(/\[keterangan\]/g, 'Auto-Alpha');
+
+                    // Ambil kontak orang tua
+                    const [ortuRows] = await pool.query('SELECT hp FROM siswa_orangtua WHERE siswa_id = ? AND hp IS NOT NULL AND hp != ""', [student.id]);
+                    const phoneTargets = [];
+                    if (student.telp) phoneTargets.push(student.telp);
+                    ortuRows.forEach(o => phoneTargets.push(o.hp));
+                    const uniquePhones = [...new Set(phoneTargets)];
+
+                    for (const phone of uniquePhones) {
+                        try {
+                            await waService.sendMessage(phone, waMessage);
+                            await pool.query(
+                                'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status) VALUES (?, ?, ?, ?)',
+                                [student.id, phone, 'alpha', 'sent']
+                            ).catch(() => {});
+                        } catch (waErr) {
+                            await pool.query(
+                                'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status, error_message) VALUES (?, ?, ?, ?, ?)',
+                                [student.id, phone, 'alpha', 'failed', waErr.message]
+                            ).catch(() => {});
+                        }
+                    }
+                }
             }
             
             console.log(`[Cron] Auto-Alpha: Marked ${unmarked.length} students as Alpha.`);
@@ -66,14 +110,21 @@ class AttendanceCronService {
 
     static async analyzeLatePatterns() {
         try {
-            // Students late >= 3 times in the last 7 days
+            // Bug #1 Fixed: UNION kedua tabel — RFID (attendances) + Manual (siswa_presensi)
+            // Sebelumnya hanya membaca dari attendances, sehingga terlambat manual tidak terdeteksi
             const [patterns] = await pool.query(`
                 SELECT s.id, s.nama, k.nama as kelas_nama, COUNT(*) as late_count
-                FROM attendances a
-                JOIN siswa s ON a.student_id = s.id
+                FROM siswa s
                 JOIN kelas k ON s.kelas_id = k.id
-                WHERE a.status = 'Terlambat' 
-                AND a.tanggal >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                WHERE s.id IN (
+                    SELECT student_id FROM attendances
+                    WHERE status = 'Terlambat' 
+                    AND tanggal >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                    UNION ALL
+                    SELECT siswa_id FROM siswa_presensi
+                    WHERE status = 'terlambat'
+                    AND tanggal >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                )
                 GROUP BY s.id
                 HAVING late_count >= 3
             `);
@@ -96,9 +147,101 @@ class AttendanceCronService {
     }
 
     static async sendWeeklyDigest() {
-        // Implement logic to summarize attendance for parents
-        // This is a heavy task, would fetch counts for last 7 days and send WA
-        console.log('[Cron] Weekly Digest execution placeholder');
+        // Bug #4 Fixed: Fully implemented weekly digest to parents
+        try {
+            console.log('[Cron] Starting Weekly Digest...');
+
+            // Get WIB dates for the last 7 days
+            const rawNow = new Date();
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Jakarta',
+                year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
+            });
+            const parts = formatter.formatToParts(rawNow);
+            const p = {};
+            parts.forEach(part => p[part.type] = part.value);
+            const today = `${p.year}-${p.month}-${p.day}`;
+            const sevenDaysAgo = new Date(rawNow);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const sevenDaysAgoParts = formatter.formatToParts(sevenDaysAgo);
+            const sp = {};
+            sevenDaysAgoParts.forEach(part => sp[part.type] = part.value);
+            const startDate = `${sp.year}-${sp.month}-${sp.day}`;
+
+            // Get WA settings
+            const [settingsRows] = await pool.query('SELECT * FROM attendance_settings');
+            const settings = {};
+            settingsRows.forEach(r => { settings[r.key] = r.value; });
+
+            if (settings.wa_notification_enabled !== 'true') {
+                console.log('[Cron] Weekly Digest: WA notifications disabled, skipping.');
+                return;
+            }
+
+            // Get all active students with their attendance summary for the last 7 days
+            const [summaries] = await pool.query(`
+                SELECT 
+                    s.id, s.nama, s.telp,
+                    SUM(CASE WHEN sp.status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN sp.status = 'terlambat' THEN 1 ELSE 0 END) as terlambat,
+                    SUM(CASE WHEN sp.status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN sp.status = 'izin' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN sp.status = 'alpha' THEN 1 ELSE 0 END) as alpha,
+                    COUNT(sp.id) as total
+                FROM siswa s
+                LEFT JOIN siswa_presensi sp ON sp.siswa_id = s.id
+                    AND sp.tanggal BETWEEN ? AND ?
+                WHERE s.status = 'aktif'
+                GROUP BY s.id
+                HAVING total > 0
+            `, [startDate, today]);
+
+            let sentCount = 0;
+            for (const student of summaries) {
+                const [ortuRows] = await pool.query(
+                    'SELECT hp FROM siswa_orangtua WHERE siswa_id = ? AND hp IS NOT NULL AND hp != ""',
+                    [student.id]
+                );
+
+                const phoneTargets = [];
+                if (student.telp) phoneTargets.push(student.telp);
+                ortuRows.forEach(o => phoneTargets.push(o.hp));
+                const uniquePhones = [...new Set(phoneTargets)];
+
+                if (uniquePhones.length === 0) continue;
+
+                const message =
+                    `📊 *Rekap Kehadiran Mingguan*\n` +
+                    `Nama: *${student.nama}*\n` +
+                    `Periode: ${startDate} s/d ${today}\n\n` +
+                    `✅ Hadir      : ${student.hadir} hari\n` +
+                    `⏰ Terlambat  : ${student.terlambat} hari\n` +
+                    `🤒 Sakit      : ${student.sakit} hari\n` +
+                    `📝 Izin       : ${student.izin} hari\n` +
+                    `❌ Alpha      : ${student.alpha} hari\n\n` +
+                    `Total hari sekolah: ${student.total}`;
+
+                for (const phone of uniquePhones) {
+                    try {
+                        await waService.sendMessage(phone, message);
+                        await pool.query(
+                            'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status) VALUES (?, ?, ?, ?)',
+                            [student.id, phone, 'weekly_digest', 'sent']
+                        ).catch(() => {});
+                        sentCount++;
+                    } catch (waErr) {
+                        await pool.query(
+                            'INSERT INTO wa_notification_log (siswa_id, phone, message_type, status, error_message) VALUES (?, ?, ?, ?, ?)',
+                            [student.id, phone, 'weekly_digest', 'failed', waErr.message]
+                        ).catch(() => {});
+                    }
+                }
+            }
+
+            console.log(`[Cron] Weekly Digest: Sent to ${sentCount} contacts for ${summaries.length} students.`);
+        } catch (err) {
+            console.error('[Cron] Weekly Digest Error:', err.message);
+        }
     }
 }
 

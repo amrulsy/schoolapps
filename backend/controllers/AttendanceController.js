@@ -18,7 +18,8 @@ setInterval(() => {
 const ALLOWED_SETTING_KEYS = [
     'entry_start_time', 'late_threshold_time', 'exit_min_gap_minutes',
     'exit_start_time', 'exit_rule_type', 'wa_notification_enabled',
-    'wa_template_masuk', 'wa_template_terlambat', 'wa_template_pulang'
+    'wa_template_masuk', 'wa_template_terlambat', 'wa_template_pulang',
+    'wa_template_alfa', 'wa_template_sakit', 'wa_template_izin'
 ];
 
 class AttendanceController {
@@ -170,7 +171,8 @@ class AttendanceController {
                 );
 
                 // R-1: SYNC to siswa_presensi with correct status + jam_masuk
-                const presensiStatus = current_status === 'Terlambat' ? 'hadir' : 'hadir';
+                // Bug #2 Fixed: was always 'hadir'. Now saves 'terlambat' correctly.
+                const presensiStatus = current_status === 'Terlambat' ? 'terlambat' : 'hadir';
                 await pool.query(
                     `INSERT INTO siswa_presensi (siswa_id, tanggal, status, jam_masuk) 
                      VALUES (?, ?, ?, ?) 
@@ -295,7 +297,9 @@ class AttendanceController {
                 if (template) {
                     const waMessage = template
                         .replace(/\[nama\]/g, student.nama)
-                        .replace(/\[jam\]/g, nowTime);
+                        .replace(/\[jam\]/g, nowTime)
+                        .replace(/\[kelas\]/g, student.kelas_nama || '-')
+                        .replace(/\[nisn\]/g, student.nisn || '-');
                     
                     // Ambil kontak orang tua
                     const [ortuRows] = await pool.query('SELECT hp FROM siswa_orangtua WHERE siswa_id = ? AND hp IS NOT NULL AND hp != ""', [student.id]);
@@ -372,7 +376,7 @@ class AttendanceController {
                 }
                 await pool.query(
                     'INSERT INTO attendance_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
-                    [key, settings[key].toString()]
+                    [key, String(settings[key] ?? '')]
                 );
             }
             res.json({ success: true, message: 'Pengaturan berhasil diperbarui' });
@@ -399,6 +403,7 @@ class AttendanceController {
             const [presensiStats] = await pool.query(`
                 SELECT 
                     SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN status = 'terlambat' THEN 1 ELSE 0 END) as terlambat,
                     SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
                     SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
                     SUM(CASE WHEN status = 'alpha' THEN 1 ELSE 0 END) as alpha
@@ -408,6 +413,7 @@ class AttendanceController {
             const stats = presensiStats[0] || {};
             io.emit('attendance_stats_update', {
                 hadir: parseInt(stats.hadir) || 0,
+                terlambat: parseInt(stats.terlambat) || 0,
                 sakit: parseInt(stats.sakit) || 0,
                 izin: parseInt(stats.izin) || 0,
                 alpha: parseInt(stats.alpha) || 0

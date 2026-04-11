@@ -39,7 +39,7 @@ export default function RfidEnrollment({ hideHeader = false }) {
                 addToast('success', 'Berhasil', `RFID berhasil didaftarkan untuk ${enrollModal.student.nama}`)
                 setEnrollModal({ show: false, student: null, rfid: '' })
                 // Refresh local state if needed, but since we use context, we might need to re-fetch
-                window.location.reload() // Simple way for now
+                // stay on registration page; data will refresh via context
             } else {
                 addToast('danger', 'Gagal', data.error || 'Terjadi kesalahan')
                 setEnrollModal(prev => ({ ...prev, rfid: '' }))

@@ -48,6 +48,7 @@ backend/.env
 
 # Session & Cache (Large files)
 backend/wa_session
+backend/wa_session_baileys
 backend/.wwebjs_cache
 backend/.wwebjs_auth
 backend/database.sqlite*
