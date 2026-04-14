@@ -5,7 +5,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import {
     Clock,  Save,   CheckCircle2,
     BookOpen, Search, Users, Activity, ChevronRight, CheckCircle, 
-    Pencil, X, History
+    Pencil, X, History, Mic, MicOff
 } from 'lucide-react'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 
@@ -239,6 +239,7 @@ export default function ClassSession() {
     const [editMode, setEditMode] = useState(false)
     const [materi, setMateri] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
+    const [isListening, setIsListening] = useState(false)
 
     const fetchData = useCallback(async () => {
         setLoading(true)
@@ -296,8 +297,14 @@ export default function ClassSession() {
     }
 
     const handleMarkAllHadir = async () => {
-        const unLockedStudents = students.filter(s => !s.is_locked)
-        const newStudents = students.map(s => s.is_locked ? s : { ...s, status: 'hadir' })
+        // BUG FIX: Hanya tandai 'hadir' bagi siswa yang Murni Belum Diabsen. (Jangan timpa yang sudah diset Sakit/Izin/Bolos)
+        const unMarkedStudents = students.filter(s => !s.is_locked && (!s.status || s.status === ''))
+        if (unMarkedStudents.length === 0) {
+            showSuccess('Sudah Lengkap', 'Seluruh siswa telah memiliki status absen.')
+            return
+        }
+
+        const newStudents = students.map(s => (s.is_locked || (s.status && s.status !== '')) ? s : { ...s, status: 'hadir' })
         setStudents(newStudents)
 
         try {
@@ -306,11 +313,42 @@ export default function ClassSession() {
                 headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     jurnal_id: id,
-                    attendanceList: unLockedStudents.map(s => ({ siswa_id: s.id, status: 'hadir' }))
+                    attendanceList: unMarkedStudents.map(s => ({ siswa_id: s.id, status: 'hadir' }))
                 })
             })
-            showSuccess('Presensi Berhasil', 'Semua siswa ditandai hadir.')
+            showSuccess('Presensi Cepat Berhasil', `${unMarkedStudents.length} siswa tersisa ditandai hadir.`)
         } catch (err) { /* silent */ }
+    }
+
+    const toggleDictation = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            showError('Tidak Didukung', 'Browser Anda tidak mendukung fitur Dikte Suara. Gunakan Chrome terbaru.');
+            return;
+        }
+
+        if (isListening) {
+            setIsListening(false);
+            return // The actual recognition stop is handled in the effect or internally but easiest is to just let it timeout or we can store the instance.
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'id-ID';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => setIsListening(true);
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            setMateri(prev => prev ? prev + ' ' + transcript : transcript);
+        };
+        recognition.onerror = (e) => {
+            console.error('Speech error', e);
+            setIsListening(false);
+        };
+        recognition.onend = () => setIsListening(false);
+        
+        recognition.start();
     }
 
     const handleSaveMateri = async () => {
@@ -497,10 +535,23 @@ export default function ClassSession() {
                             <h6 className="fw-bold m-0" style={{ fontSize: '0.9rem' }}>Laporan Jurnal</h6>
                         </div>
                         <div className="mb-4">
-                            <label className="form-label fw-bold small text-muted text-uppercase tracking-wider mb-2">Materi / Catatan</label>
+                            <div className="d-flex align-items-center justify-content-between mb-2">
+                                <label className="form-label fw-bold small text-muted text-uppercase tracking-wider mb-0">Materi / Catatan</label>
+                                {!isDone && (
+                                    <button 
+                                        className={`btn btn-sm d-flex align-items-center gap-1 px-2 py-1 rounded-pill border-0 ${isListening ? 'btn-danger' : 'btn-soft-primary'}`}
+                                        style={{ fontSize: '0.75rem', fontWeight: 700, background: isListening ? '#fee2e2' : 'var(--primary-50)', color: isListening ? '#ef4444' : 'var(--primary-600)' }}
+                                        onClick={toggleDictation}
+                                        title="Dikte Suara (Speech to Text)"
+                                    >
+                                        {isListening ? <Mic size={14} className="animate-pulse" /> : <MicOff size={14} />} 
+                                        {isListening ? 'Mendengarkan...' : 'Dikte Suara'}
+                                    </button>
+                                )}
+                            </div>
                             <textarea
                                 className="journal-textarea"
-                                placeholder="Tuliskan materi yang diajarkan atau catatan penting lainnya..."
+                                placeholder="Tuliskan materi yang diajarkan... (Gunakan tombol Dikte Suara untuk merekam ucapan Anda)"
                                 value={materi}
                                 onChange={e => setMateri(e.target.value)}
                                 disabled={isDone && !editMode}

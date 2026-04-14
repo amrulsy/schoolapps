@@ -298,5 +298,14 @@ class WhatsAppService {
     }
 }
 
+// Tangkal error websocket yang tiba-tiba putus (seperti code "1006") agar server Node.js tidak ikut crash
+process.on('unhandledRejection', (reason, promise) => {
+    if (String(reason) === '1006' || String(reason) === '1005') {
+        console.warn('[WA Service] Peringatan: Socket terputus paksa dengan statushode', reason);
+    } else {
+        console.error('[Global Error] Unhandled Rejection:', reason);
+    }
+});
+
 const waService = new WhatsAppService();
 module.exports = waService;
