@@ -19,7 +19,9 @@ export default function PengaturanPage() {
     const [loading, setLoading] = useState(false)
 
     // Local states for different settings modules
-    const [localProfile, setLocalProfile] = useState({})
+    const [localProfile, setLocalProfile] = useState({
+        nama: '', alamat: '', telepon: '', email: '', kepala_sekolah: '', nip_kepsek: '', school_logo: ''
+    })
     const [attendanceSettings, setAttendanceSettings] = useState({})
     const [infaqSettings, setInfaqSettings] = useState({})
     const [holidays, setHolidays] = useState([])
@@ -41,7 +43,8 @@ export default function PengaturanPage() {
                 telepon: schoolSettings.school_phone || '',
                 email: schoolSettings.school_email || '',
                 kepala_sekolah: schoolSettings.school_principal || '',
-                nip_kepsek: schoolSettings.school_principal_nip || ''
+                nip_kepsek: schoolSettings.school_principal_nip || '',
+                school_logo: schoolSettings.school_logo || ''
             })
             setReceiptConfig({
                 header1: schoolSettings.receipt_header1 || schoolSettings.school_name || '',
@@ -113,6 +116,27 @@ export default function PengaturanPage() {
             school_principal_nip: localProfile.nip_kepsek
         })
         setLoading(false)
+    }
+
+    const handleUploadLogo = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const formData = new FormData()
+        formData.append('logo', file)
+
+        setLoading(true)
+        try {
+            const { data } = await api.post('/admin/school-settings/logo', formData)
+            setLocalProfile(p => ({ ...p, school_logo: data.logo_url }))
+            await updateSchoolSettings({ school_logo: data.logo_url })
+            addToast('success', 'Berhasil', data.message)
+        } catch (err) {
+            addToast('danger', 'Error', 'Gagal mengunggah logo')
+        } finally {
+            setLoading(false)
+            e.target.value = ''
+        }
     }
 
     const handleSaveReceiptConfig = async () => {
@@ -266,9 +290,18 @@ export default function PengaturanPage() {
                                 </div>
                                 <div className="form-group">
                                     <label>Logo Sekolah</label>
-                                    <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
-                                        <Upload size={16} /> Upload Logo
-                                    </button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                        {localProfile.school_logo && (
+                                            <div style={{ width: 48, height: 48, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--slate-200)', flexShrink: 0 }}>
+                                                <img src={API_BASE.replace('/api', '') + localProfile.school_logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                            </div>
+                                        )}
+                                        <label className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center', cursor: 'pointer', margin: 0 }}>
+                                            <Upload size={16} /> Upload Logo Baru
+                                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUploadLogo} disabled={loading} />
+                                        </label>
+                                    </div>
+                                    <small className="text-muted" style={{ display: 'block', marginTop: 8 }}>Format .png/.jpg maksimal 2MB. Logo juga akan digunakan sebagai favicon situs.</small>
                                 </div>
                             </div>
                             <div className="form-row">

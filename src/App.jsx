@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 
 // Layouts
@@ -59,8 +59,27 @@ const CmsHomePage = lazy(() => import('./features/cms/pages/CmsHomePage'))
 
 import LoadingSpinner from './components/LoadingSpinner';
 import OfflineBanner from './components/OfflineBanner';
+import { useApp } from './context/AppContext';
+import { API_BASE } from './services/api';
 
 export default function App() {
+  const { schoolSettings } = useApp();
+
+  useEffect(() => {
+    if (schoolSettings && schoolSettings.school_logo) {
+      const logoUrl = API_BASE.replace('/api', '') + schoolSettings.school_logo;
+      const iconUrl = logoUrl + '?v=' + new Date().getTime(); // cache busting 
+      const relIcon = document.querySelector("link[rel~='icon']");
+      const appleIcon = document.querySelector("link[rel='apple-touch-icon']");
+      if (relIcon) relIcon.href = iconUrl;
+      if (appleIcon) appleIcon.href = iconUrl;
+      // Option to change document title to school name dynamically
+      if (schoolSettings.school_name) {
+          document.title = 'SIAS - ' + schoolSettings.school_name;
+      }
+    }
+  }, [schoolSettings]);
+
   return (
     <Suspense fallback={<LoadingSpinner fullScreen message="Membuka Aplikasi..." />}>
       <OfflineBanner />

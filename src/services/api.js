@@ -37,7 +37,11 @@ export const getBearerHeader = () => ({
 const api = {
     async request(url, options = {}) {
         const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
-        const headers = { ...getAuthHeaders(), ...options.headers };
+        
+        // Prevent JSON.stringify on FormData AND let browser append boundary correctly
+        const isFormData = options.body instanceof FormData;
+        const defaultHeaders = isFormData ? getBearerHeader() : getAuthHeaders();
+        const headers = { ...defaultHeaders, ...options.headers };
 
         // If it's a GET, handle params
         let finalUrl = fullUrl;
@@ -49,7 +53,7 @@ const api = {
         const response = await fetch(finalUrl, {
             ...options,
             headers,
-            body: options.body ? JSON.stringify(options.body) : undefined
+            body: isFormData ? options.body : (options.body ? JSON.stringify(options.body) : undefined)
         });
 
         const data = await response.json();

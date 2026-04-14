@@ -144,6 +144,7 @@ app.get( '/api/lab/student-loans/:rfid',    InventoryController.getStudentActive
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+    require('fs').appendFileSync(path.join(__dirname, 'debug_500_error.txt'), '\n[' + new Date().toISOString() + '] ' + req.path + '\n' + (err.stack || err.message) + '\n');
     console.error('[Global Error]', err.stack || err.message);
     res.status(err.status || 500).json({
         success: false,
