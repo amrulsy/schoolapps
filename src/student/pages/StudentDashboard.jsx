@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts'
 import { useStudent } from '../StudentApp'
 import { useNavigate } from 'react-router-dom'
-import LoadingSpinner from '../../components/LoadingSpinner'
+
 import * as LucideIcons from 'lucide-react'
 import {
     ChevronRight, Wallet, Star, QrCode, X, School, ClipboardCheck
@@ -26,27 +26,27 @@ export default function StudentDashboard() {
         targetDate.setDate(targetDate.getDate() - (29 - i))
         // Local YYYY-MM-DD format for matching
         const dateStr = targetDate.toLocaleDateString('en-CA') // YYYY-MM-DD
-        
+
         const record = attendanceDocs?.find(doc => {
             const docDateVal = doc.date || doc.tanggal
             if (!docDateVal) return false
             const docDateStr = new Date(docDateVal).toLocaleDateString('en-CA')
             return docDateStr === dateStr
         })
-        
+
         // Final tooltip & status return
         const formattedDate = targetDate.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })
         const statusLabel = record ? (record.status.charAt(0).toUpperCase() + record.status.slice(1)) : 'Tidak ada data'
         const timeLabel = record?.time || record?.check_in || ''
         const tooltip = `${formattedDate}: ${statusLabel} ${timeLabel ? `(${timeLabel})` : ''}`
-        
-        return { 
-            date: dateStr, 
+
+        return {
+            date: dateStr,
             displayDate: formattedDate,
             fullDate: targetDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-            status: record?.status?.toLowerCase() || 'none', 
+            status: record?.status?.toLowerCase() || 'none',
             record,
-            tooltip 
+            tooltip
         }
     })
 
@@ -72,7 +72,7 @@ export default function StudentDashboard() {
                         <h3>Kartu Siswa Digital</h3>
                         <p>Tunjukkan QR ini ke Admin / Satpam</p>
                         <div className="stu-qr-box">
-                            <QRCodeCanvas 
+                            <QRCodeCanvas
                                 value={JSON.stringify({ n: student?.nisn, i: student?.id, t: Date.now() })}
                                 size={180}
                                 level="H"
@@ -132,7 +132,7 @@ export default function StudentDashboard() {
                                     {(() => {
                                         const rawTime = selectedDay.record?.jam_masuk || selectedDay.record?.time || selectedDay.record?.check_in
                                         if (!rawTime) return '--:--'
-                                        
+
                                         if (rawTime instanceof Date) {
                                             return rawTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                                         }
@@ -149,7 +149,7 @@ export default function StudentDashboard() {
                                             const timePart = time.split('T')[1]
                                             return timePart.includes(':') ? timePart.substring(0, 5) : '--:--'
                                         }
-                                        
+
                                         return '--:--'
                                     })()}
                                 </div>
@@ -162,7 +162,7 @@ export default function StudentDashboard() {
                                     {(() => {
                                         const rawTime = selectedDay.record?.jam_pulang || selectedDay.record?.check_out || selectedDay.record?.jam_pulang
                                         if (!rawTime) return '--:--'
-                                        
+
                                         if (rawTime instanceof Date) {
                                             return rawTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                                         }
@@ -179,7 +179,7 @@ export default function StudentDashboard() {
                                             const timePart = time.split('T')[1]
                                             return timePart.includes(':') ? timePart.substring(0, 5) : '--:--'
                                         }
-                                        
+
                                         return '--:--'
                                     })()}
                                 </div>
@@ -251,9 +251,9 @@ export default function StudentDashboard() {
                     </div>
                 </div>
                 <div className="stu-summary-box" onClick={() => navigate('/siswa-portal/bk')}>
-                    <div className="stu-summary-icon" style={{ 
-                        color: (bkData?.poin?.netPoin || 0) >= 75 ? 'var(--success-500)' : (bkData?.poin?.netPoin || 0) >= 50 ? 'var(--warning-500)' : 'var(--danger-500)', 
-                        background: (bkData?.poin?.netPoin || 0) >= 75 ? 'var(--success-50)' : (bkData?.poin?.netPoin || 0) >= 50 ? 'var(--warning-50)' : 'var(--danger-50)' 
+                    <div className="stu-summary-icon" style={{
+                        color: (bkData?.poin?.netPoin || 0) >= 75 ? 'var(--success-500)' : (bkData?.poin?.netPoin || 0) >= 50 ? 'var(--warning-500)' : 'var(--danger-500)',
+                        background: (bkData?.poin?.netPoin || 0) >= 75 ? 'var(--success-50)' : (bkData?.poin?.netPoin || 0) >= 50 ? 'var(--warning-50)' : 'var(--danger-50)'
                     }}>
                         <Star size={20} />
                     </div>
@@ -331,7 +331,7 @@ export default function StudentDashboard() {
                         {heatmapDays.map((day, i) => {
                             const dayNum = day.date.split('-')[2]
                             const checkInTime = day.tooltip.includes('(') ? day.tooltip.split('(')[1].replace(')', '') : ''
-                            
+
                             return (
                                 <div key={i} className={`stu-heatmap-cell ${day.status}`} title={day.tooltip} onClick={() => setSelectedDay(day)}>
                                     <span className="stu-cell-date">{dayNum}</span>
@@ -361,13 +361,13 @@ export default function StudentDashboard() {
                             <AreaChart data={pulseData}>
                                 <defs>
                                     <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--stu-primary)" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="var(--stu-primary)" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="var(--stu-primary)" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="var(--stu-primary)" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <Area type="monotone" dataKey="score" stroke="var(--stu-primary)" fillOpacity={1} fill="url(#colorScore)" strokeWidth={3} dot={{ fill: 'var(--stu-primary)', strokeWidth: 2, r: 4, stroke: '#fff' }} />
-                                <Tooltip 
-                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontSize: '11px', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)' }} 
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontSize: '11px', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)' }}
                                     labelStyle={{ fontWeight: 'bold', color: 'var(--stu-primary)' }}
                                 />
                             </AreaChart>
@@ -450,7 +450,7 @@ function DashboardSkeleton() {
             <div className="stu-section" style={{ marginTop: '24px' }}>
                 <div className="stu-skeleton stu-skeleton-title" />
                 <div className="stu-menu-grid">
-                    {[1,2,3,4,5,6,7,8].map(i => (
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                         <div key={i} className="stu-skeleton" style={{ height: '80px', borderRadius: '16px' }} />
                     ))}
                 </div>

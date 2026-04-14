@@ -245,7 +245,7 @@ router.patch('/ppdb/:id/status', async (req, res) => {
                     const waService = require('../../services/whatsappService');
                     await waService.sendMessage(pRows[0].no_whatsapp, `Mohon maaf, pendaftaran PPDB atas nama *${pRows[0].nama_lengkap}* belum dapat kami terima saat ini.\n\nSilakan hubungi panitia PPDB untuk informasi lebih lanjut. Terima kasih.`);
                 }
-            } catch(e) { console.error('WA reject notification error:', e); }
+            } catch (e) { console.error('WA reject notification error:', e); }
         }
 
         res.json({ success: true, status });
@@ -256,20 +256,20 @@ router.post('/ppdb/:id/accept', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        
+
         // 1. Ambil data pendaftar & Tahun Ajaran Aktif
         const [pRows] = await connection.query('SELECT * FROM ppdb_registrations WHERE id = ?', [req.params.id]);
-        if(pRows.length === 0) throw new Error('Data pendaftar tidak ditemukan');
+        if (pRows.length === 0) throw new Error('Data pendaftar tidak ditemukan');
         const p = pRows[0];
-        if(p.status === 'accepted') throw new Error('Siswa ini sudah pernah diterima');
+        if (p.status === 'accepted') throw new Error('Siswa ini sudah pernah diterima');
 
         const [taRows] = await connection.query("SELECT * FROM tahun_ajaran WHERE status = 'aktif' LIMIT 1");
-        if(taRows.length === 0) throw new Error('Tahun ajaran aktif tidak ditemukan. Silakan atur Tahun Ajaran di Pengaturan.');
+        if (taRows.length === 0) throw new Error('Tahun ajaran aktif tidak ditemukan. Silakan atur Tahun Ajaran di Pengaturan.');
         const ta = taRows[0];
-        
+
         // 2. Parse biodata_tambahan SEBELUM digunakan
         let bio = {};
-        try { bio = typeof p.biodata_tambahan === 'string' ? JSON.parse(p.biodata_tambahan) : (p.biodata_tambahan || {}); } catch(e){}
+        try { bio = typeof p.biodata_tambahan === 'string' ? JSON.parse(p.biodata_tambahan) : (p.biodata_tambahan || {}); } catch (e) { /* use default */ }
 
         // 3. Insert ke tabel Siswa Aktif (FULL field migration)
         const { kelas_id } = req.body;
@@ -306,17 +306,17 @@ router.post('/ppdb/:id/accept', async (req, res) => {
                     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-            nisnValue, 
-            p.nama_lengkap, 
-            p.jenis_kelamin, 
-            p.tempat_lahir, 
-            p.tgl_lahir, 
-            p.agama, 
-            p.alamat_lengkap, 
-            p.no_whatsapp, 
-            kelas_id || null, 
-            angkatan, 
-            'Baru', 
+            nisnValue,
+            p.nama_lengkap,
+            p.jenis_kelamin,
+            p.tempat_lahir,
+            p.tgl_lahir,
+            p.agama,
+            p.alamat_lengkap,
+            p.no_whatsapp,
+            kelas_id || null,
+            angkatan,
+            'Baru',
             ta.tanggal_mulai,
             p.asal_sekolah || null,
             noRegValue,
@@ -343,37 +343,37 @@ router.post('/ppdb/:id/accept', async (req, res) => {
             bio.kodepos || null,
             bio.jenis_tinggal || null
         ]);
-        
+
         const siswaId = siswaRes.insertId;
 
         // 4. Masukkan biodata orang tua LENGKAP
-        if(bio.nama_ayah) {
+        if (bio.nama_ayah) {
             await connection.query(
                 `INSERT INTO siswa_orangtua (siswa_id, jenis, nama, nik, pekerjaan, pendidikan, penghasilan, hp, tahun_lahir)
                  VALUES (?, 'ayah', ?, ?, ?, ?, ?, ?, ?)`,
-                [siswaId, bio.nama_ayah, bio.nik_ayah || null, bio.pekerjaan_ayah || null, bio.pendidikan_ayah || null, bio.penghasilan_ayah || null, bio.telp_ayah || null, bio.tgl_lahir_ayah ? String(bio.tgl_lahir_ayah).substring(0,4) : null]
+                [siswaId, bio.nama_ayah, bio.nik_ayah || null, bio.pekerjaan_ayah || null, bio.pendidikan_ayah || null, bio.penghasilan_ayah || null, bio.telp_ayah || null, bio.tgl_lahir_ayah ? String(bio.tgl_lahir_ayah).substring(0, 4) : null]
             );
         }
-        if(bio.nama_ibu) {
+        if (bio.nama_ibu) {
             await connection.query(
                 `INSERT INTO siswa_orangtua (siswa_id, jenis, nama, nik, pekerjaan, pendidikan, penghasilan, hp, tahun_lahir)
                  VALUES (?, 'ibu', ?, ?, ?, ?, ?, ?, ?)`,
-                [siswaId, bio.nama_ibu, bio.nik_ibu || null, bio.pekerjaan_ibu || null, bio.pendidikan_ibu || null, bio.penghasilan_ibu || null, bio.telp_ibu || null, bio.tgl_lahir_ibu ? String(bio.tgl_lahir_ibu).substring(0,4) : null]
+                [siswaId, bio.nama_ibu, bio.nik_ibu || null, bio.pekerjaan_ibu || null, bio.pendidikan_ibu || null, bio.penghasilan_ibu || null, bio.telp_ibu || null, bio.tgl_lahir_ibu ? String(bio.tgl_lahir_ibu).substring(0, 4) : null]
             );
         }
-        if(bio.nama_wali) {
+        if (bio.nama_wali) {
             await connection.query(
                 `INSERT INTO siswa_orangtua (siswa_id, jenis, nama, pekerjaan, hp, hubungan, alamat)
                  VALUES (?, 'wali', ?, ?, ?, ?, ?)`,
                 [siswaId, bio.nama_wali, bio.pekerjaan_wali || null, bio.telp_wali || null, bio.hubungan_wali || null, bio.alamat_wali || null]
             );
         }
-        
+
         // 4.5. Migrasi Dokumen & Foto (sinkronisasi file upload)
         // Ensure FOTO exists in master_dokumen (auto-create if missing)
         await connection.query(`INSERT IGNORE INTO master_dokumen (kode, nama, is_required) VALUES ('FOTO', 'Pas Foto', 1)`);
 
-        if(p.foto_path) {
+        if (p.foto_path) {
             await connection.query(
                 `INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_path)
                  VALUES (?, 'FOTO', 'Pas Foto', 'Belum Verifikasi', ?)
@@ -382,12 +382,12 @@ router.post('/ppdb/:id/accept', async (req, res) => {
             );
         }
         let berkas = {};
-        try { berkas = typeof p.berkas_json === 'string' ? JSON.parse(p.berkas_json) : (p.berkas_json || {}); } catch(e){}
+        try { berkas = typeof p.berkas_json === 'string' ? JSON.parse(p.berkas_json) : (p.berkas_json || {}); } catch (e) { /* use default */ }
         // Use codes matching master_dokumen exactly
-        if(berkas.kk) await connection.query(`INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_path) VALUES (?, 'KK', 'Kartu Keluarga', 'Belum Verifikasi', ?) ON DUPLICATE KEY UPDATE file_path = VALUES(file_path), status = 'Belum Verifikasi'`, [siswaId, berkas.kk]);
-        if(berkas.akte) await connection.query(`INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_path) VALUES (?, 'AKTA_KELAHIRAN', 'Akta Kelahiran', 'Belum Verifikasi', ?) ON DUPLICATE KEY UPDATE file_path = VALUES(file_path), status = 'Belum Verifikasi'`, [siswaId, berkas.akte]);
-        if(berkas.ijazah) await connection.query(`INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_path) VALUES (?, 'IJAZAH', 'Ijazah SMP', 'Belum Verifikasi', ?) ON DUPLICATE KEY UPDATE file_path = VALUES(file_path), status = 'Belum Verifikasi'`, [siswaId, berkas.ijazah]);
-        if(berkas.ktp_ortu) {
+        if (berkas.kk) await connection.query(`INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_path) VALUES (?, 'KK', 'Kartu Keluarga', 'Belum Verifikasi', ?) ON DUPLICATE KEY UPDATE file_path = VALUES(file_path), status = 'Belum Verifikasi'`, [siswaId, berkas.kk]);
+        if (berkas.akte) await connection.query(`INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_path) VALUES (?, 'AKTA_KELAHIRAN', 'Akta Kelahiran', 'Belum Verifikasi', ?) ON DUPLICATE KEY UPDATE file_path = VALUES(file_path), status = 'Belum Verifikasi'`, [siswaId, berkas.akte]);
+        if (berkas.ijazah) await connection.query(`INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_path) VALUES (?, 'IJAZAH', 'Ijazah SMP', 'Belum Verifikasi', ?) ON DUPLICATE KEY UPDATE file_path = VALUES(file_path), status = 'Belum Verifikasi'`, [siswaId, berkas.ijazah]);
+        if (berkas.ktp_ortu) {
             // KTP Orang Tua maps to both KTP_IBU and KTP_BAPAK — use KTP_IBU as primary
             await connection.query(`INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_path) VALUES (?, 'KTP_IBU', 'KTP Ibu', 'Belum Verifikasi', ?) ON DUPLICATE KEY UPDATE file_path = VALUES(file_path), status = 'Belum Verifikasi'`, [siswaId, berkas.ktp_ortu]);
             await connection.query(`INSERT INTO siswa_dokumen (siswa_id, kode_dokumen, nama_dokumen, status, file_path) VALUES (?, 'KTP_BAPAK', 'KTP Bapak', 'Belum Verifikasi', ?) ON DUPLICATE KEY UPDATE file_path = VALUES(file_path), status = 'Belum Verifikasi'`, [siswaId, berkas.ktp_ortu]);
@@ -413,7 +413,7 @@ router.post('/ppdb/:id/accept', async (req, res) => {
         }
 
         res.json({ success: true, message: 'Siswa berhasil diterima dan data telah disinkronkan ke sistem akademik.' });
-    } catch(err) {
+    } catch (err) {
         await connection.rollback();
         console.error('[PPDB Accept] Transaction failed:', err.message);
         res.status(500).json({ error: err.message });

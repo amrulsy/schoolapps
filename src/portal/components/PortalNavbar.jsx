@@ -25,7 +25,7 @@ export default function PortalNavbar({ mobileOpen, setMobileOpen }) {
 
     useEffect(() => {
         setMobileOpen(false)
-    }, [location])
+    }, [location, setMobileOpen])
 
     const isActive = (link) => {
         if (link.exact) return location.pathname === link.to

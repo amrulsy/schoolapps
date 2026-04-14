@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext'
 import { 
     Settings, Save, ArrowLeft, Calendar, MessageSquare, 
     DollarSign, CheckCircle2, CalendarOff, Trash2, Plus, 
-    Sparkles, Info, X
+     Info, 
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -239,6 +239,7 @@ export default function InfaqSettingsPage() {
 
     useEffect(() => {
         initPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const initPage = async () => {

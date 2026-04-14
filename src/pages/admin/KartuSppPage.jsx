@@ -4,7 +4,7 @@ import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { useApp } from '../../context/AppContext'
 import {
-    Search, Filter, CreditCard, Printer, MessageCircle, Download,
+    Search,  CreditCard, Printer, MessageCircle, Download,
     TrendingUp, AlertCircle, CheckCircle2, DollarSign, FileText
 } from 'lucide-react'
 import { downloadFile } from '../../utils/downloadHelper'
@@ -50,7 +50,7 @@ export default function KartuSppPage() {
             // Refined Logic for status
             let isMenunggak = false
             // Academic month mapping (July=0 -> Index 6, Jan=6 -> Index 0, etc.)
-            const convertToStandardIdx = (idx) => idx <= 5 ? idx + 7 : idx - 5 // Approx correction
+
             // Safe mapping based on names
             const monthNamesStandard = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
@@ -85,6 +85,7 @@ export default function KartuSppPage() {
                 status
             }
         })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [students, bills, filterTahun, currentMonthIdx, currentYear, MONTHS])
 
     const filtered = studentStats.filter(s => {

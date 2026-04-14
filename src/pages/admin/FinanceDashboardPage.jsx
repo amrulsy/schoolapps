@@ -1,7 +1,7 @@
 import { useApp } from '../../context/AppContext'
 import { useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
-import { TrendingUp, TrendingDown, Wallet, Target } from 'lucide-react'
+import { TrendingUp, Target } from 'lucide-react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import StatCards from '../../features/dashboard/StatCards'
 import RevenueDistributionChart from '../../features/dashboard/RevenueDistributionChart'
@@ -21,9 +21,6 @@ export default function DashboardPage() {
     const totalUnpaidAmount = unpaidBills.reduce((s, b) => s + Number(b.nominal || 0), 0)
     const totalPaidAmount = paidBills.reduce((s, b) => s + Number(b.nominal || 0), 0)
 
-    const totalIncome = cashFlow.filter(c => c.tipe === 'masuk').reduce((s, c) => s + Number(c.nominal || 0), 0)
-    const totalExpense = cashFlow.filter(c => c.tipe === 'keluar').reduce((s, c) => s + Number(c.nominal || 0), 0)
-    const saldoAmount = totalIncome - totalExpense
 
     // Arus Kas Sekolah (from LaporanPage)
     const monthlyCashFlowData = useMemo(() => {

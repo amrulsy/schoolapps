@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { API_BASE } from '../services/api'
@@ -16,8 +16,9 @@ import PesanPage from './pages/PesanPage'
 import MaintenancePage from '../pages/public/MaintenancePage'
 import './student.css'
 
-const StudentContext = createContext()
-export const useStudent = () => useContext(StudentContext)
+import { StudentContext, useStudent } from './StudentContext'
+
+export { useStudent }
 
 export default function StudentApp() {
     const [student, setStudent] = useState(null)

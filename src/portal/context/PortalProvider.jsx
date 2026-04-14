@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { API_BASE_PUBLIC as API_BASE } from '../../services/api'
-
-const PortalContext = createContext()
+import { PortalContext } from './PortalContext'
 
 export function PortalProvider({ children }) {
     const [settings, setSettings] = useState({})
@@ -57,10 +56,4 @@ export function PortalProvider({ children }) {
             {children}
         </PortalContext.Provider>
     )
-}
-
-export function usePortal() {
-    const context = useContext(PortalContext)
-    if (!context) throw new Error('usePortal must be used within PortalProvider')
-    return context
 }

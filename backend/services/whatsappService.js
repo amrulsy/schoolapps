@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 /**
  * WhatsApp Service - Dual Mode (Baileys / External API)
  * 
@@ -32,7 +33,7 @@ class WhatsAppService {
         this.MAX_DELAY = 15000;
         this.sentCount = 0;
         this.sentCountResetTime = Date.now();
-        
+
         this.logger = null;
         this.store = null;
     }
@@ -53,15 +54,15 @@ class WhatsAppService {
 
         // Dynamic imports for ESM modules
         const baileys = await import("@whiskeysockets/baileys");
-        
+
         // Debugging exports
         const exportKeys = Object.keys(baileys);
         console.log('[WA Service] Tersedia di library Baileys:', exportKeys.filter(k => !k.startsWith('_')).join(', '));
 
         const makeWASocket = baileys.default || baileys.makeWASocket;
-        const { 
-            useMultiFileAuthState, 
-            DisconnectReason, 
+        const {
+            useMultiFileAuthState,
+            DisconnectReason,
             fetchLatestBaileysVersion
         } = baileys;
 
@@ -76,7 +77,7 @@ class WhatsAppService {
 
         const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
         const { version, isLatest } = await fetchLatestBaileysVersion();
-        
+
         console.log(`[WA Service] Menggunakan Baileys v${version.join('.')} (Latest: ${isLatest})`);
 
         this.sock = makeWASocket({
@@ -105,16 +106,18 @@ class WhatsAppService {
             }
 
             if (connection === 'close') {
-                const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-                console.log('[WA Service] Koneksi terputus karena:', lastDisconnect?.error, '. Reconnecting:', shouldReconnect);
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
+                const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+                console.log('[WA Service] Koneksi terputus karena:', lastDisconnect?.error, '. StatusCode:', statusCode);
                 this.isReady = false;
                 this.qrCode = null;
-                
-                if (shouldReconnect) {
+
+                if (isLoggedOut) {
+                    // Logged out — jangan auto-reconnect, biarkan logout() yang handle re-init
+                    this.statusMessage = 'Logged out. Menunggu inisialisasi ulang...';
+                } else {
                     this.statusMessage = 'Terputus, mencoba menghubungkan kembali...';
                     this.initialize();
-                } else {
-                    this.statusMessage = 'Logged out. Silakan scan ulang.';
                 }
             } else if (connection === 'open') {
                 console.log('[WA Service] ✅ WhatsApp terhubung dan siap!');
@@ -161,7 +164,7 @@ class WhatsAppService {
 
         const queueItem = { id: msgId, phone, message: uniqueMessage };
         this.queue.push(queueItem);
-        
+
         this._addToHistory({
             id: msgId,
             phone,
@@ -243,18 +246,43 @@ class WhatsAppService {
     }
 
     async logout() {
-        if (this.mode === 'internal' && this.sock) {
+        if (this.mode !== 'internal') {
+            return { success: false, error: 'Hanya tersedia untuk mode internal' };
+        }
+
+        // 1. Coba logout dari socket Baileys (best-effort)
+        if (this.sock) {
             try {
                 await this.sock.logout();
-                this.isReady = false;
-                this.statusMessage = 'Logged out';
-                return { success: true };
             } catch (err) {
-                return { success: false, error: err.message };
+                console.warn('[WA Service] Peringatan saat logout socket:', err.message);
             }
+            this.sock = null;
         }
-        return { success: false, error: 'Hanya tersedia untuk mode internal' };
+
+        // 2. Reset semua state internal
+        this.isReady = false;
+        this.qrCode = null;
+        this.statusMessage = 'Logged out. Menghapus sesi...';
+
+        // 3. Hapus folder sesi agar Baileys generate QR baru saat initialize()
+        const sessionPath = path.join(__dirname, '../wa_session_baileys');
+        try {
+            if (fs.existsSync(sessionPath)) {
+                fs.rmSync(sessionPath, { recursive: true, force: true });
+                console.log('[WA Service] Folder sesi berhasil dihapus.');
+            }
+        } catch (err) {
+            console.error('[WA Service] Gagal hapus folder sesi:', err.message);
+        }
+
+        // 4. Inisialisasi ulang setelah jeda singkat → akan generate QR baru
+        this.statusMessage = 'Menunggu scan QR Code baru...';
+        setTimeout(() => this.initialize(), 1500);
+
+        return { success: true };
     }
+
 
     _addToHistory(entry) {
         this.history.unshift(entry);

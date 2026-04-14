@@ -1,8 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../services/api';
 import { useUi } from './UiContext';
-
-const SiswaContext = createContext();
+import { SiswaContext } from './SiswaContext';
 
 export function SiswaProvider({ children }) {
     const { addToast } = useUi();
@@ -98,7 +97,7 @@ export function SiswaProvider({ children }) {
                 const data = await res.json();
                 if (res.status === 409) {
                     return { success: false, conflict: true, message: data.message };
-                }
+                    }
                 throw new Error(data.error || 'Gagal menghapus siswa');
             }
         } catch (err) { 
@@ -243,8 +242,4 @@ export function SiswaProvider({ children }) {
     };
 
     return <SiswaContext.Provider value={value}>{children}</SiswaContext.Provider>;
-}
-
-export function useSiswa() {
-    return useContext(SiswaContext);
 }

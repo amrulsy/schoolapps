@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../../../context/AppContext'
 import { Plus, Edit2, Trash2, FileText, Search, ExternalLink } from 'lucide-react'
 import EmptyState from '../../../components/EmptyState'
 import { useCustomAlert } from '../../../hooks/useCustomAlert'
-import { getDirectDriveUrl } from '../../../utils/urlHelper'
 import RichTextEditor from '../../../components/RichTextEditor'
 import MediaLibraryModal from '../../../components/MediaLibraryModal'
 import MediaUploadField from '../../../components/MediaUploadField'
@@ -26,11 +25,7 @@ export default function CmsPostsPage({ hideHeader = false }) {
         category: 'pengumuman', status: 'draft', is_pinned: false
     })
 
-    useEffect(() => {
-        loadPosts()
-    }, [])
-
-    const loadPosts = async () => {
+    const loadPosts = useCallback(async () => {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/posts`, {
@@ -45,7 +40,11 @@ export default function CmsPostsPage({ hideHeader = false }) {
         } finally {
             setLoading(false)
         }
-    }
+    }, [addToast])
+
+    useEffect(() => {
+        loadPosts()
+    }, [loadPosts])
 
     const handleOpenModal = (post = null) => {
         setEditData(post)

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
-import { Search, CreditCard, User, CheckCircle, XCircle, Loader2, Trash2 } from 'lucide-react'
+import { Search, CreditCard, User, Trash2 } from 'lucide-react'
 import { usePagination } from '../../hooks/usePagination'
 import EmptyState from '../../components/EmptyState'
 import api from '../../services/api'
@@ -14,18 +14,25 @@ export default function RfidEnrollment({ hideHeader = false }) {
 
     const allKelas = units.flatMap(u => u.kelas)
     const filtered = (students || []).filter(s => {
-        const matchSearch = s.nama.toLowerCase().includes(search.toLowerCase()) || s.nisn.includes(search)
+        const nameMatch = (s.nama || '').toLowerCase().includes(search.toLowerCase())
+        const nisnMatch = (s.nisn || '').includes(search)
+        const rfidMatch = (s.rfid_uid || '').toLowerCase().includes(search.toLowerCase())
+        const matchSearch = nameMatch || nisnMatch || rfidMatch
         const matchKelas = !filterKelas || s.kelas === filterKelas
         return matchSearch && matchKelas
     })
 
-    const { page, setPage, totalPages, paginated, perPage: PER_PAGE } = usePagination(filtered, 10)
+    const { paginated, page, setPage, totalPages } = usePagination(filtered, 10)
 
     useEffect(() => {
         if (enrollModal.show && rfidInputRef.current) {
             rfidInputRef.current.focus()
         }
     }, [enrollModal.show])
+
+    useEffect(() => {
+        setPage(1)
+    }, [search, filterKelas, setPage])
 
     const handleEnroll = async (e) => {
         e.preventDefault()
@@ -91,7 +98,7 @@ export default function RfidEnrollment({ hideHeader = false }) {
                                 <Search className="position-absolute top-50 translate-middle-y ms-3 text-muted" size={18} />
                                 <input
                                     type="text"
-                                    placeholder="Cari nama atau NISN..."
+                                    placeholder="Cari nama, NISN, atau ID RFID..."
                                     className="form-control ps-5 py-3 rounded-3 border-light bg-light"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
@@ -172,6 +179,29 @@ export default function RfidEnrollment({ hideHeader = false }) {
                             </tbody>
                         </table>
                     </div>
+                    {totalPages > 1 && (
+                        <div className="card-footer bg-white p-3 border-0 border-top">
+                            <div className="d-flex align-items-center justify-content-between">
+                                <span className="text-muted small fw-bold">Halaman {page} dari {totalPages}</span>
+                                <div className="btn-group shadow-sm">
+                                    <button 
+                                        className="btn btn-sm btn-light border text-dark fw-bold px-3" 
+                                        disabled={page === 1} 
+                                        onClick={() => setPage(p => p - 1)}
+                                    >
+                                        Sebelumnya
+                                    </button>
+                                    <button 
+                                        className="btn btn-sm btn-light border text-dark fw-bold px-3" 
+                                        disabled={page === totalPages} 
+                                        onClick={() => setPage(p => p + 1)}
+                                    >
+                                        Selanjutnya
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

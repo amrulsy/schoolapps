@@ -57,10 +57,41 @@ npm run dev
 ---
 
 ## 📁 Struktur Folder
-- `/src`: Source code React frontend.
-- `/backend`: Server Express dan logika bisnis.
-- `/backend/migrations`: Script migrasi database.
-- `/public`: Aset statis public.
+
+```
+schoolapps/
+├── src/                        # Frontend (React + Vite)
+│   ├── components/             # Komponen UI reusable (Sidebar, Modal, dll)
+│   ├── context/                # React Context & Provider (Auth, Keuangan, dll)
+│   ├── features/               # Fitur terkelompok (cms, auth, siswa, dll)
+│   ├── hooks/                  # Custom React hooks
+│   ├── layouts/                # Layout wrapper (AdminLayout, GuruLayout)
+│   ├── pages/                  # Halaman berdasarkan role
+│   │   ├── admin/              # 33 halaman admin
+│   │   └── guru/               # Halaman guru
+│   ├── portal/                 # Portal publik (PortalApp)
+│   ├── services/               # API client (api.js)
+│   ├── student/                # Student portal (StudentApp)
+│   └── utils/                  # Helper utilities
+│
+└── backend/                    # Backend (Node.js + Express)
+    ├── controllers/            # Business logic (Attendance, Inventory)
+    ├── middleware/             # auth, rateLimiter, logger, upload, cache
+    ├── migrations/             # SQL migration files (versioned)
+    ├── routes/                 # Express routes per role & fitur
+    │   ├── admin/              # Route admin (23 modules)
+    │   ├── guru/               # Route guru
+    │   ├── public/             # Route publik (portal)
+    │   └── student/            # Route siswa
+    ├── scripts/                # Utility scripts (seeding, setup)
+    ├── services/               # Services (whatsapp, socket, cron)
+    ├── utils/                  # Backend utilities (timezone)
+    ├── uploads/                # File uploads (gitignored)
+    ├── db.js                   # Database connection pool (TiDB/MySQL)
+    └── server.js               # Entry point Express app
+```
+
+> **Catatan**: File-file sementara (lint artifacts, patch SQL, zip) **tidak** boleh di-commit — sudah diatur di `.gitignore`.
 
 ---
 *Dikembangkan dengan ❤️ oleh **[Amrul Al Syaif'Fu](https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/)** untuk SMK PPRQ.*

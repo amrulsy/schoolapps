@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { BookOpen, Award, ChevronDown, ChevronUp, Download } from 'lucide-react'
-import { useStudent } from '../StudentApp'
+import { BookOpen, Download } from 'lucide-react'
+
 
 const getGradeColor = (val) => {
     if (val >= 85) return '#10B981'
@@ -29,14 +29,12 @@ const MOCK_SUBJECTS = [
 ]
 
 export default function NilaiRaporPage() {
-    const { nilaiData } = useStudent()
     const [expandedSubject, setExpandedSubject] = useState(null)
-    const { currentSemester } = nilaiData || { currentSemester: { semester: 'Ganjil', tahunAjaran: '2026/2027' } }
 
     // Use Mock Data for Preview
     const subjects = MOCK_SUBJECTS
     const averageScore = Math.round(subjects.reduce((acc, curr) => acc + curr.final, 0) / subjects.length)
-    const semesterStr = `${currentSemester.semester} ${currentSemester.tahunAjaran}`
+
 
     return (
         <div className="stu-page" style={{ paddingBottom: '100px' }}>
@@ -71,9 +69,9 @@ export default function NilaiRaporPage() {
 
                 <div className="stu-subject-grid-v4">
                     {subjects.map((s, i) => (
-                        <div 
-                            key={i} 
-                            className="stu-subject-card-v4 stu-fade-up" 
+                        <div
+                            key={i}
+                            className="stu-subject-card-v4 stu-fade-up"
                             style={{ animationDelay: `${0.2 + (i * 0.1)}s` }}
                             onClick={() => setExpandedSubject(expandedSubject === i ? null : i)}
                         >
@@ -81,7 +79,7 @@ export default function NilaiRaporPage() {
                                 <BookOpen size={18} />
                             </div>
                             <div className="stu-subject-v4-name">{s.subject}</div>
-                            
+
                             <div className="stu-subject-v4-grade">
                                 <span className="stu-subject-v4-val" style={{ color: getGradeColor(s.final) }}>{s.final}</span>
                                 <span className="stu-subject-v4-tag">GRADE {s.final >= 90 ? 'A' : 'B'}</span>

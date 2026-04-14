@@ -1,4 +1,3 @@
-import React from 'react'
 
 const PRINT_STYLES = /*css*/`
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -223,186 +222,186 @@ const PRINT_STYLES = /*css*/`
 `
 
 export default function RaporPrintTemplate({ data, batchData }) {
-    if (batchData && Array.isArray(batchData)) {
-        return (
-            <>
-                {batchData.map((d, idx) => (
-                    <div key={idx} className="rapor-print-page">
-                        <SingleRapor d={d} />
-                    </div>
-                ))}
-            </>
-        )
-    }
+  if (batchData && Array.isArray(batchData)) {
+    return (
+      <>
+        {batchData.map((d, idx) => (
+          <div key={idx} className="rapor-print-page">
+            <SingleRapor d={d} />
+          </div>
+        ))}
+      </>
+    )
+  }
 
-    if (!data) return null
-    return <SingleRapor d={data} />
+  if (!data) return null
+  return <SingleRapor d={data} />
 }
 
 function SingleRapor({ d }) {
-    const { student, tahunAjaran, semester, nilaiMapel, attendance, catatan, waliKelas, ekskul } = d
-    const school = JSON.parse(localStorage.getItem('school_settings') || '{}')
+  const { student, tahunAjaran, semester, nilaiMapel, attendance, catatan, waliKelas, ekskul } = d
+  const school = JSON.parse(localStorage.getItem('school_settings') || '{}')
 
-    return (
-        <div className="rapor-print-container">
-            <style>{PRINT_STYLES}</style>
+  return (
+    <div className="rapor-print-container">
+      <style>{PRINT_STYLES}</style>
 
-            {/* School Banner */}
-            <header className="rp-header">
-                <div className="rp-logo-box">LOGO</div>
-                <div className="rp-school-info">
-                    <h1>{school.nama || 'SMK PPRQ'}</h1>
-                    <p>{school.alamat || 'Alamat sekolah tidak terkonfigurasi'}</p>
-                    <p>Telp: {school.telp || '(0298) 321-xxx'} | Email: {school.email || 'info@smkpprq.sch.id'}</p>
-                </div>
-            </header>
-
-            {/* Document Title */}
-            <div className="rp-main-title">
-                <h2>Laporan Hasil Belajar</h2>
-                <div className="rp-subtitle">Kurikulum Merdeka — Tahun Ajaran {tahunAjaran.tahun || '-'}</div>
-            </div>
-
-            {/* Student Info Card */}
-            <section className="rp-student-card">
-                <div className="rp-info-row">
-                    <span className="rp-info-label">Nama Siswa</span>
-                    <span className="rp-info-value">{student.nama}</span>
-                </div>
-                <div className="rp-info-row">
-                    <span className="rp-info-label">Kelas</span>
-                    <span className="rp-info-value">{student.kelas_nama}</span>
-                </div>
-                <div className="rp-info-row">
-                    <span className="rp-info-label">NISN</span>
-                    <span className="rp-info-value">{student.nisn || '-'}</span>
-                </div>
-                <div className="rp-info-row">
-                    <span className="rp-info-label">Semester</span>
-                    <span className="rp-info-value">{semester === 'Ganjil' ? '1 (Ganjil)' : '2 (Genap)'}</span>
-                </div>
-                <div className="rp-info-row">
-                    <span className="rp-info-label">Sekolah</span>
-                    <span className="rp-info-value">{school.nama || 'SMK PPRQ'}</span>
-                </div>
-                <div className="rp-info-row">
-                    <span className="rp-info-label">Tahun Ajaran</span>
-                    <span className="rp-info-value">{tahunAjaran.tahun}</span>
-                </div>
-            </section>
-
-            {/* A: Nilai Akademik */}
-            <div className="rp-section">
-                <span className="rp-section-badge">A</span>
-                <span className="rp-section-title">Nilai Akademik</span>
-            </div>
-            <table className="rp-grade-table">
-                <thead>
-                    <tr>
-                        <th style={{ width: '38px', textAlign: 'center' }}>No</th>
-                        <th style={{ width: '200px' }}>Mata Pelajaran</th>
-                        <th style={{ width: '70px', textAlign: 'center' }}>Nilai</th>
-                        <th>Capaian Kompetensi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {nilaiMapel.length > 0 ? nilaiMapel.map((n, i) => (
-                        <tr key={n.id}>
-                            <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 700 }}>{String(i + 1).padStart(2, '0')}</td>
-                            <td className="rp-mapel-name">{n.mapel_nama}</td>
-                            <td className="rp-score-cell">{Math.round(n.nilai_akhir)}</td>
-                            <td className="rp-desc-cell">{n.deskripsi || '-'}</td>
-                        </tr>
-                    )) : (
-                        <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>Data nilai belum tersedia</td></tr>
-                    )}
-                </tbody>
-            </table>
-
-            {/* B & C: Ekskul + Kehadiran side by side */}
-            <div className="rp-compact-row">
-                <div className="rp-compact-col">
-                    <div className="rp-section" style={{ marginTop: 0 }}>
-                        <span className="rp-section-badge">B</span>
-                        <span className="rp-section-title">Ekstrakurikuler</span>
-                    </div>
-                    <table className="rp-mini-table">
-                        <thead>
-                            <tr>
-                                <th style={{ width: '140px' }}>Kegiatan</th>
-                                <th>Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {ekskul && ekskul.length > 0 ? ekskul.map((e, idx) => (
-                                <tr key={idx}>
-                                    <td style={{ fontWeight: 700 }}>{e.nama_ekskul}</td>
-                                    <td>{e.keterangan || '-'}</td>
-                                </tr>
-                            )) : (
-                                <tr><td colSpan="2" style={{ textAlign: 'center', color: '#94a3b8' }}>—</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="rp-compact-col narrow">
-                    <div className="rp-section" style={{ marginTop: 0 }}>
-                        <span className="rp-section-badge">C</span>
-                        <span className="rp-section-title">Ketidakhadiran</span>
-                    </div>
-                    <table className="rp-mini-table">
-                        <tbody>
-                            <tr>
-                                <td style={{ fontWeight: 600 }}>Sakit</td>
-                                <td style={{ textAlign: 'center', fontWeight: 800 }}>{attendance?.sakit || 0} Hari</td>
-                            </tr>
-                            <tr>
-                                <td style={{ fontWeight: 600 }}>Izin</td>
-                                <td style={{ textAlign: 'center', fontWeight: 800 }}>{attendance?.izin || 0} Hari</td>
-                            </tr>
-                            <tr>
-                                <td style={{ fontWeight: 600 }}>Tanpa Keterangan</td>
-                                <td style={{ textAlign: 'center', fontWeight: 800 }}>{attendance?.alpha || 0} Hari</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Catatan Wali Kelas */}
-            <div className="rp-section">
-                <span className="rp-section-badge">D</span>
-                <span className="rp-section-title">Catatan Wali Kelas</span>
-            </div>
-            <div className="rp-catatan-box">
-                <div className="rp-catatan-body">
-                    {catatan || 'Capaian kompetensi secara umum sudah sangat baik. Pertahankan motivasi dan semangat belajarmu untuk meraih prestasi yang lebih tinggi.'}
-                </div>
-            </div>
-
-            {/* Signatures */}
-            <div className="rp-sig-date">
-                Salatiga, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </div>
-            <div className="rp-sig-subtitle">Mengetahui,</div>
-
-            <div className="rp-sig-grid">
-                <div className="rp-sig-box">
-                    <div className="rp-sig-label">Orang Tua / Wali</div>
-                    <div className="rp-sig-name">&nbsp;</div>
-                </div>
-                <div className="rp-sig-box">
-                    <div className="rp-sig-label">Wali Kelas</div>
-                    <div className="rp-sig-name">{waliKelas?.nama || '-'}</div>
-                    <div className="rp-sig-nip">NIP. {waliKelas?.nip || '-'}</div>
-                </div>
-                <div className="rp-sig-box">
-                    <div className="rp-sig-label">Kepala Sekolah</div>
-                    <div className="rp-sig-name">{school.kepala_sekolah || 'Kepala Sekolah'}</div>
-                    <div className="rp-sig-nip">NIP. {school.nip_kepsek || '-'}</div>
-                </div>
-            </div>
+      {/* School Banner */}
+      <header className="rp-header">
+        <div className="rp-logo-box">LOGO</div>
+        <div className="rp-school-info">
+          <h1>{school.nama || 'SMK PPRQ'}</h1>
+          <p>{school.alamat || 'Alamat sekolah tidak terkonfigurasi'}</p>
+          <p>Telp: {school.telp || '(0298) 321-xxx'} | Email: {school.email || 'info@smkpprq.sch.id'}</p>
         </div>
-    )
+      </header>
+
+      {/* Document Title */}
+      <div className="rp-main-title">
+        <h2>Laporan Hasil Belajar</h2>
+        <div className="rp-subtitle">Kurikulum Merdeka — Tahun Ajaran {tahunAjaran.tahun || '-'}</div>
+      </div>
+
+      {/* Student Info Card */}
+      <section className="rp-student-card">
+        <div className="rp-info-row">
+          <span className="rp-info-label">Nama Siswa</span>
+          <span className="rp-info-value">{student.nama}</span>
+        </div>
+        <div className="rp-info-row">
+          <span className="rp-info-label">Kelas</span>
+          <span className="rp-info-value">{student.kelas_nama}</span>
+        </div>
+        <div className="rp-info-row">
+          <span className="rp-info-label">NISN</span>
+          <span className="rp-info-value">{student.nisn || '-'}</span>
+        </div>
+        <div className="rp-info-row">
+          <span className="rp-info-label">Semester</span>
+          <span className="rp-info-value">{semester === 'Ganjil' ? '1 (Ganjil)' : '2 (Genap)'}</span>
+        </div>
+        <div className="rp-info-row">
+          <span className="rp-info-label">Sekolah</span>
+          <span className="rp-info-value">{school.nama || 'SMK PPRQ'}</span>
+        </div>
+        <div className="rp-info-row">
+          <span className="rp-info-label">Tahun Ajaran</span>
+          <span className="rp-info-value">{tahunAjaran.tahun}</span>
+        </div>
+      </section>
+
+      {/* A: Nilai Akademik */}
+      <div className="rp-section">
+        <span className="rp-section-badge">A</span>
+        <span className="rp-section-title">Nilai Akademik</span>
+      </div>
+      <table className="rp-grade-table">
+        <thead>
+          <tr>
+            <th style={{ width: '38px', textAlign: 'center' }}>No</th>
+            <th style={{ width: '200px' }}>Mata Pelajaran</th>
+            <th style={{ width: '70px', textAlign: 'center' }}>Nilai</th>
+            <th>Capaian Kompetensi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {nilaiMapel.length > 0 ? nilaiMapel.map((n, i) => (
+            <tr key={n.id}>
+              <td style={{ textAlign: 'center', color: '#94a3b8', fontWeight: 700 }}>{String(i + 1).padStart(2, '0')}</td>
+              <td className="rp-mapel-name">{n.mapel_nama}</td>
+              <td className="rp-score-cell">{Math.round(n.nilai_akhir)}</td>
+              <td className="rp-desc-cell">{n.deskripsi || '-'}</td>
+            </tr>
+          )) : (
+            <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>Data nilai belum tersedia</td></tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* B & C: Ekskul + Kehadiran side by side */}
+      <div className="rp-compact-row">
+        <div className="rp-compact-col">
+          <div className="rp-section" style={{ marginTop: 0 }}>
+            <span className="rp-section-badge">B</span>
+            <span className="rp-section-title">Ekstrakurikuler</span>
+          </div>
+          <table className="rp-mini-table">
+            <thead>
+              <tr>
+                <th style={{ width: '140px' }}>Kegiatan</th>
+                <th>Keterangan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ekskul && ekskul.length > 0 ? ekskul.map((e, idx) => (
+                <tr key={idx}>
+                  <td style={{ fontWeight: 700 }}>{e.nama_ekskul}</td>
+                  <td>{e.keterangan || '-'}</td>
+                </tr>
+              )) : (
+                <tr><td colSpan="2" style={{ textAlign: 'center', color: '#94a3b8' }}>—</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="rp-compact-col narrow">
+          <div className="rp-section" style={{ marginTop: 0 }}>
+            <span className="rp-section-badge">C</span>
+            <span className="rp-section-title">Ketidakhadiran</span>
+          </div>
+          <table className="rp-mini-table">
+            <tbody>
+              <tr>
+                <td style={{ fontWeight: 600 }}>Sakit</td>
+                <td style={{ textAlign: 'center', fontWeight: 800 }}>{attendance?.sakit || 0} Hari</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 600 }}>Izin</td>
+                <td style={{ textAlign: 'center', fontWeight: 800 }}>{attendance?.izin || 0} Hari</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 600 }}>Tanpa Keterangan</td>
+                <td style={{ textAlign: 'center', fontWeight: 800 }}>{attendance?.alpha || 0} Hari</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Catatan Wali Kelas */}
+      <div className="rp-section">
+        <span className="rp-section-badge">D</span>
+        <span className="rp-section-title">Catatan Wali Kelas</span>
+      </div>
+      <div className="rp-catatan-box">
+        <div className="rp-catatan-body">
+          {catatan || 'Capaian kompetensi secara umum sudah sangat baik. Pertahankan motivasi dan semangat belajarmu untuk meraih prestasi yang lebih tinggi.'}
+        </div>
+      </div>
+
+      {/* Signatures */}
+      <div className="rp-sig-date">
+        Salatiga, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+      </div>
+      <div className="rp-sig-subtitle">Mengetahui,</div>
+
+      <div className="rp-sig-grid">
+        <div className="rp-sig-box">
+          <div className="rp-sig-label">Orang Tua / Wali</div>
+          <div className="rp-sig-name">&nbsp;</div>
+        </div>
+        <div className="rp-sig-box">
+          <div className="rp-sig-label">Wali Kelas</div>
+          <div className="rp-sig-name">{waliKelas?.nama || '-'}</div>
+          <div className="rp-sig-nip">NIP. {waliKelas?.nip || '-'}</div>
+        </div>
+        <div className="rp-sig-box">
+          <div className="rp-sig-label">Kepala Sekolah</div>
+          <div className="rp-sig-name">{school.kepala_sekolah || 'Kepala Sekolah'}</div>
+          <div className="rp-sig-nip">NIP. {school.nip_kepsek || '-'}</div>
+        </div>
+      </div>
+    </div>
+  )
 }

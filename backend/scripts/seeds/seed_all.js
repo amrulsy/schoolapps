@@ -39,7 +39,7 @@ async function runSeed() {
         await conn.query('SET FOREIGN_KEY_CHECKS = 0');
         for (const table of tables) {
             await conn.query(`DELETE FROM ${table}`);
-            try { await conn.query(`ALTER TABLE ${table} AUTO_INCREMENT = 1`); } catch (e) { }
+            try { await conn.query(`ALTER TABLE ${table} AUTO_INCREMENT = 1`); } catch (e) { console.warn('Reset AI warning:', e.message); }
         }
         await conn.query('SET FOREIGN_KEY_CHECKS = 1');
 

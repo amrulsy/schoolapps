@@ -74,7 +74,7 @@ router.post('/nilai', async (req, res) => {
         // Hitung nilai akhir otomatis: 30% tugas + 30% UTS + 40% UAS
         const akhir = (Number(tugas) * 0.3) + (Number(uts) * 0.3) + (Number(uas) * 0.4);
 
-        const [result] = await pool.query(
+        await pool.query(
             `INSERT INTO nilai_siswa (siswa_id, mapel_id, tahun_ajaran_id, semester, tugas, uts, uas, akhir) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
              ON DUPLICATE KEY UPDATE tugas=?, uts=?, uas=?, akhir=?`,

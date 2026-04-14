@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 import Modal from '../../components/Modal'
-import { Plus, Edit2, Trash2, Info } from 'lucide-react'
+import { Plus, Edit2, Trash2 } from 'lucide-react'
 
 export default function KategoriTagihanPage() {
     const { categories, addCategory, deleteCategory } = useApp()

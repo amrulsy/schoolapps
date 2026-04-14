@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Edit2, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import Modal from '../../components/Modal'
@@ -18,7 +18,7 @@ export default function StudentMenuPage() {
         label: '', icon: 'Circle', path: '', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.15)', is_active: true, sort_order: 0
     })
 
-    const fetchMenus = async () => {
+    const fetchMenus = useCallback(async () => {
         try {
             setLoading(true)
             const token = localStorage.getItem('token') || ''
@@ -34,11 +34,11 @@ export default function StudentMenuPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [showError])
 
     useEffect(() => {
         fetchMenus()
-    }, [])
+    }, [fetchMenus])
 
     const handleSave = async () => {
         try {

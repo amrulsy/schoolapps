@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { usePagination } from '../../hooks/usePagination'
 import { API_BASE, getAuthHeaders } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
-import { Users, PlusCircle, Search, Trash2, Edit, Save, X, TrendingUp, CheckCircle, ShieldCheck, Eye, ChevronLeft, ChevronRight, UserPlus, Info, Edit2 } from 'lucide-react'
+import { Users, PlusCircle, Search, Trash2, Edit, Save, X, TrendingUp, CheckCircle, ShieldCheck, ChevronLeft, ChevronRight, UserPlus, Info } from 'lucide-react'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
-import { useApp } from '../../context/AppContext'
 
 const styles = /*css*/`
   .table-responsive {
@@ -329,7 +328,7 @@ export default function DataGuruPage() {
         return matchSearch && matchStatus
     })
 
-    const { page, setPage, totalPages, paginated, resetPage, perPage: PER_PAGE } = usePagination(filtered, 10)
+    const { page, setPage, totalPages, paginated, resetPage } = usePagination(filtered, 10)
 
     // Stats
     const totalGuru = guruList.length

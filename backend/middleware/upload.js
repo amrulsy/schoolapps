@@ -2,13 +2,11 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure uploads directory exists
+// ─── Memory Storage (CMS / media uploads) ────────────────────────────────────
 const uploadDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
-
-const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
@@ -20,11 +18,26 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB max file size
-    },
-    fileFilter: fileFilter
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter,
 });
 
-module.exports = { upload };
+// ─── Disk Storage: Dokumen Siswa ─────────────────────────────────────────────
+const storageDokumen = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../uploads/dokumen_siswa');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${req.params.id}_${Date.now()}_${file.originalname}`);
+    },
+});
+
+const uploadDokumen = multer({
+    storage: storageDokumen,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
+module.exports = { upload, uploadDokumen };

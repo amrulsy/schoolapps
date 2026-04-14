@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { usePagination } from '../../hooks/usePagination'
 import { useApp } from '../../context/AppContext'
-import Modal from '../../components/Modal'
+
 import EmptyState from '../../components/EmptyState'
 import LoadingSpinner from '../../components/LoadingSpinner'
-import { Search, Zap, FileText, History, RotateCcw, AlertCircle, Calendar, User, Hash } from 'lucide-react'
+import { Search, Zap, FileText, History, RotateCcw, AlertCircle, Calendar,  Hash } from 'lucide-react'
 
 // Features
 import GenerateModal from '../../features/tagihan/GenerateModal'
@@ -240,7 +240,7 @@ export default function GenerateTagihanPage() {
                                                 <td data-label="Kelas">{b.kelas_nama}</td>
                                                 <td data-label="Kategori">{b.kategori_nama}</td>
                                                 <td data-label="Periode">
-                                                    {b.bulan}'{b.tahun.toString().slice(-2)}
+                                                    {b.bulan}&apos;{b.tahun.toString().slice(-2)}
                                                     <br /><span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>({b.tahun_ajaran})</span>
                                                 </td>
                                                 <td data-label="Nominal" className="mono">

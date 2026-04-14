@@ -1,4 +1,4 @@
-import { PiggyBank, ArrowUpCircle, ArrowDownCircle, TrendingUp, CreditCard, ShoppingBag, Coffee, Wallet } from 'lucide-react'
+import { TrendingUp, CreditCard, ShoppingBag, Coffee, Wallet } from 'lucide-react'
 import { useStudent } from '../StudentApp'
 
 // Static Mock Data for V4 'Digital Vault' Preview
@@ -22,12 +22,12 @@ const getCategoryIcon = (category) => {
 }
 
 export default function TabunganPage() {
-    const { formatRupiah, tabunganData } = useStudent()
-    
+    const { formatRupiah } = useStudent()
+
     // Use Mock Data for V4 Preview
     const history = MOCK_SAVINGS_HISTORY
     const saldo = history.reduce((acc, curr) => acc + (curr.type === 'setor' ? curr.amount : -curr.amount), 350000)
-    
+
     const totalSetor = history.filter(h => h.type === 'setor').reduce((s, h) => s + h.amount, 0)
     const totalTarik = history.filter(h => h.type === 'tarik').reduce((s, h) => s + h.amount, 0)
 
@@ -62,15 +62,15 @@ export default function TabunganPage() {
 
                 <div className="stu-list">
                     {history.map((h, i) => (
-                        <div 
-                            key={h.id} 
+                        <div
+                            key={h.id}
                             className={`stu-transaction-card-v4 stu-fade-up stu-trans-glow-${h.type}`}
                             style={{ animationDelay: `${0.2 + (i * 0.1)}s` }}
                         >
                             <div className={`stu-trans-icon-v4 ${h.type}`}>
                                 {getCategoryIcon(h.category)}
                             </div>
-                            
+
                             <div className="stu-trans-info-v4">
                                 <span className="stu-trans-note-v4">{h.note}</span>
                                 <span className="stu-trans-date-v4">

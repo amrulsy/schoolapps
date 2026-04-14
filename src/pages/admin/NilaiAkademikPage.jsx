@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { API_BASE } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
-import { BookOpen, Search, Filter, PlusCircle, CheckCircle, GraduationCap, TrendingUp, ListChecks, X, Calendar, Book } from 'lucide-react'
+import { Search, Filter, PlusCircle, CheckCircle, GraduationCap, TrendingUp, ListChecks, X, Book } from 'lucide-react'
 
 export default function NilaiAkademikPage() {
     const [nilaiList, setNilaiList] = useState([])
@@ -18,7 +18,7 @@ export default function NilaiAkademikPage() {
     const [formData, setFormData] = useState({ siswa_id: '', mapel_id: '', tahun_ajaran_id: '', semester: 'Ganjil', tugas: 0, uts: 0, uas: 0 })
     const [submitLoading, setSubmitLoading] = useState(false)
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true)
         try {
             const token = localStorage.getItem('token')
@@ -48,11 +48,11 @@ export default function NilaiAkademikPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [filterTahun, filterSemester])
 
     useEffect(() => {
         fetchData()
-    }, [filterTahun, filterSemester])
+    }, [fetchData])
 
     const filtered = nilaiList.filter(n =>
         n.siswa_nama?.toLowerCase().includes(search.toLowerCase()) ||

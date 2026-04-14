@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
 import {
-    ArrowRight, CheckCircle, ChevronRight, BookOpen, Users, Trophy,
-    Target, Play, Video, Image as ImageIcon, ThumbsUp, Share2,
-    Briefcase, ChevronLeft, MessageCircle, Star, Award, Heart,
-    Book, Settings, GraduationCap
+    CheckCircle, ChevronRight, Users, Trophy,
+    Target, Briefcase, ChevronLeft, Settings, GraduationCap,
+    Video, Heart, Share2, Book
 } from 'lucide-react'
+import { Image as ImageIcon } from 'lucide-react'
 
 // Import new redesign styles
 import '../styles/portal-program-detail.css'
@@ -294,8 +294,6 @@ export default function PortalProgramDetail() {
                             if (total === 4 && offset === 2) offset = -2;
 
                             const isCenter = offset === 0;
-                            const isLeft = offset === -1 || offset === -2;
-                            const isRight = offset === 1 || offset === 2;
                             const isHidden = Math.abs(offset) > 1;
 
                             // Scale, Blur, Translates based on offset

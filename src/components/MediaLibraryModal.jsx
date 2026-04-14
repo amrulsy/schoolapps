@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Upload, Check, Image as ImageIcon, Trash2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { API_BASE_CMS as API_BASE, getBearerHeader, getMediaUrl } from '../services/api'
@@ -16,9 +16,9 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect }) {
             loadMedia()
             setSelectedItem(null)
         }
-    }, [isOpen])
+    }, [isOpen, loadMedia])
 
-    const loadMedia = async () => {
+    const loadMedia = useCallback(async () => {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/media`, {
@@ -33,7 +33,7 @@ export default function MediaLibraryModal({ isOpen, onClose, onSelect }) {
         } finally {
             setLoading(false)
         }
-    }
+    }, [addToast])
 
     const handleUploadClick = () => {
         fileInputRef.current?.click()

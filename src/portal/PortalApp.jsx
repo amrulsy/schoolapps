@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
-import { PortalProvider } from './context/PortalContext'
+import { PortalProvider } from './context/PortalProvider'
 import PortalNavbar from './components/PortalNavbar'
 import PortalFooter from './components/PortalFooter'
 import PortalBottomNav from './components/PortalBottomNav'

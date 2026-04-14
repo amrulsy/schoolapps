@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { useCustomAlert } from '../../../hooks/useCustomAlert';
 import { Plus, Edit2, Trash2, Calendar as CalendarIcon, RefreshCw, Layout, Clock, MapPin, AlignLeft, X, Save, CheckCircle2 } from 'lucide-react';
@@ -9,7 +9,7 @@ export default function CmsAgendaPage({ hideHeader = false }) {
     const { confirmDelete } = useCustomAlert();
     const [agendas, setAgendas] = useState([]);
     const [loading, setLoading] = useState(true);
-    
+
     const [showModal, setShowModal] = useState(false);
     const [editItem, setEditItem] = useState(null);
     const [formData, setFormData] = useState({
@@ -17,9 +17,7 @@ export default function CmsAgendaPage({ hideHeader = false }) {
     });
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => { loadAgendas(); }, []);
-
-    const loadAgendas = async () => {
+    const loadAgendas = useCallback(async () => {
         setLoading(true);
         try {
             const res = await fetch(`${API_BASE}/agenda`, { headers: getAuthHeaders() });
@@ -29,7 +27,9 @@ export default function CmsAgendaPage({ hideHeader = false }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [addToast]);
+
+    useEffect(() => { loadAgendas(); }, [loadAgendas]);
 
     const openModal = (item = null) => {
         setEditItem(item);
@@ -127,7 +127,7 @@ export default function CmsAgendaPage({ hideHeader = false }) {
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: 20 }}>Memuat...</div>
                 ) : agendas.length === 0 ? (
-                    <div className="cms-empty-state">Belum ada agenda bulan ini. Klik "Tambah Agenda" untuk membuat jadwal baru.</div>
+                    <div className="cms-empty-state">Belum ada agenda bulan ini. Klik &quot;Tambah Agenda&quot; untuk membuat jadwal baru.</div>
                 ) : (
                     <div className="table-container">
                         <table>
@@ -183,8 +183,8 @@ export default function CmsAgendaPage({ hideHeader = false }) {
                     <div className="modal animate-slide-up" style={{ maxWidth: 620 }} onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{ 
-                                    width: 40, height: 40, borderRadius: 12, 
+                                <div style={{
+                                    width: 40, height: 40, borderRadius: 12,
                                     background: editItem ? 'var(--primary-50)' : 'var(--success-50)',
                                     color: editItem ? 'var(--primary-600)' : 'var(--success-600)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -214,7 +214,7 @@ export default function CmsAgendaPage({ hideHeader = false }) {
                                         />
                                     </div>
                                 </div>
-                                
+
                                 <div className="form-row mb-4">
                                     <div className="form-group mb-0">
                                         <label className="cms-label"><CalendarIcon size={14} /> Tanggal Acara <span className="text-danger">*</span></label>
@@ -229,7 +229,7 @@ export default function CmsAgendaPage({ hideHeader = false }) {
                                         />
                                     </div>
                                 </div>
-                                
+
                                 <div className="form-group mb-4">
                                     <label className="cms-label"><MapPin size={14} /> Lokasi / Tempat</label>
                                     <input type="text" className="form-control" placeholder="Cth: Aula Utama SMK PPRQ"
@@ -244,10 +244,10 @@ export default function CmsAgendaPage({ hideHeader = false }) {
                                         value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
                                     ></textarea>
                                 </div>
-                                
-                                <div style={{ 
-                                    background: 'var(--bg-hover)', 
-                                    padding: '16px', 
+
+                                <div style={{
+                                    background: 'var(--bg-hover)',
+                                    padding: '16px',
                                     borderRadius: '12px',
                                     border: '1px solid var(--border-color)',
                                     display: 'flex',
@@ -255,8 +255,8 @@ export default function CmsAgendaPage({ hideHeader = false }) {
                                     justifyContent: 'space-between'
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <div style={{ 
-                                            width: 32, height: 32, borderRadius: '50%', 
+                                        <div style={{
+                                            width: 32, height: 32, borderRadius: '50%',
                                             background: formData.is_active ? 'var(--success-50)' : 'var(--gray-100)',
                                             color: formData.is_active ? 'var(--success-600)' : 'var(--gray-400)',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -268,24 +268,24 @@ export default function CmsAgendaPage({ hideHeader = false }) {
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tampilkan agenda ini di portal sekolah.</div>
                                         </div>
                                     </div>
-                                    <label className="switch-control" style={{ 
-                                        position: 'relative', 
-                                        display: 'inline-block', 
-                                        width: 44, 
+                                    <label className="switch-control" style={{
+                                        position: 'relative',
+                                        display: 'inline-block',
+                                        width: 44,
                                         height: 24,
-                                        cursor: 'pointer' 
+                                        cursor: 'pointer'
                                     }}>
                                         <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }}
                                             checked={formData.is_active === 1}
                                             onChange={e => setFormData({ ...formData, is_active: e.target.checked ? 1 : 0 })}
                                         />
-                                        <span style={{ 
-                                            position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
+                                        <span style={{
+                                            position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
                                             background: formData.is_active ? 'var(--success-500)' : '#cbd5e1',
                                             transition: '.3s', borderRadius: 24
                                         }}></span>
-                                        <span style={{ 
-                                            position: 'absolute', height: 18, width: 18, left: formData.is_active ? 22 : 3, bottom: 3, 
+                                        <span style={{
+                                            position: 'absolute', height: 18, width: 18, left: formData.is_active ? 22 : 3, bottom: 3,
                                             background: 'white', transition: '.3s', borderRadius: '50%',
                                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                         }}></span>

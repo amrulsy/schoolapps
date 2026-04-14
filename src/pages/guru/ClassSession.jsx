@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { API_BASE, getAuthHeaders } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import {
-    Clock, Info, Save, UserX, UserCheck, CheckCircle2,
-    BookOpen, Search, Users, Activity, ChevronRight, CheckCircle, ArrowLeft,
+    Clock,  Save,   CheckCircle2,
+    BookOpen, Search, Users, Activity, ChevronRight, CheckCircle, 
     Pencil, X, History
 } from 'lucide-react'
-import { useApp } from '../../context/AppContext'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 
 // --- STYLES ---
@@ -232,7 +231,6 @@ const styles = `
 export default function ClassSession() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const { addToast } = useApp()
     const { confirmAction, showError, showSuccess } = useCustomAlert()
     const [jurnal, setJurnal] = useState(null)
     const [students, setStudents] = useState([])
@@ -242,7 +240,7 @@ export default function ClassSession() {
     const [materi, setMateri] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true)
         try {
             const [jurnalRes, studentRes] = await Promise.all([
@@ -252,36 +250,30 @@ export default function ClassSession() {
 
             if (jurnalRes.ok) {
                 const jData = await jurnalRes.json()
-                console.log("[DEBUG ClassSession] Jurnal Data:", jData)
                 if (jData && typeof jData === 'object') {
                     setJurnal(jData)
                     setMateri(jData.materi || '')
                 }
-            } else {
-                console.warn("[DEBUG ClassSession] Failed to fetch journal detail", await jurnalRes.text())
             }
 
             if (studentRes.ok) {
                 const sData = await studentRes.json()
-                console.log("[DEBUG ClassSession] Students Data:", sData)
                 if (sData && Array.isArray(sData.students)) {
                     setStudents(sData.students)
                 } else {
                     setStudents([])
                 }
-            } else {
-                console.warn("[DEBUG ClassSession] Failed to fetch students", await studentRes.text())
             }
         } catch (err) {
             console.error(err)
         } finally {
             setLoading(false)
         }
-    }
+    }, [id])
 
     useEffect(() => {
         fetchData()
-    }, [id])
+    }, [fetchData])
 
     const setStatus = async (studentId, nextStatus) => {
         if (jurnal?.status_jurnal === 'Selesai' && !editMode) return
@@ -318,7 +310,7 @@ export default function ClassSession() {
                 })
             })
             showSuccess('Presensi Berhasil', 'Semua siswa ditandai hadir.')
-        } catch (err) { }
+        } catch (err) { /* silent */ }
     }
 
     const handleSaveMateri = async () => {

@@ -51,7 +51,7 @@ export default function CartSidebar({
                             />
                             <div className="item-info">
                                 <div className="item-name">{bill.kategori_nama || bill.kategori || 'Tagihan'} <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>({bill.kelas_nama || '-'})</span></div>
-                                <div className="item-period">{bill.bulan}'{(bill.tahun || '').toString().slice(-2)} ({bill.tahun_ajaran || bill.tahunAjaran || '-'})</div>
+                                <div className="item-period">{bill.bulan}&apos;{(bill.tahun || '').toString().slice(-2)} ({bill.tahun_ajaran || bill.tahunAjaran || '-'})</div>
                             </div>
                             <div className="item-amount" onClick={e => e.stopPropagation()}>
                                 {selectedBills.includes(bill.id) ? (

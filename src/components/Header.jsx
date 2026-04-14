@@ -1,5 +1,5 @@
-import React from 'react'
-import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { Fragment } from 'react'
+import { useLocation, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { Menu, Bell, Sun, Moon, LogOut, Search } from 'lucide-react'
 import Swal from 'sweetalert2'
@@ -41,7 +41,7 @@ const pageTitles = {
 export default function Header({ isMobile }) {
     const { theme, toggleTheme, setSidebarCollapsed, sidebarCollapsed, logout } = useApp()
     const location = useLocation()
-    const navigate = useNavigate()
+
 
     // Generate Dynamic Breadcrumbs
     const pathSegments = location.pathname.split('/').filter(Boolean)
@@ -87,7 +87,7 @@ export default function Header({ isMobile }) {
                     </>
                 )}
                 {breadcrumbs.map((bc, i) => (
-                    <React.Fragment key={i}>
+                    <Fragment key={i}>
                         {bc.isLast ? (
                             <span className="breadcrumb-current">{bc.title}</span>
                         ) : (
@@ -96,7 +96,7 @@ export default function Header({ isMobile }) {
                             </Link>
                         )}
                         {!bc.isLast && <span className="breadcrumb-separator">/</span>}
-                    </React.Fragment>
+                    </Fragment>
                 ))}
             </div>
 

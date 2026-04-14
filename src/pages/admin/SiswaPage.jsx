@@ -1,10 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { usePagination } from '../../hooks/usePagination'
 import * as XLSX from 'xlsx'
 import { useApp } from '../../context/AppContext'
 import EmptyState from '../../components/EmptyState'
 import { downloadFile } from '../../utils/downloadHelper'
-import { useDropzone } from 'react-dropzone'
 import { Search, Plus, Upload, Download, Edit2, Trash2, Users, Eye, ChevronLeft, ChevronRight, CheckCircle, Layers, TrendingUp } from 'lucide-react'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 
@@ -228,7 +227,7 @@ const styles = /*css*/`
 `;
 
 export default function SiswaPage() {
-    const { students, addStudent, updateStudent, deleteStudent, importStudents, units, addKelas, formatRupiah, addToast } = useApp()
+    const { students, addStudent, updateStudent, deleteStudent, importStudents, units, addToast } = useApp()
     const { confirmDelete, confirmAction } = useCustomAlert()
     const [search, setSearch] = useState('')
     const [filterKelas, setFilterKelas] = useState('')
@@ -247,7 +246,7 @@ export default function SiswaPage() {
         return matchSearch && matchKelas && matchStatus
     })
 
-    const [perPage, setPerPage] = useState(10)
+    const [perPage] = useState(10)
     const { page, setPage, totalPages, paginated, resetPage } = usePagination(filtered, perPage)
 
     const [isSaving, setIsSaving] = useState(false)
@@ -581,7 +580,7 @@ export default function SiswaPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {paginated.map((s, idx) => (
+                                    {paginated.map((s) => (
                                         <tr key={s.id} className="activity-item">
                                             <td className="ps-4">
                                                 <div className="d-flex align-items-center gap-3">

@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useCustomAlert } from '../../hooks/useCustomAlert';
 import { API_BASE, getAuthHeaders } from '../../services/api';
 import {
-    Calendar, Users, FileSpreadsheet, Printer, Search,
-    Filter, Activity, UserCheck, Clock, AlertCircle, UserMinus,
-    Download, PieChart, ChevronRight, School, TrendingUp, Award,
-    Loader2, BookOpen, Star
+    Users, FileSpreadsheet, Printer, Search,
+    Filter, Activity, UserCheck, Clock, UserMinus,
+    PieChart, Loader2
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { useReactToPrint } from 'react-to-print';
@@ -305,7 +304,7 @@ export default function AttendanceRecap() {
     useEffect(() => {
         const activeTA = tahunAjaranList?.find(t => t.status === 'aktif')?.tahun;
         if (activeTA && !selectedTA) setSelectedTA(activeTA);
-    }, [tahunAjaranList]);
+    }, [tahunAjaranList, selectedTA]);
 
     const handleFetchRecap = async () => {
         if (!kelasId) return showError('Peringatan', 'Silakan pilih kelas terlebih dahulu');

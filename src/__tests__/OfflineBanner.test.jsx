@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { render, screen, act, fireEvent } from '@testing-library/react'
 import { describe, test, expect, beforeEach } from 'vitest'
 import OfflineBanner from '../components/OfflineBanner'

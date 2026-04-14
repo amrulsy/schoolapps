@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../../db');
-const jwt = require('jsonwebtoken');
+
 const { studentAuthMiddleware } = require('../../middleware/studentAuth');
 const InventoryController = require('../../controllers/InventoryController');
 const AttendanceStreakService = require('../../services/attendanceStreakService');

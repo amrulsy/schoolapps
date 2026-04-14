@@ -4,7 +4,7 @@ import { API_BASE, getAuthHeaders } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import {
     History, Calendar, Users, BookOpen, ChevronRight,
-    Search, Filter, ArrowLeft, Clock, CheckCircle, X, ChevronDown, Trash2, BarChart2
+    Search, Filter, ArrowLeft, Clock, CheckCircle, X,  Trash2, BarChart2
 } from 'lucide-react'
 
 const styles = /*css*/`

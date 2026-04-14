@@ -2,15 +2,15 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
-import { Search, MapPin, Phone, GraduationCap, CheckCircle2, ClipboardCheck, ArrowRight, User, Calendar, BookOpen, MessageCircle, AlertCircle, Info, ChevronRight, Palette, Scissors, Landmark, Eye, X } from 'lucide-react'
+import { Search, MapPin, Phone, GraduationCap, CheckCircle2, ArrowRight, User, Calendar, BookOpen, AlertCircle, Info, ChevronRight, Palette, Scissors, Landmark, Eye, X } from 'lucide-react'
 import Swal from 'sweetalert2'
 
 export default function PortalPPDB() {
     const navigate = useNavigate()
     const { fetchPublic, postPublic } = usePortal()
-    const [pageContent, setPageContent] = useState(null)
+
     const [settings, setSettings] = useState({})
-    const [loading, setLoading] = useState(true)
+
     const [showPreview, setShowPreview] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [activeTab, setActiveTab] = useState('register') // 'register' or 'check'
@@ -42,7 +42,6 @@ export default function PortalPPDB() {
 
     useEffect(() => {
         async function loadData() {
-            setLoading(true)
             try {
                 const [page, settingsData, stepsData, reqsData, gelData] = await Promise.all([
                     fetchPublic('/pages/syarat-pendaftaran'),
@@ -51,15 +50,15 @@ export default function PortalPPDB() {
                     fetchPublic('/ppdb-requirements'),
                     fetchPublic('/ppdb/gelombang')
                 ])
-                if (page && !page.error) setPageContent(page)
+                if (page && !page.error) {
+                    // Page content fetched successfully
+                }
                 if (settingsData) setSettings(settingsData)
                 if (stepsData && !stepsData.error) setSteps(stepsData)
                 if (reqsData && !reqsData.error) setRequirements(reqsData)
                 if (Array.isArray(gelData)) setGelombangList(gelData)
             } catch (err) {
                 console.error("Failed to load PPDB data", err)
-            } finally {
-                setLoading(false)
             }
         }
         loadData()
@@ -97,7 +96,9 @@ export default function PortalPPDB() {
                 try {
                     const confetti = (await import('canvas-confetti')).default;
                     confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-                } catch(e) {}
+                } catch (e) {
+                    console.debug("Confetti ignored", e)
+                }
 
                 setPrintData(data.data);
                 setShowPreview(false);
@@ -158,7 +159,7 @@ export default function PortalPPDB() {
             return
         }
 
-        setLoading(true)
+
         try {
             const data = await postPublic('/ppdb/check', { identifier: searchQuery })
 
@@ -252,7 +253,7 @@ export default function PortalPPDB() {
         } catch (err) {
             Swal.fire('Error', 'Gagal memproses permintaan. Pastikan koneksi internet stabil.', 'error')
         } finally {
-            setLoading(false)
+            // Loading removed
         }
     }
 

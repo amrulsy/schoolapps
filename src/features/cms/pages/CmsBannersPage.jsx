@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../../../context/AppContext'
 import { Plus, Edit2, Trash2, Image as ImageIcon } from 'lucide-react'
 import EmptyState from '../../../components/EmptyState'
@@ -21,11 +21,7 @@ export default function CmsBannersPage({ hideHeader = false }) {
     const [form, setForm] = useState({ title: '', subtitle: '', image_url: '', cta_text: '', cta_link: '', is_active: true, sort_order: 0 })
     const [saving, setSaving] = useState(false)
 
-    useEffect(() => {
-        loadBanners()
-    }, [])
-
-    const loadBanners = async () => {
+    const loadBanners = useCallback(async () => {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/banners`, {
@@ -40,7 +36,11 @@ export default function CmsBannersPage({ hideHeader = false }) {
         } finally {
             setLoading(false)
         }
-    }
+    }, [addToast])
+
+    useEffect(() => {
+        loadBanners()
+    }, [loadBanners])
 
     const handleOpenModal = (banner = null) => {
         setEditData(banner)

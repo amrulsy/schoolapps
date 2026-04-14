@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { AlertTriangle, Settings } from 'lucide-react';
 
 export default function MaintenancePage() {

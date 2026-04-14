@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../../../context/AppContext'
-import { Mail, Trash2, Eye, User, Phone, Calendar, MessageSquare, Clock, ExternalLink, ArrowRight, RefreshCw } from 'lucide-react'
+import { Mail, Trash2, Eye, Phone, Calendar, MessageSquare, Clock, ExternalLink, ArrowRight, RefreshCw } from 'lucide-react'
 import EmptyState from '../../../components/EmptyState'
 import { useCustomAlert } from '../../../hooks/useCustomAlert'
 
-import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../../../services/api'
+import { API_BASE_CMS as API_BASE, getBearerHeader } from '../../../services/api'
 
 export default function CmsContactsPage() {
     const { addToast } = useApp()
@@ -13,11 +13,7 @@ export default function CmsContactsPage() {
     const [loading, setLoading] = useState(true)
     const [viewMessage, setViewMessage] = useState(null)
 
-    useEffect(() => {
-        loadMessages()
-    }, [])
-
-    const loadMessages = async () => {
+    const loadMessages = useCallback(async () => {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/contacts`, {
@@ -32,7 +28,11 @@ export default function CmsContactsPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [addToast])
+
+    useEffect(() => {
+        loadMessages()
+    }, [loadMessages])
 
     const handleRead = async (msg) => {
         setViewMessage(msg)

@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { API_BASE } from '../../services/api'
+import { useCustomAlert } from '../../hooks/useCustomAlert'
 import LoadingSpinner from '../../components/LoadingSpinner'
-import { Star, AlertTriangle, Search, Award, PlusCircle, Trash2, Calendar, User, X, ShieldAlert, Trophy, TrendingUp } from 'lucide-react'
+import { Star, Search, Award, PlusCircle, Trash2, Calendar, X, ShieldAlert, TrendingUp } from 'lucide-react'
 
 export default function BimbinganKonselingPage() {
+    const { showError, showSuccess, confirmDelete } = useCustomAlert()
     const [catatan, setCatatan] = useState([])
     const [kategoriList, setKategoriList] = useState([])
     const [siswaList, setSiswaList] = useState([])
@@ -13,7 +15,7 @@ export default function BimbinganKonselingPage() {
     const [formData, setFormData] = useState({ siswa_id: '', bk_kategori_id: '', tanggal: new Date().toISOString().split('T')[0], keterangan: '' })
     const [submitLoading, setSubmitLoading] = useState(false)
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true)
         try {
             const token = localStorage.getItem('token')
@@ -29,15 +31,15 @@ export default function BimbinganKonselingPage() {
             if (swRes.ok) setSiswaList(await swRes.json())
         } catch (err) {
             console.error(err)
-            alert('Gagal mengambil data BK')
+            showError('Kesalahan', 'Gagal mengambil data BK')
         } finally {
             setLoading(false)
         }
-    }
+    }, [showError])
 
     useEffect(() => {
         fetchData()
-    }, [])
+    }, [fetchData])
 
     const filtered = catatan.filter(c =>
         c.siswa_nama?.toLowerCase().includes(search.toLowerCase()) ||
@@ -54,7 +56,7 @@ export default function BimbinganKonselingPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!formData.siswa_id || !formData.bk_kategori_id) return alert('Lengkapi data wajib')
+        if (!formData.siswa_id || !formData.bk_kategori_id) return showError('Peringatan', 'Silakan lengkapi semua data yang wajib diisi')
         setSubmitLoading(true)
         try {
             const token = localStorage.getItem('token')
@@ -64,20 +66,21 @@ export default function BimbinganKonselingPage() {
                 body: JSON.stringify(formData)
             })
             if (!res.ok) throw new Error('Gagal menyimpan catatan')
-            alert('Catatan berhasil ditambahkan')
+            showSuccess('Berhasil', 'Catatan BK berhasil ditambahkan')
             setShowModal(false)
             setFormData({ siswa_id: '', bk_kategori_id: '', tanggal: new Date().toISOString().split('T')[0], keterangan: '' })
             fetchData()
-        } catch (err) { alert(err.message) } finally { setSubmitLoading(false) }
+        } catch (err) { showError('Kesalahan', err.message) } finally { setSubmitLoading(false) }
     }
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Hapus catatan ini?')) return
+        const confirmed = await confirmDelete('Hapus Catatan?', 'Catatan BK ini akan dihapus permanen dan tidak dapat dikembalikan.')
+        if (!confirmed) return
         try {
             const token = localStorage.getItem('token')
             await fetch(`${API_BASE}/admin/bk/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
             fetchData()
-        } catch (err) { alert(err.message) }
+        } catch (err) { showError('Kesalahan', err.message) }
     }
 
     return (

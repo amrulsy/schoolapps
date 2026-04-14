@@ -1,8 +1,8 @@
 import { useStudent } from '../StudentApp'
 import { useState } from 'react'
 import * as LucideIcons from 'lucide-react'
-import { 
-    Megaphone, Search, Calendar, Tag, Clock, 
+import {
+    Megaphone, Search, Calendar, Clock,
     ArrowLeft, Share2, Bookmark, Sparkles, ChevronRight
 } from 'lucide-react'
 
@@ -63,7 +63,7 @@ export default function PengumumanPage() {
                     </div>
                     <h1>{a.title}</h1>
                     <div className="stu-detail-text">{a.content}</div>
-                    
+
                     <div className="stu-action-row" style={{ marginTop: '40px', borderTop: '1px solid var(--stu-border)', paddingTop: '24px', display: 'flex', gap: '12px' }}>
                         <button className="stu-btn-action-sm secondary" style={{ flex: 1, justifyContent: 'center' }}>
                             <Share2 size={16} /> Bagikan
@@ -88,9 +88,9 @@ export default function PengumumanPage() {
                 <div style={{ marginTop: '16px' }}>
                     <div className="stu-search-bar" style={{ background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}>
                         <Search size={18} style={{ opacity: 0.8 }} />
-                        <input 
-                            placeholder="Cari info..." 
-                            value={search} 
+                        <input
+                            placeholder="Cari info..."
+                            value={search}
                             onChange={e => setSearch(e.target.value)}
                             style={{ color: 'white' }}
                         />
@@ -103,8 +103,8 @@ export default function PengumumanPage() {
                 <div className="stu-filter-pills" style={{ padding: '4px 0 20px' }}>
                     <button className={`stu-pill ${filterCat === 'semua' ? 'active' : ''}`} onClick={() => setFilterCat('semua')}>Semua</button>
                     {Object.entries(categoryConfig).map(([key, cfg]) => (
-                        <button 
-                            key={key} 
+                        <button
+                            key={key}
                             className={`stu-pill ${filterCat === key ? 'active' : ''}`}
                             style={filterCat === key ? { background: cfg.color, color: '#fff', boxShadow: `0 4px 12px ${cfg.color}44` } : {}}
                             onClick={() => setFilterCat(key)}
@@ -122,10 +122,10 @@ export default function PengumumanPage() {
                 ) : filtered.map((a, idx) => {
                     const cat = categoryConfig[a.category] || categoryConfig.umum
                     const isUrgent = a.title.toLowerCase().includes('penting') || a.title.toLowerCase().includes('urgent')
-                    
+
                     return (
-                        <div 
-                            key={a.id} 
+                        <div
+                            key={a.id}
                             className={`stu-news-card stu-news-glow-${a.category} stu-fade-up ${idx === 0 && !search ? 'featured' : ''}`}
                             style={{ animationDelay: `${idx * 0.1 + 0.2}s` }}
                             onClick={() => setSelectedAnnouncement(a)}

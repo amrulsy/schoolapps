@@ -21,10 +21,12 @@ const ppdbStorage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, ppdbPhotoDir),
     filename: (req, file, cb) => cb(null, `ppdb_${req.ppdbUser.id}_${Date.now()}${path.extname(file.originalname)}`)
 });
-const uploadPPDBPhoto = multer({ storage: ppdbStorage, limits: { fileSize: 2 * 1024 * 1024 }, fileFilter: (req, file, cb) => {
-    if (['image/jpeg','image/png','image/webp'].includes(file.mimetype)) cb(null, true);
-    else cb(new Error('Hanya JPEG, PNG, WEBP yang diizinkan'), false);
-}});
+const uploadPPDBPhoto = multer({
+    storage: ppdbStorage, limits: { fileSize: 2 * 1024 * 1024 }, fileFilter: (req, file, cb) => {
+        if (['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) cb(null, true);
+        else cb(new Error('Hanya JPEG, PNG, WEBP yang diizinkan'), false);
+    }
+});
 
 // Upload config for PPDB Berkas (Documents)
 const ppdbBerkasDir = path.join(__dirname, '../../uploads/ppdb_berkas');
@@ -36,11 +38,11 @@ const berkasStorage = multer.diskStorage({
         cb(null, `${type}_${req.ppdbUser.id}_${Date.now()}${path.extname(file.originalname)}`);
     }
 });
-const uploadPPDBBerkas = multer({ 
-    storage: berkasStorage, 
+const uploadPPDBBerkas = multer({
+    storage: berkasStorage,
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        if (['image/jpeg','image/png','image/webp','application/pdf'].includes(file.mimetype)) cb(null, true);
+        if (['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.mimetype)) cb(null, true);
         else cb(new Error('Hanya JPEG, PNG, WEBP, atau PDF yang diizinkan'), false);
     }
 });
@@ -60,9 +62,9 @@ function calcCompleteness(row) {
     // Address & Identity (25%)
     if (row.alamat_lengkap) score += 10;
     if (row.foto_path) score += 10;
-    
+
     let bio = {};
-    try { bio = typeof row.biodata_tambahan === 'string' ? JSON.parse(row.biodata_tambahan) : (row.biodata_tambahan || {}); } catch(e){}
+    try { bio = typeof row.biodata_tambahan === 'string' ? JSON.parse(row.biodata_tambahan) : (row.biodata_tambahan || {}); } catch (e) { /* silent */ }
     if (bio.nik) score += 5;
 
     // Parent/Guardian Info (20%)
@@ -71,7 +73,7 @@ function calcCompleteness(row) {
 
     // Documents (20%)
     let berkas = {};
-    try { berkas = typeof row.berkas_json === 'string' ? JSON.parse(row.berkas_json) : (row.berkas_json || {}); } catch(e){}
+    try { berkas = typeof row.berkas_json === 'string' ? JSON.parse(row.berkas_json) : (row.berkas_json || {}); } catch (e) { /* silent */ }
     const docs = ['kk', 'akte', 'ijazah', 'ktp_ortu'];
     docs.forEach(d => { if (berkas[d]) score += 5; });
 
@@ -140,7 +142,7 @@ router.get('/settings', cacheMiddleware(60), async (req, res) => {
         const [rows] = await pool.query('SELECT setting_key, setting_value FROM cms_settings');
         const settings = {}; rows.forEach(r => { settings[r.setting_key] = r.setting_value; });
         const [schoolRows] = await pool.query("SELECT `value` FROM school_settings WHERE `key` = 'maintenance_mode'");
-        if(schoolRows.length > 0) settings.maintenance_mode = schoolRows[0].value;
+        if (schoolRows.length > 0) settings.maintenance_mode = schoolRows[0].value;
         res.json(settings);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -149,18 +151,18 @@ router.get('/settings', cacheMiddleware(60), async (req, res) => {
 
 router.post('/ppdb', async (req, res) => {
     const { nama_lengkap, tempat_lahir, tgl_lahir, jenis_kelamin, agama, jurusan_pilihan, asal_sekolah, no_whatsapp, alamat_lengkap, gelombang_id } = req.body;
-    
+
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
         const [settingsRows] = await connection.query("SELECT setting_value FROM cms_settings WHERE setting_key = 'ppdb_is_open'");
         let isOpen = false;
-        if (settingsRows.length > 0) { 
-            const val = String(settingsRows[0].setting_value).trim().toLowerCase(); 
-            isOpen = (val === 'true' || val === '1'); 
+        if (settingsRows.length > 0) {
+            const val = String(settingsRows[0].setting_value).trim().toLowerCase();
+            isOpen = (val === 'true' || val === '1');
         }
-        
+
         if (!isOpen) throw new Error('Pendaftaran PPDB saat ini sedang ditutup.');
         if (!nama_lengkap || !asal_sekolah || !no_whatsapp || !alamat_lengkap) throw new Error('Mohon lengkapi semua data wajib.');
 
@@ -168,7 +170,7 @@ router.post('/ppdb', async (req, res) => {
         if (gelombang_id) {
             const [gel] = await connection.query('SELECT id, kuota, tanggal_buka, tanggal_tutup FROM ppdb_gelombang WHERE id = ? AND is_active = 1 FOR UPDATE', [gelombang_id]);
             if (gel.length === 0) throw new Error('Gelombang tidak valid atau tidak aktif.');
-            
+
             const now = new Date();
             if (gel[0].tanggal_buka && now < new Date(gel[0].tanggal_buka)) throw new Error('Pendaftaran gelombang ini belum dibuka.');
             if (gel[0].tanggal_tutup) {
@@ -197,19 +199,19 @@ router.post('/ppdb', async (req, res) => {
         if (existing.length > 0) {
             throw new Error('Siswa dengan nama ini sudah terdaftar menggunakan nomor WhatsApp tersebut untuk periode ini.');
         }
-        
+
         // Generate sequence with LOCK to prevent collision
         const [maxRow] = await connection.query(
             `SELECT MAX(CAST(SUBSTRING_INDEX(registration_number, '-', -1) AS UNSIGNED)) as max_seq 
              FROM ppdb_registrations 
-             WHERE registration_number LIKE ? FOR UPDATE`, 
+             WHERE registration_number LIKE ? FOR UPDATE`,
             [`PPDB-${acadYearPrefix}-%`]
         );
-        
+
         const seqNum = (maxRow[0].max_seq || 0) + 1;
         const seq = String(seqNum).padStart(3, '0');
         const unifiedId = `PPDB-${acadYearPrefix}-${seq}`;
-        
+
         const rawPin = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedPin = await bcrypt.hash(rawPin, 10);
 
@@ -221,7 +223,7 @@ router.post('/ppdb', async (req, res) => {
 
         await connection.commit();
 
-        try { await waService.sendMessage(no_whatsapp, `*Pendaftaran PPDB Berhasil!*\n\nID Pendaftaran: ${unifiedId}\nPIN: ${rawPin}\n\nLogin di Dasbor Pendaftar untuk melengkapi biodata.`); } catch (e) {}
+        try { await waService.sendMessage(no_whatsapp, `*Pendaftaran PPDB Berhasil!*\n\nID Pendaftaran: ${unifiedId}\nPIN: ${rawPin}\n\nLogin di Dasbor Pendaftar untuk melengkapi biodata.`); } catch (e) { /* ignore wa failure */ }
 
         // Generate auto-login token so frontend can redirect straight to dashboard
         const autoToken = jwt.sign({ id: newPpdbId, username: unifiedId, role: 'ppdb_student' }, JWT_SECRET, { expiresIn: '7d' });
@@ -262,7 +264,7 @@ router.get('/ppdb/track/:regNumber', async (req, res) => {
         const steps = [
             { key: 'registered', label: 'Pendaftaran', icon: '📋', done: true, date: r.created_at },
             { key: 'biodata_complete', label: 'Biodata Lengkap', icon: '📝', done: r.completeness_pct >= 80, date: r.completeness_pct >= 80 ? r.created_at : null },
-            { key: 'pending_verification', label: 'Verifikasi Admin', icon: '🔍', done: ['pending_verification','accepted','rejected'].includes(r.status), date: null },
+            { key: 'pending_verification', label: 'Verifikasi Admin', icon: '🔍', done: ['pending_verification', 'accepted', 'rejected'].includes(r.status), date: null },
             { key: 'accepted', label: 'Diterima', icon: '✅', done: r.status === 'accepted', date: null },
             { key: 'enrolled', label: 'Daftar Ulang', icon: '🎓', done: false, date: null }
         ];
@@ -323,12 +325,12 @@ router.post('/ppdb/login', async (req, res) => {
     try {
         const { username, pin } = req.body;
         const [rows] = await pool.query('SELECT * FROM ppdb_registrations WHERE username = ?', [username]);
-        if(rows.length === 0) return res.status(401).json({ error: 'Username atau PIN salah' });
+        if (rows.length === 0) return res.status(401).json({ error: 'Username atau PIN salah' });
         const isMatch = await bcrypt.compare(pin, rows[0].pin_rahasia);
-        if(!isMatch) return res.status(401).json({ error: 'Username atau PIN salah' });
+        if (!isMatch) return res.status(401).json({ error: 'Username atau PIN salah' });
         const token = jwt.sign({ id: rows[0].id, username: rows[0].username, role: 'ppdb_student' }, JWT_SECRET, { expiresIn: '7d' });
         res.json({ success: true, token, user: { nama: rows[0].nama_lengkap, status: rows[0].status } });
-    } catch(err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.get('/ppdb/dashboard', ppdbAuthMiddleware, async (req, res) => {
@@ -344,16 +346,16 @@ router.get('/ppdb/dashboard', ppdbAuthMiddleware, async (req, res) => {
              LEFT JOIN kelas k ON s.kelas_id = k.id
              WHERE r.id = ?`, [req.ppdbUser.id]
         );
-        if(rows.length === 0) return res.status(404).json({ error: 'User tidak ditemukan' });
+        if (rows.length === 0) return res.status(404).json({ error: 'User tidak ditemukan' });
         res.json(rows[0]);
-    } catch(err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.put('/ppdb/dashboard/biodata', ppdbAuthMiddleware, async (req, res) => {
     try {
         const [cek] = await pool.query('SELECT * FROM ppdb_registrations WHERE id = ?', [req.ppdbUser.id]);
-        if(cek[0].status !== 'draft') return res.status(403).json({ error: 'Data sudah dikunci. Mohon hubungi panitia untuk perbaikan data.' });
-        
+        if (cek[0].status !== 'draft') return res.status(403).json({ error: 'Data sudah dikunci. Mohon hubungi panitia untuk perbaikan data.' });
+
         const { nisn, nama_lengkap, tempat_lahir, tgl_lahir, jenis_kelamin, agama, no_whatsapp, alamat_lengkap, biodata_tambahan } = req.body;
         const bioJson = typeof biodata_tambahan === 'string' ? biodata_tambahan : JSON.stringify(biodata_tambahan || {});
 
@@ -366,7 +368,7 @@ router.put('/ppdb/dashboard/biodata', ppdbAuthMiddleware, async (req, res) => {
             [nisn || null, nama_lengkap, tempat_lahir || null, tgl_lahir || null, jenis_kelamin || 'L', agama || null, no_whatsapp, alamat_lengkap, bioJson, pct, req.ppdbUser.id]
         );
         res.json({ success: true, completeness_pct: pct, timestamp: new Date() });
-    } catch(err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Upload Document
@@ -383,8 +385,8 @@ router.post('/ppdb/dashboard/upload-berkas', ppdbAuthMiddleware, (req, res) => {
             if (rows[0].status !== 'draft') return res.status(403).json({ error: 'Data sudah terkunci.' });
 
             let berkas = {};
-            try { berkas = typeof rows[0].berkas_json === 'string' ? JSON.parse(rows[0].berkas_json) : (rows[0].berkas_json || {}); } catch(e){}
-            
+            try { berkas = typeof rows[0].berkas_json === 'string' ? JSON.parse(rows[0].berkas_json) : (rows[0].berkas_json || {}); } catch (e) { /* silent */ }
+
             // Delete old file if exists
             if (berkas[type]) {
                 const oldPath = path.join(__dirname, '../../', berkas[type]);
@@ -393,14 +395,14 @@ router.post('/ppdb/dashboard/upload-berkas', ppdbAuthMiddleware, (req, res) => {
 
             berkas[type] = filePath;
             const berkasJson = JSON.stringify(berkas);
-            
+
             // Recalculate completeness
             const updatedRow = { ...rows[0], berkas_json: berkasJson };
             const pct = calcCompleteness(updatedRow);
 
             await pool.query('UPDATE ppdb_registrations SET berkas_json = ?, completeness_pct = ? WHERE id = ?', [berkasJson, pct, req.ppdbUser.id]);
             res.json({ success: true, file_path: filePath, type, completeness_pct: pct });
-        } catch(e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { res.status(500).json({ error: e.message }); }
     });
 });
 
@@ -426,7 +428,7 @@ router.post('/ppdb/dashboard/upload-foto', ppdbAuthMiddleware, (req, res) => {
             const pct = calcCompleteness(rows[0]);
             await pool.query('UPDATE ppdb_registrations SET completeness_pct = ? WHERE id = ?', [pct, req.ppdbUser.id]);
             res.json({ success: true, foto_path: fotoPath, completeness_pct: pct });
-        } catch(e) { res.status(500).json({ error: e.message }); }
+        } catch (e) { res.status(500).json({ error: e.message }); }
     });
 });
 
@@ -435,20 +437,20 @@ router.post('/ppdb/dashboard/submit', ppdbAuthMiddleware, async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT * FROM ppdb_registrations WHERE id = ?', [req.ppdbUser.id]);
         if (rows[0].status !== 'draft') return res.status(403).json({ error: 'Data sudah dikunci sebelumnya.' });
-        
+
         // BUG FIX: Added Validation for Completeness Percentage
         if (rows[0].completeness_pct < 100) return res.status(400).json({ error: 'Data belum lengkap 100%. Silakan lengkapi biodata dan berkas Anda.' });
-        
+
         // BUG FIX: Change status to 'locked' (Terkirim) instead of directly skipping to 'pending_verification'
         await pool.query('UPDATE ppdb_registrations SET status = ? WHERE id = ?', ['locked', req.ppdbUser.id]);
 
         // WA Notification
         try {
             await waService.sendMessage(rows[0].no_whatsapp, `✅ *Data PPDB Terkunci*\n\nHalo ${rows[0].nama_lengkap}, data pendaftaran Anda sudah kami terima dan sedang diverifikasi oleh tim panitia.\n\nNo. Registrasi: *${rows[0].registration_number}*\n\nMohon menunggu pengumuman selanjutnya. Terima kasih!`);
-        } catch(e) {}
+        } catch (e) { /* ignore wa failure */ }
 
         res.json({ success: true });
-    } catch(err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;

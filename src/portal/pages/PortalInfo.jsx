@@ -12,6 +12,7 @@ export default function PortalInfo() {
     useEffect(() => {
         loadPage(activePage)
         loadPrograms()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activePage])
 
     async function loadPrograms() {

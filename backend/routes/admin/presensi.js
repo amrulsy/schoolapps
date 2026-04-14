@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../../db');
 const waService = require('../../services/whatsappService');
 const AttendanceController = require('../../controllers/AttendanceController');
-const { getWIBDate, isValidDateFormat, formatDateID } = require('../../utils/timezone');
+const { getWIBDate, isValidDateFormat } = require('../../utils/timezone');
 
 // Settings Routes
 router.get('/settings', AttendanceController.getSettings);
@@ -362,7 +362,6 @@ router.get('/tap-log', async (req, res) => {
                 COALESCE(a.jam_masuk, '1970-01-01'),
                 COALESCE(a.jam_pulang, '1970-01-01')
             ) DESC
-            LIMIT 20
         `, [today]);
 
         const logs = rows.map(r => {

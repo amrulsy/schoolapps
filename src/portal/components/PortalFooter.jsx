@@ -76,7 +76,7 @@ export default function PortalFooter() {
                     </div>
                 </div>
 
-                <div className="portal-footer-bottom" style={{ 
+                <div className="portal-footer-bottom" style={{
                     marginTop: '40px',
                     padding: '24px',
                     background: 'rgba(0, 0, 0, 0.3)',
@@ -89,7 +89,7 @@ export default function PortalFooter() {
                     &copy; {year} {settings.school_name || 'SMK PPRQ'} — Sistem Informasi Administrasi Sekolah. All rights reserved.
                     <br />
                     <span style={{ fontSize: '0.85rem', marginTop: '8px', display: 'inline-block' }}>
-                        Developed with ❤️ by <a href="https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--portal-primary)', fontWeight: '700', textDecoration: 'none' }}>Amrul Al Syaif'Fu</a>
+                        Developed with ❤️ by <a href="https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--portal-primary)', fontWeight: '700', textDecoration: 'none' }}>Amrul Al Syaif&apos;Fu</a>
                     </span>
                 </div>
             </div>

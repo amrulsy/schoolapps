@@ -1,53 +1,41 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { 
-  User, FileText, CheckCircle, Save, LogOut, UploadCloud, AlertCircle, 
-  MapPin, Users, Camera, ChevronRight, ChevronLeft, Home, Bell, Menu, X, 
-  CheckCircle2, Loader2, Download, ExternalLink, Printer, Sparkles, FileCheck, ShieldCheck, Eye
+import {
+  CheckCircle, FileText, Download, User, LogOut, Bell, MapPin, Users, UploadCloud,
+  CheckCircle2, Eye, Loader2, Camera, ChevronLeft, ChevronRight, MessageCircle,
+  FileCheck, ShieldCheck, 
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { QRCodeSVG } from "qrcode.react";
 import { API_BASE_PUBLIC, getMediaUrl } from "../../services/api";
+import { QRCodeSVG } from "qrcode.react";
 
 // Custom SVG Icons (Hoisted)
 function GraduationCap({ size }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
     </svg>
   );
 }
-
-function MessageCircle({ size }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-    </svg>
-  );
-}
-
-// Helper: Get full media URL
-
 
 export default function PortalPPDBDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [savedFields, setSavedFields] = useState({}); // Tracking which fields just saved
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [pdfProgress, setPdfProgress] = useState(0);
-  
+
   // Local form state
   const [form, setForm] = useState({
-    nama_lengkap: "", nisn: "", tempat_lahir: "", tgl_lahir: "", 
+    nama_lengkap: "", nisn: "", tempat_lahir: "", tgl_lahir: "",
     jenis_kelamin: "L", agama: "", no_whatsapp: "", alamat_lengkap: "",
     // Biodata Tambahan (JSON)
-    nik: "", no_kk: "", anak_ke: "", jml_saudara: "", bb: "", tb: "", 
+    nik: "", no_kk: "", anak_ke: "", jml_saudara: "", bb: "", tb: "",
     gol_darah: "", riwayat_penyakit: "", hobby: "", cita_cita: "",
     rt: "", rw: "", dusun: "", kelurahan: "", kecamatan: "", kabupaten: "", provinsi: "", kodepos: "", jenis_tinggal: "",
     // Ayah
@@ -60,18 +48,7 @@ export default function PortalPPDBDashboard() {
 
   const saveTimeout = useRef(null);
 
-  useEffect(() => {
-    fetchDashboard();
-    fetchAnnouncements();
-  }, []);
-
-  useEffect(() => {
-    if (data?.status === 'accepted') {
-      triggerConfetti();
-    }
-  }, [data?.status]);
-
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
     try {
       const token = localStorage.getItem("ppdb_token");
       if (!token) return (window.location.href = "/login?redirect=/ppdb/dashboard");
@@ -81,13 +58,13 @@ export default function PortalPPDBDashboard() {
       });
       const json = await res.json();
       if (json.error) throw new Error(json.error);
-      
+
       setData(json);
-      
+
       // Parse biodata tambahan
       let bio = {};
-      try { bio = typeof json.biodata_tambahan === 'string' ? JSON.parse(json.biodata_tambahan) : (json.biodata_tambahan || {}); } catch(e){}
-      
+      try { bio = typeof json.biodata_tambahan === 'string' ? JSON.parse(json.biodata_tambahan) : (json.biodata_tambahan || {}); } catch (e) { /* silent */ }
+
       setForm({
         nama_lengkap: json.nama_lengkap || "",
         nisn: json.nisn || "",
@@ -105,15 +82,26 @@ export default function PortalPPDBDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE_PUBLIC}/ppdb/announcements`);
       const json = await res.json();
       if (!json.error) setAnnouncements(json);
-    } catch (e) {}
-  };
+    } catch (e) { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+    fetchAnnouncements();
+  }, [fetchDashboard, fetchAnnouncements]);
+
+  useEffect(() => {
+    if (data?.status === 'accepted') {
+      triggerConfetti();
+    }
+  }, [data?.status]);
 
   const handleInputChange = (e) => {
     if (data?.status !== 'draft') return;
@@ -133,7 +121,7 @@ export default function PortalPPDBDashboard() {
     try {
       const token = localStorage.getItem("ppdb_token");
       const { nama_lengkap, nisn, tempat_lahir, tgl_lahir, jenis_kelamin, agama, no_whatsapp, alamat_lengkap, ...bio } = currentForm;
-      
+
       await fetch(`${API_BASE_PUBLIC}/ppdb/dashboard/biodata`, {
         method: "PUT",
         headers: {
@@ -145,12 +133,12 @@ export default function PortalPPDBDashboard() {
           biodata_tambahan: bio
         }),
       });
-      
+
       // Show success feedback for changed fields
       const newSaved = { ...savedFields };
       changedFields.forEach(f => newSaved[f] = true);
       setSavedFields(newSaved);
-      
+
       // Clear feedback after 2 seconds
       setTimeout(() => {
         setSavedFields(prev => {
@@ -167,98 +155,9 @@ export default function PortalPPDBDashboard() {
     }
   };
 
-  const handleUpload = async (e, type = 'foto') => {
-    if (data?.status !== 'draft') return;
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append(type === 'foto' ? "foto" : "file", file);
-    if (type !== 'foto') formData.append("type", type);
-
-    const endpoint = type === 'foto' ? "/ppdb/dashboard/upload-foto" : "/ppdb/dashboard/upload-berkas";
-
-    setIsSaving(true);
-    try {
-      const token = localStorage.getItem("ppdb_token");
-      const res = await fetch(`${API_BASE_PUBLIC}${endpoint}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-      
-      // BUG FIX: Properly merge upload response into data state
-      setData(prev => {
-        const updated = { ...prev, completeness_pct: json.completeness_pct ?? prev.completeness_pct };
-        if (type === 'foto') {
-          updated.foto_path = json.foto_path;
-        } else {
-          // Merge berkas_json properly
-          let existingBerkas = {};
-          try { existingBerkas = typeof prev.berkas_json === 'string' ? JSON.parse(prev.berkas_json) : (prev.berkas_json || {}); } catch(ex){}
-          existingBerkas[type] = json.file_path;
-          updated.berkas_json = existingBerkas;
-        }
-        return updated;
-      });
-      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Upload berhasil', showConfirmButton: false, timer: 3000 });
-    } catch (err) {
-      Swal.fire("Gagal", err.message, "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSubmitFinal = async () => {
-    if (data.completeness_pct < 100) {
-      return Swal.fire("Belum Lengkap", "Mohon lengkapi semua data dan berkas (100%) sebelum mengirim pendaftaran.", "warning");
-    }
-
-    const res = await Swal.fire({
-      title: "Kirim Pendaftaran?",
-      text: "Data akan dikunci dan tidak dapat diubah lagi. Pastikan semua data sudah benar.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Ya, Kirim Sekarang",
-      cancelButtonText: "Periksa Lagi",
-      confirmButtonColor: "#4f46e5"
-    });
-
-    if (res.isConfirmed) {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("ppdb_token");
-        const res = await fetch(`${API_BASE_PUBLIC}/ppdb/dashboard/submit`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.error) throw new Error(json.error);
-        
-        // Success Sanctuary Trigger
-        setData(prev => ({ ...prev, status: 'locked' })); // Local update to hide form
-        triggerConfetti();
-        Swal.fire({
-          title: "Berhasil!",
-          text: "Pendaftaran Anda telah dikirim dan sedang diverifikasi.",
-          icon: "success",
-          timer: 2000,
-          showConfirmButton: false
-        });
-        fetchDashboard();
-      } catch (err) {
-        Swal.fire("Gagal", err.message, "error");
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
   const triggerConfetti = () => {
     const colors = ['#4f46e5', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
-    for(let i=0; i<50; i++) {
+    for (let i = 0; i < 50; i++) {
       const p = document.createElement('div');
       p.className = 'confetti-piece';
       p.style.left = Math.random() * 100 + 'vw';
@@ -308,7 +207,7 @@ export default function PortalPPDBDashboard() {
         allowTaint: true,
         backgroundColor: '#ffffff'
       });
-      
+
       // Phase 3: Generating PDF
       setPdfProgress(85);
       const imgData = canvas.toDataURL('image/png');
@@ -321,14 +220,14 @@ export default function PortalPPDBDashboard() {
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
+
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      
+
       setPdfProgress(100);
       await new Promise(r => setTimeout(r, 400));
-      
+
       pdf.save(`Bukti_PPDB_${data?.registration_number || 'Siswa'}.pdf`);
-      
+
       Swal.fire({
         toast: true,
         position: 'top-end',
@@ -346,36 +245,75 @@ export default function PortalPPDBDashboard() {
     }
   };
 
-  const handlePrintCertificate = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <html><head><title>Bukti Penerimaan PPDB</title>
-      <style>body{font-family:'Inter',sans-serif;padding:40px;max-width:600px;margin:0 auto}
-      .header{text-align:center;margin-bottom:32px} h1{font-size:18px;margin:8px 0}
-      .badge{background:#ecfdf5;color:#166534;padding:8px 16px;border-radius:8px;font-weight:700;display:inline-block;margin:12px 0}
-      table{width:100%;border-collapse:collapse;margin:24px 0}
-      td{padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
-      td:first-child{font-weight:700;width:40%;color:#475569}
-      .footer{text-align:center;margin-top:40px;font-size:12px;color:#94a3b8}
-      @media print{body{padding:20px}}</style></head>
-      <body>
-        <div class="header">
-          <h1>SURAT BUKTI PENERIMAAN<br/>PESERTA DIDIK BARU</h1>
-          <div class="badge">✅ DITERIMA</div>
-        </div>
-        <table>
-          <tr><td>No. Registrasi</td><td>${data?.registration_number || '-'}</td></tr>
-          <tr><td>Nama Lengkap</td><td>${data?.nama_lengkap || '-'}</td></tr>
-          <tr><td>NISN</td><td>${data?.nisn || '-'}</td></tr>
-          <tr><td>Kelas</td><td>${data?.kelas_nama || 'Belum ditentukan'}</td></tr>
-          <tr><td>Status</td><td>Diterima</td></tr>
-        </table>
-        <div class="footer">Dokumen ini dicetak dari Sistem PPDB Online.<br/>Tanggal cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-      </body></html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
+  const handleUpload = async (e, type = 'foto') => {
+    if (data?.status !== 'draft') return;
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append(type === 'foto' ? "foto" : "file", file);
+    if (type !== 'foto') formData.append("type", type);
+    const endpoint = type === 'foto' ? "/ppdb/dashboard/upload-foto" : "/ppdb/dashboard/upload-berkas";
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem("ppdb_token");
+      const res = await fetch(`${API_BASE_PUBLIC}${endpoint}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      setData(prev => {
+        const updated = { ...prev, completeness_pct: json.completeness_pct ?? prev.completeness_pct };
+        if (type === 'foto') {
+          updated.foto_path = json.foto_path;
+        } else {
+          let existingBerkas = {};
+          try { existingBerkas = typeof prev.berkas_json === 'string' ? JSON.parse(prev.berkas_json) : (prev.berkas_json || {}); } catch (ex) { /* silent */ }
+          existingBerkas[type] = json.file_path;
+          updated.berkas_json = existingBerkas;
+        }
+        return updated;
+      });
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Upload berhasil', showConfirmButton: false, timer: 3000 });
+    } catch (err) {
+      Swal.fire("Gagal", err.message, "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmitFinal = async () => {
+    if (data.completeness_pct < 100) {
+      return Swal.fire("Belum Lengkap", "Mohon lengkapi semua data dan berkas (100%) sebelum mengirim pendaftaran.", "warning");
+    }
+    const res = await Swal.fire({
+      title: "Kirim Pendaftaran?",
+      text: "Data akan dikunci dan tidak dapat diubah lagi. Pastikan semua data sudah benar.",
+      icon: "question", showCancelButton: true,
+      confirmButtonText: "Ya, Kirim Sekarang", cancelButtonText: "Periksa Lagi",
+      confirmButtonColor: "#4f46e5"
+    });
+    if (res.isConfirmed) {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("ppdb_token");
+        const submitRes = await fetch(`${API_BASE_PUBLIC}/ppdb/dashboard/submit`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await submitRes.json();
+        if (json.error) throw new Error(json.error);
+        setData(prev => ({ ...prev, status: 'locked' }));
+        triggerConfetti();
+        Swal.fire({ title: "Berhasil!", text: "Pendaftaran Anda telah dikirim dan sedang diverifikasi.", icon: "success", timer: 2000, showConfirmButton: false });
+        fetchDashboard();
+      } catch (err) {
+        Swal.fire("Gagal", err.message, "error");
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   if (loading) {
@@ -393,7 +331,7 @@ export default function PortalPPDBDashboard() {
               <div className="ppdb-wizard-card">
                 <div className="ppdb-steps-scroll">
                   <div className="ppdb-steps-inner" style={{ padding: '15px' }}>
-                    {[1,2,3,4,5].map(i => <Skeleton key={i} width="100px" height="36px" margin="0 10px 0 0" />)}
+                    {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} width="100px" height="36px" margin="0 10px 0 0" />)}
                   </div>
                 </div>
                 <div className="ppdb-step-content">
@@ -402,7 +340,7 @@ export default function PortalPPDBDashboard() {
                     <Skeleton width="300px" height="16px" />
                   </div>
                   <div className="form-grid">
-                    {[1,2,3,4,5,6].map(i => <div key={i}><Skeleton width="100px" height="14px" margin="0 0 8px 0" /><Skeleton width="100%" height="48px" borderRadius="16px" /></div>)}
+                    {[1, 2, 3, 4, 5, 6].map(i => <div key={i}><Skeleton width="100px" height="14px" margin="0 0 8px 0" /><Skeleton width="100%" height="48px" borderRadius="16px" /></div>)}
                   </div>
                 </div>
               </div>
@@ -454,27 +392,27 @@ export default function PortalPPDBDashboard() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-             <div className="mobile-hide" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{data?.nama_lengkap}</span>
-                <span style={{ fontSize: '0.65rem', background: '#f1f5f9', padding: '3px 10px', borderRadius: '8px', color: '#475569', fontWeight: 800 }}>ID: {data?.registration_number}</span>
-             </div>
-             <button onClick={handleLogout} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '10px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <LogOut size={18} />
-             </button>
+            <div className="mobile-hide" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>{data?.nama_lengkap}</span>
+              <span style={{ fontSize: '0.65rem', background: '#f1f5f9', padding: '3px 10px', borderRadius: '8px', color: '#475569', fontWeight: 800 }}>ID: {data?.registration_number}</span>
+            </div>
+            <button onClick={handleLogout} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', padding: '10px', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
       </nav>
 
       <div className="ppdb-content-wrapper">
         <div className="dashboard-grid">
-          
+
           {/* --- MAIN CONTENT --- */}
           <main>
             {/* Success Sanctuary View */}
             {data?.status !== 'draft' && data?.status !== 'rejected' && (
-              <SuccessSanctuary 
-                data={data} 
-                handlePrintCertificate={handleDownloadPDF} 
+              <SuccessSanctuary
+                data={data}
+                handlePrintCertificate={handleDownloadPDF}
               />
             )}
 
@@ -483,7 +421,7 @@ export default function PortalPPDBDashboard() {
 
             {/* HIDDEN CERTIFICATE TEMPLATE */}
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-               <CertificateTemplate id="premium-certificate-template" data={data} />
+              <CertificateTemplate id="premium-certificate-template" data={data} />
             </div>
 
             {/* Form View (Visible only for draft) */}
@@ -504,7 +442,7 @@ export default function PortalPPDBDashboard() {
 
             {/* Wizard Container */}
             <div className="ppdb-wizard-card">
-              
+
               {/* Wizard Steps Header */}
               <div className="ppdb-steps-scroll">
                 <div className="ppdb-steps-inner">
@@ -521,12 +459,12 @@ export default function PortalPPDBDashboard() {
 
               {/* Step Content */}
               <div className="ppdb-step-content">
-                
+
                 {/* STEP 1: DATA PRIBADI */}
                 {step === 1 && (
                   <div className="animate-fade-in">
                     <SectionLabel icon={<User />} title="Informasi Identitas" desc="Perbaiki data sesuai Akta Kelahiran/KK" />
-                    
+
                     <div style={{ background: 'rgba(255,255,255,0.4)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.5)', marginBottom: '20px' }}>
                       <h4 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#4f46e5', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Identitas Utama</h4>
                       <div className="form-grid">
@@ -559,16 +497,16 @@ export default function PortalPPDBDashboard() {
                           <Input label="Berat Badan (kg)" name="bb" type="number" value={form.bb} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         </div>
                         <div className="form-row">
-                           <Select label="Golongan Darah" name="gol_darah" value={form.gol_darah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields}>
-                              <option value="">Pilih</option>
-                              <option value="A">A</option><option value="B">B</option><option value="AB">AB</option><option value="O">O</option>
-                           </Select>
-                           <Input label="Cita-cita" name="cita_cita" value={form.cita_cita} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
+                          <Select label="Golongan Darah" name="gol_darah" value={form.gol_darah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields}>
+                            <option value="">Pilih</option>
+                            <option value="A">A</option><option value="B">B</option><option value="AB">AB</option><option value="O">O</option>
+                          </Select>
+                          <Input label="Cita-cita" name="cita_cita" value={form.cita_cita} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         </div>
                         <div className="span-full">
                           <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                             Riwayat Penyakit (Jika ada)
-                             {savedFields.riwayat_penyakit && <span style={{ color: '#10b981', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 4 }}><CheckCircle2 size={10} /> Tersimpan</span>}
+                            Riwayat Penyakit (Jika ada)
+                            {savedFields.riwayat_penyakit && <span style={{ color: '#10b981', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 4 }}><CheckCircle2 size={10} /> Tersimpan</span>}
                           </label>
                           <textarea name="riwayat_penyakit" value={form.riwayat_penyakit} onChange={handleInputChange} disabled={isLocked} className={`ppdb-textarea ${savedFields.riwayat_penyakit ? 'input-success-glow' : ''}`}></textarea>
                         </div>
@@ -584,8 +522,8 @@ export default function PortalPPDBDashboard() {
                     <div className="form-grid">
                       <div className="span-full">
                         <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                           Alamat Lengkap (Blok/No/Jalan)
-                           {savedFields.alamat_lengkap && <span style={{ color: '#10b981', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 4 }}><CheckCircle2 size={10} /> Tersimpan</span>}
+                          Alamat Lengkap (Blok/No/Jalan)
+                          {savedFields.alamat_lengkap && <span style={{ color: '#10b981', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 4 }}><CheckCircle2 size={10} /> Tersimpan</span>}
                         </label>
                         <textarea name="alamat_lengkap" value={form.alamat_lengkap} onChange={handleInputChange} disabled={isLocked} className={`ppdb-textarea ${savedFields.alamat_lengkap ? 'input-success-glow' : ''}`}></textarea>
                       </div>
@@ -625,12 +563,12 @@ export default function PortalPPDBDashboard() {
                         <Input label="Nama Lengkap Ayah" name="nama_ayah" value={form.nama_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         <Input label="NIK Ayah" name="nik_ayah" value={form.nik_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         <div className="form-row">
-                           <Input label="Pendidikan" name="pendidikan_ayah" value={form.pendidikan_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
-                           <Input label="Pekerjaan" name="pekerjaan_ayah" value={form.pekerjaan_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
+                          <Input label="Pendidikan" name="pendidikan_ayah" value={form.pendidikan_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
+                          <Input label="Pekerjaan" name="pekerjaan_ayah" value={form.pekerjaan_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         </div>
                         <div className="form-row">
-                           <Input label="Penghasilan / Bulan" name="penghasilan_ayah" value={form.penghasilan_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
-                           <Input label="No. Telp/WA" name="telp_ayah" value={form.telp_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
+                          <Input label="Penghasilan / Bulan" name="penghasilan_ayah" value={form.penghasilan_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
+                          <Input label="No. Telp/WA" name="telp_ayah" value={form.telp_ayah} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         </div>
                       </div>
                     </div>
@@ -641,12 +579,12 @@ export default function PortalPPDBDashboard() {
                         <Input label="Nama Lengkap Ibu" name="nama_ibu" value={form.nama_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         <Input label="NIK Ibu" name="nik_ibu" value={form.nik_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         <div className="form-row">
-                           <Input label="Pendidikan" name="pendidikan_ibu" value={form.pendidikan_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
-                           <Input label="Pekerjaan" name="pekerjaan_ibu" value={form.pekerjaan_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
+                          <Input label="Pendidikan" name="pendidikan_ibu" value={form.pendidikan_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
+                          <Input label="Pekerjaan" name="pekerjaan_ibu" value={form.pekerjaan_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         </div>
                         <div className="form-row">
-                           <Input label="Penghasilan / Bulan" name="penghasilan_ibu" value={form.penghasilan_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
-                           <Input label="No. Telp/WA" name="telp_ibu" value={form.telp_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
+                          <Input label="Penghasilan / Bulan" name="penghasilan_ibu" value={form.penghasilan_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
+                          <Input label="No. Telp/WA" name="telp_ibu" value={form.telp_ibu} onChange={handleInputChange} disabled={isLocked} savedFields={savedFields} />
                         </div>
                       </div>
                     </div>
@@ -657,34 +595,34 @@ export default function PortalPPDBDashboard() {
                 {step === 4 && (
                   <div className="animate-fade-in">
                     <SectionLabel icon={<UploadCloud />} title="Upload Berkas Persyaratan" desc="Pastikan format gambar/PDF jelas dan terbaca" />
-                    
+
                     <div className="file-grid">
                       {/* Foto */}
                       <div className="file-card">
-                         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                            <div style={{ width: '60px', height: '80px', background: '#f1f5f9', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, border: '2px dashed #cbd5e1' }}>
-                               {data?.foto_path ? <img src={getMediaUrl(data.foto_path)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}><Camera size={20} /></div>}
-                            </div>
-                            <div style={{ flex: 1 }}>
-                               <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800 }}>Pas Foto</h4>
-                               <p style={{ margin: '2px 0 10px', fontSize: '0.75rem', color: '#64748b' }}>Background Merah/Biru, Max 2MB</p>
-                               {isLocked ? (
-                                 <span className="badge-success">Tersimpan</span>
-                               ) : (
-                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                   <label className="btn-upload" style={{ background: data?.foto_path ? '#ecfdf5' : 'white', borderColor: data?.foto_path ? '#10b981' : '#e2e8f0', color: data?.foto_path ? '#10b981' : '#475569' }}>
-                                     <input type="file" hidden accept="image/*" onChange={(e) => handleUpload(e, 'foto')} />
-                                     <UploadCloud size={14} /> {data?.foto_path ? 'Ganti' : 'Upload'}
-                                   </label>
-                                   {data?.foto_path && (
-                                     <a href={getMediaUrl(data.foto_path)} target="_blank" className="btn-view" style={{ flex: 1, justifyContent: 'center', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0' }}>
-                                       <Eye size={14} /> Lihat
-                                     </a>
-                                   )}
-                                 </div>
-                               )}
-                            </div>
-                         </div>
+                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                          <div style={{ width: '60px', height: '80px', background: '#f1f5f9', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, border: '2px dashed #cbd5e1' }}>
+                            {data?.foto_path ? <img src={getMediaUrl(data.foto_path)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}><Camera size={20} /></div>}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800 }}>Pas Foto</h4>
+                            <p style={{ margin: '2px 0 10px', fontSize: '0.75rem', color: '#64748b' }}>Background Merah/Biru, Max 2MB</p>
+                            {isLocked ? (
+                              <span className="badge-success">Tersimpan</span>
+                            ) : (
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <label className="btn-upload" style={{ background: data?.foto_path ? '#ecfdf5' : 'white', borderColor: data?.foto_path ? '#10b981' : '#e2e8f0', color: data?.foto_path ? '#10b981' : '#475569' }}>
+                                  <input type="file" hidden accept="image/*" onChange={(e) => handleUpload(e, 'foto')} />
+                                  <UploadCloud size={14} /> {data?.foto_path ? 'Ganti' : 'Upload'}
+                                </label>
+                                {data?.foto_path && (
+                                  <a href={getMediaUrl(data.foto_path)} target="_blank" className="btn-view" style={{ flex: 1, justifyContent: 'center', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0' }} rel="noreferrer">
+                                    <Eye size={14} /> Lihat
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       {/* Other Documents */}
@@ -694,16 +632,16 @@ export default function PortalPPDBDashboard() {
                         return (
                           <div key={item.key} className="file-card">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
-                               <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800 }}>{item.label}</h4>
-                               {isUploaded && <CheckCircle2 size={18} className="text-emerald-500" />}
+                              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800 }}>{item.label}</h4>
+                              {isUploaded && <CheckCircle2 size={18} className="text-emerald-500" />}
                             </div>
                             <p style={{ margin: '0 0 12px', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>{item.desc}</p>
                             {isLocked ? (
-                               isUploaded ? <a href={getMediaUrl(isUploaded)} target="_blank" className="btn-view"><Download size={14} /> Lihat File</a> : <span className="text-slate-400 text-xs italic">Tidak ada file</span>
+                              isUploaded ? <a href={getMediaUrl(isUploaded)} target="_blank" className="btn-view" rel="noreferrer"><Download size={14} /> Lihat File</a> : <span className="text-slate-400 text-xs italic">Tidak ada file</span>
                             ) : (
                               <label className="btn-upload" style={{ background: isUploaded ? '#ecfdf5' : 'white', borderColor: isUploaded ? '#10b981' : '#e2e8f0', color: isUploaded ? '#10b981' : '#475569' }}>
-                                 <input type="file" hidden onChange={(e) => handleUpload(e, item.key)} />
-                                 {isUploaded ? 'Ganti File' : 'Pilih File'}
+                                <input type="file" hidden onChange={(e) => handleUpload(e, item.key)} />
+                                {isUploaded ? 'Ganti File' : 'Pilih File'}
                               </label>
                             )}
                           </div>
@@ -721,26 +659,26 @@ export default function PortalPPDBDashboard() {
                     </div>
                     <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}>Finalisasi Pendaftaran</h3>
                     <p style={{ color: '#64748b', maxWidth: '450px', margin: '0 auto 32px', lineHeight: 1.6 }}>Review kembali semua data yang sudah Anda isi. Jika sudah yakin, klik tombol di bawah untuk mengirim pendaftaran ke panitia.</p>
-                    
+
                     <div className="review-box" style={{ background: '#f8fafc', borderRadius: '20px', padding: '24px', textAlign: 'left', marginBottom: '32px' }}>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                          <span style={{ fontWeight: 700, color: '#475569' }}>Kelengkapan Data</span>
-                          <span style={{ fontWeight: 800, color: data.completeness_pct === 100 ? '#10b981' : '#f59e0b' }}>{data.completeness_pct}%</span>
-                       </div>
-                       <div style={{ height: '10px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden', position: 'relative' }}>
-                          <div style={{ width: `${data.completeness_pct}%`, height: '100%', background: 'linear-gradient(90deg, #4f46e5, #8b5cf6)', borderRadius: '5px', transition: 'width 0.5s', position: 'relative' }}>
-                             <div className="btn-primary-large" style={{ position: 'absolute', inset: 0, opacity: 0.3, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)', backgroundSize: '200% 100%', animation: 'ppdbShimmer 2s infinite' }}></div>
-                          </div>
-                       </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <span style={{ fontWeight: 700, color: '#475569' }}>Kelengkapan Data</span>
+                        <span style={{ fontWeight: 800, color: data.completeness_pct === 100 ? '#10b981' : '#f59e0b' }}>{data.completeness_pct}%</span>
+                      </div>
+                      <div style={{ height: '10px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden', position: 'relative' }}>
+                        <div style={{ width: `${data.completeness_pct}%`, height: '100%', background: 'linear-gradient(90deg, #4f46e5, #8b5cf6)', borderRadius: '5px', transition: 'width 0.5s', position: 'relative' }}>
+                          <div className="btn-primary-large" style={{ position: 'absolute', inset: 0, opacity: 0.3, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)', backgroundSize: '200% 100%', animation: 'ppdbShimmer 2s infinite' }}></div>
+                        </div>
+                      </div>
                     </div>
 
                     {!isLocked ? (
                       <button onClick={handleSubmitFinal} className="btn-primary-large" style={{ width: '100%', maxWidth: '300px' }}>
-                         Kirim Pendaftaran
+                        Kirim Pendaftaran
                       </button>
                     ) : (
                       <div style={{ background: '#dcfce7', color: '#166534', padding: '16px', borderRadius: '16px', fontWeight: 700, display: 'inline-block' }}>
-                         ✅ Pendaftaran Sudah Terkirim
+                        ✅ Pendaftaran Sudah Terkirim
                       </div>
                     )}
                   </div>
@@ -748,20 +686,20 @@ export default function PortalPPDBDashboard() {
               </div>
 
               <div className="ppdb-step-footer">
-                <button onClick={() => setStep(s => Math.max(1, s-1))} disabled={step === 1} className="btn-nav" style={{ flexShrink: 0 }}>
+                <button onClick={() => setStep(s => Math.max(1, s - 1))} disabled={step === 1} className="btn-nav" style={{ flexShrink: 0 }}>
                   <ChevronLeft size={20} /> <span className="mobile-hide">Sebelumnya</span>
                 </button>
-                
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                   {isSaving && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-                      <Loader2 className="animate-spin" size={12} /> <span className="mobile-hide">Menyimpan...</span>
-                   </div>}
-                   {!isSaving && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
-                      <CheckCircle2 size={12} /> <span className="mobile-hide">Tersimpan</span>
-                   </div>}
+                  {isSaving && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                    <Loader2 className="animate-spin" size={12} /> <span className="mobile-hide">Menyimpan...</span>
+                  </div>}
+                  {!isSaving && <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                    <CheckCircle2 size={12} /> <span className="mobile-hide">Tersimpan</span>
+                  </div>}
                 </div>
 
-                <button onClick={() => setStep(s => Math.min(5, s+1))} disabled={step === 5} className="btn-nav btn-nav-primary" style={{ flexShrink: 0 }}>
+                <button onClick={() => setStep(s => Math.min(5, s + 1))} disabled={step === 5} className="btn-nav btn-nav-primary" style={{ flexShrink: 0 }}>
                   <span>{step === 4 ? 'Terakhir' : 'Lanjut'}</span> <ChevronRight size={20} />
                 </button>
               </div>
@@ -772,37 +710,37 @@ export default function PortalPPDBDashboard() {
           <aside>
             {/* Status Card */}
             <div className="ppdb-status-card">
-               <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 800, color: '#1e293b' }}>Status Pendaftaran</h3>
-               
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <StatusItem active={true} done={true} label="Registrasi Akun" date={data?.created_at} />
-                  <StatusItem active={data?.completeness_pct >= 100} done={data?.completeness_pct >= 100} label="Lengkapi Biodata" />
-                  <StatusItem active={data?.status !== 'draft'} done={data?.status !== 'draft'} label="Verifikasi Panitia" />
-                  <StatusItem active={data?.status === 'accepted'} done={data?.status === 'accepted'} label="Hasil Seleksi" />
-               </div>
+              <h3 style={{ margin: '0 0 20px', fontSize: '1rem', fontWeight: 800, color: '#1e293b' }}>Status Pendaftaran</h3>
 
-               {data?.status === 'accepted' && (
-                 <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(79, 70, 229, 0.05)', borderRadius: '16px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4f46e5', textTransform: 'uppercase', marginBottom: '4px' }}>Selamat! Anda Diterima</div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e293b' }}>{data?.kelas_nama || 'Kelas Belum Ditentukan'}</div>
-                    <button onClick={handleDownloadPDF} style={{ marginTop: '12px', width: '100%', background: 'white', border: '2px solid #4f46e5', color: '#4f46e5', padding: '8px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
-                       <Download size={16} /> Unduh Bukti Lulus (PDF)
-                    </button>
-                 </div>
-               )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <StatusItem active={true} done={true} label="Registrasi Akun" date={data?.created_at} />
+                <StatusItem active={data?.completeness_pct >= 100} done={data?.completeness_pct >= 100} label="Lengkapi Biodata" />
+                <StatusItem active={data?.status !== 'draft'} done={data?.status !== 'draft'} label="Verifikasi Panitia" />
+                <StatusItem active={data?.status === 'accepted'} done={data?.status === 'accepted'} label="Hasil Seleksi" />
+              </div>
+
+              {data?.status === 'accepted' && (
+                <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(79, 70, 229, 0.05)', borderRadius: '16px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4f46e5', textTransform: 'uppercase', marginBottom: '4px' }}>Selamat! Anda Diterima</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1e293b' }}>{data?.kelas_nama || 'Kelas Belum Ditentukan'}</div>
+                  <button onClick={handleDownloadPDF} style={{ marginTop: '12px', width: '100%', background: 'white', border: '2px solid #4f46e5', color: '#4f46e5', padding: '8px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <Download size={16} /> Unduh Bukti Lulus (PDF)
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Help Card */}
             <div className="ppdb-help-card">
-               <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem', fontWeight: 800 }}>Butuh Bantuan?</h3>
-               <p style={{ margin: '0 0 20px', fontSize: '0.85rem', opacity: 0.9, lineHeight: 1.5 }}>Hubungi tim panitia PPDB jika mengalami kesulitan teknis.</p>
-               <a href={`https://wa.me/${data?.contact_wa || ''}`} target="_blank" className="btn-help">
-                  <MessageCircle size={18} /> Chat Panitia
-               </a>
+              <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem', fontWeight: 800 }}>Butuh Bantuan?</h3>
+              <p style={{ margin: '0 0 20px', fontSize: '0.85rem', opacity: 0.9, lineHeight: 1.5 }}>Hubungi tim panitia PPDB jika mengalami kesulitan teknis.</p>
+              <a href={`https://wa.me/${data?.contact_wa || ''}`} target="_blank" className="btn-help" rel="noreferrer">
+                <MessageCircle size={18} /> Chat Panitia
+              </a>
             </div>
           </aside>
 
-      </div>{/* dashboard-grid */}
+        </div>{/* dashboard-grid */}
       </div>{/* ppdb-content-wrapper */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -1206,17 +1144,17 @@ function Input({ label, name, ...props }) {
         {label}
         {isSaved && <span style={{ color: '#10b981', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 4 }}><CheckCircle2 size={10} /> Tersimpan</span>}
       </label>
-      <input 
+      <input
         className={`portal-input-clean ${isSaved ? 'input-success-glow' : ''}`}
         name={name}
-        style={{ 
-          width: '100%', padding: '14px', borderRadius: '16px', 
-          border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none', 
+        style={{
+          width: '100%', padding: '14px', borderRadius: '16px',
+          border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           background: '#fff',
           boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
         }}
-        {...props} 
+        {...props}
       />
     </div>
   );
@@ -1230,12 +1168,12 @@ function Select({ label, name, children, ...props }) {
         {label}
         {isSaved && <span style={{ color: '#10b981', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 4 }}><CheckCircle2 size={10} /> Tersimpan</span>}
       </label>
-      <select 
+      <select
         className={isSaved ? 'input-success-glow' : ''}
         name={name}
-        style={{ 
-          width: '100%', padding: '14px', borderRadius: '16px', 
-          border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none', 
+        style={{
+          width: '100%', padding: '14px', borderRadius: '16px',
+          border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none',
           background: 'white', transition: 'all 0.3s',
           boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
         }}
@@ -1254,7 +1192,7 @@ function Skeleton({ width, height, borderRadius = '12px', margin = '0' }) {
 function StatusItem({ active, done, label, date }) {
   return (
     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-      <div style={{ 
+      <div style={{
         width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
         background: done ? '#ecfdf5' : (active ? '#eff6ff' : '#f1f5f9'),
         color: done ? '#10b981' : (active ? '#3b82f6' : '#94a3b8'),
@@ -1276,41 +1214,41 @@ function SuccessSanctuary({ data, handlePrintCertificate }) {
   return (
     <div className="animate-fade-in" style={{ animation: 'ppdbScaleIn 0.8s' }}>
       {/* MONUMENTAL CARD */}
-      <div className="ppdb-wizard-card" style={{ 
-        padding: '0', 
-        textAlign: 'center', 
+      <div className="ppdb-wizard-card" style={{
+        padding: '0',
+        textAlign: 'center',
         background: 'white',
         overflow: 'hidden'
       }}>
         {/* Celebratory Header if Accepted */}
         {isAccepted && (
-          <div style={{ 
+          <div style={{
             background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #4338ca 100%)',
             padding: '60px 20px',
             color: 'white',
             position: 'relative',
             overflow: 'hidden'
           }}>
-             {/* Royal Pattern Overlay */}
-             <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
-             
-             <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ 
-                  width: '80px', height: '80px', background: 'rgba(255,255,255,0.2)', 
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', 
-                  justifyContent: 'center', margin: '0 auto 20px',
-                  border: '2px solid rgba(255,255,255,0.4)',
-                  boxShadow: '0 0 30px rgba(0,0,0,0.1)'
-                }}>
-                  <GraduationCap size={40} />
-                </div>
-                <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '8px', letterSpacing: '-0.04em' }}>SELAMAT!</h2>
-                <p style={{ fontSize: '1.1rem', fontWeight: 600, opacity: 0.9 }}>Anda Dinyatakan Diterima di Instansi Kami</p>
-             </div>
+            {/* Royal Pattern Overlay */}
+            <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
 
-             {/* Sparkle Decorations */}
-             <div style={{ position: 'absolute', top: '20%', left: '10%', animation: 'ppdbPulse 2s infinite' }}><CheckCircle2 size={24} style={{ opacity: 0.3 }} /></div>
-             <div style={{ position: 'absolute', bottom: '20%', right: '10%', animation: 'ppdbPulse 3s infinite' }}><CheckCircle2 size={20} style={{ opacity: 0.3 }} /></div>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{
+                width: '80px', height: '80px', background: 'rgba(255,255,255,0.2)',
+                borderRadius: '50%', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', margin: '0 auto 20px',
+                border: '2px solid rgba(255,255,255,0.4)',
+                boxShadow: '0 0 30px rgba(0,0,0,0.1)'
+              }}>
+                <GraduationCap size={40} />
+              </div>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '8px', letterSpacing: '-0.04em' }}>SELAMAT!</h2>
+              <p style={{ fontSize: '1.1rem', fontWeight: 600, opacity: 0.9 }}>Anda Dinyatakan Diterima di Instansi Kami</p>
+            </div>
+
+            {/* Sparkle Decorations */}
+            <div style={{ position: 'absolute', top: '20%', left: '10%', animation: 'ppdbPulse 2s infinite' }}><CheckCircle2 size={24} style={{ opacity: 0.3 }} /></div>
+            <div style={{ position: 'absolute', bottom: '20%', right: '10%', animation: 'ppdbPulse 3s infinite' }}><CheckCircle2 size={20} style={{ opacity: 0.3 }} /></div>
           </div>
         )}
 
@@ -1331,9 +1269,9 @@ function SuccessSanctuary({ data, handlePrintCertificate }) {
           {/* ROADMAP VISUALIZATION */}
           <div style={{ maxWidth: '600px', margin: '0 auto 48px', display: 'flex', justifyContent: 'space-between', position: 'relative', padding: '0 10px' }}>
             <div style={{ position: 'absolute', top: '24px', left: '40px', right: '40px', height: '3px', background: '#e2e8f0', zIndex: 0 }}>
-               <div style={{ height: '100%', background: '#4f46e5', width: isAccepted ? '100%' : '50%', transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}></div>
+              <div style={{ height: '100%', background: '#4f46e5', width: isAccepted ? '100%' : '50%', transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}></div>
             </div>
-            
+
             <RoadmapNode active={true} done={true} label="Registrasi" sub="Lengkap" />
             <RoadmapNode active={true} done={isAccepted} label="Verifikasi" sub={isAccepted ? "Selesai" : "Proses"} />
             <RoadmapNode active={isAccepted} done={isAccepted} label="Hasil Seleksi" sub={isAccepted ? "Diterima" : "Mendatang"} />
@@ -1342,47 +1280,47 @@ function SuccessSanctuary({ data, handlePrintCertificate }) {
           {/* ACTION CARDS FOR ACCEPTED */}
           {isAccepted && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '48px', textAlign: 'left' }}>
-               {/* Admission Details Card */}
-               <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ margin: '0 0 16px', fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FileText size={18} style={{ color: '#4f46e5' }} /> Detail Penempatan
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Nomor Induk</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{data?.registration_number}</span>
-                     </div>
-                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Pilihan Jurusan</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{data?.jurusan_pilihan || '-'}</span>
-                     </div>
-                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Kelas</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#4f46e5' }}>{data?.kelas_nama || 'Menunggu Plotting'}</span>
-                     </div>
-                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Status</span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '6px' }}>OFFICIAL</span>
-                     </div>
+              {/* Admission Details Card */}
+              <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ margin: '0 0 16px', fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FileText size={18} style={{ color: '#4f46e5' }} /> Detail Penempatan
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Nomor Induk</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{data?.registration_number}</span>
                   </div>
-               </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Pilihan Jurusan</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{data?.jurusan_pilihan || '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Kelas</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#4f46e5' }}>{data?.kelas_nama || 'Menunggu Plotting'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Status</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '6px' }}>OFFICIAL</span>
+                  </div>
+                </div>
+              </div>
 
-               {/* Next Steps Card */}
-               <div style={{ background: '#eff6ff', padding: '24px', borderRadius: '24px', border: '1px solid #dbeafe' }}>
-                  <h4 style={{ margin: '0 0 16px', fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <MapPin size={18} style={{ color: '#2563eb' }} /> Langkah Selanjutnya
-                  </h4>
-                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                     <li style={{ fontSize: '0.8rem', color: '#1e3a8a', display: 'flex', gap: '8px' }}>
-                        <span style={{ minWidth: '18px', height: '18px', background: '#3b82f6', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 900 }}>1</span>
-                        Cetak Bukti Penerimaan di bawah.
-                     </li>
-                     <li style={{ fontSize: '0.8rem', color: '#1e3a8a', display: 'flex', gap: '8px' }}>
-                        <span style={{ minWidth: '18px', height: '18px', background: '#3b82f6', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 900 }}>2</span>
-                        Lakukan daftar ulang di sekolah.
-                     </li>
-                  </ul>
-               </div>
+              {/* Next Steps Card */}
+              <div style={{ background: '#eff6ff', padding: '24px', borderRadius: '24px', border: '1px solid #dbeafe' }}>
+                <h4 style={{ margin: '0 0 16px', fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MapPin size={18} style={{ color: '#2563eb' }} /> Langkah Selanjutnya
+                </h4>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <li style={{ fontSize: '0.8rem', color: '#1e3a8a', display: 'flex', gap: '8px' }}>
+                    <span style={{ minWidth: '18px', height: '18px', background: '#3b82f6', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 900 }}>1</span>
+                    Cetak Bukti Penerimaan di bawah.
+                  </li>
+                  <li style={{ fontSize: '0.8rem', color: '#1e3a8a', display: 'flex', gap: '8px' }}>
+                    <span style={{ minWidth: '18px', height: '18px', background: '#3b82f6', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 900 }}>2</span>
+                    Lakukan daftar ulang di sekolah.
+                  </li>
+                </ul>
+              </div>
             </div>
           )}
 
@@ -1391,9 +1329,9 @@ function SuccessSanctuary({ data, handlePrintCertificate }) {
             <button onClick={handlePrintCertificate} className="btn-primary-large" style={{ padding: '14px 32px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Download size={20} /> {isAccepted ? 'Unduh Surat Penerimaan' : 'Unduh Bukti Daftar'}
             </button>
-            
-            <a href={`https://wa.me/${(data?.contact_wa || '').replace(/^0/, '62')}?text=Halo Panitia PPDB, saya ${data?.nama_lengkap} (ID: ${data?.registration_number}) ingin menanyakan perihal langkah lanjutan setelah diterima.`} target="_blank" className="btn-nav" style={{ padding: '14px 32px', background: '#fff', color: '#10b981', border: '2px solid #10b981', fontSize: '0.95rem' }}>
-               <MessageCircle size={20} style={{ marginRight: '8px' }} /> Tanya Panitia (WA)
+
+            <a href={`https://wa.me/${(data?.contact_wa || '').replace(/^0/, '62')}?text=Halo Panitia PPDB, saya ${data?.nama_lengkap} (ID: ${data?.registration_number}) ingin menanyakan perihal langkah lanjutan setelah diterima.`} target="_blank" className="btn-nav" style={{ padding: '14px 32px', background: '#fff', color: '#10b981', border: '2px solid #10b981', fontSize: '0.95rem' }} rel="noreferrer">
+              <MessageCircle size={20} style={{ marginRight: '8px' }} /> Tanya Panitia (WA)
             </a>
           </div>
         </div>
@@ -1409,7 +1347,7 @@ function SuccessSanctuary({ data, handlePrintCertificate }) {
 function RoadmapNode({ active, done, label, sub }) {
   return (
     <div style={{ zIndex: 1, textAlign: 'center', width: '80px' }}>
-      <div style={{ 
+      <div style={{
         width: '40px', height: '40px', borderRadius: '50%', margin: '0 auto 10px',
         background: done ? '#4f46e5' : (active ? 'white' : '#f1f5f9'),
         border: done ? 'none' : `3px solid ${active ? '#4f46e5' : '#e2e8f0'}`,
@@ -1428,38 +1366,38 @@ function RoadmapNode({ active, done, label, sub }) {
 
 function GeneratingOverlay({ progress }) {
   return (
-    <div style={{ 
-      position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.8)', 
-      backdropFilter: 'blur(12px)', zIndex: 9999, display: 'flex', 
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.8)',
+      backdropFilter: 'blur(12px)', zIndex: 9999, display: 'flex',
       alignItems: 'center', justifyContent: 'center'
     }}>
-      <div style={{ 
-        background: 'white', padding: '40px', borderRadius: '32px', 
+      <div style={{
+        background: 'white', padding: '40px', borderRadius: '32px',
         width: '100%', maxWidth: '400px', textAlign: 'center',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         border: '1px solid rgba(255,255,255,0.1)',
         animation: 'ppdbScaleIn 0.3s ease-out'
       }}>
         <div style={{ position: 'relative', width: '80px', height: '80px', margin: '0 auto 24px' }}>
-           <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '4px solid #f1f5f9' }}></div>
-           <div style={{ 
-             position: 'absolute', inset: 0, borderRadius: '50%', 
-             border: '4px solid #4f46e5', borderTopColor: 'transparent',
-             animation: 'spin 1s linear infinite'
-           }}></div>
-           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
-              <FileCheck size={32} />
-           </div>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '4px solid #f1f5f9' }}></div>
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            border: '4px solid #4f46e5', borderTopColor: 'transparent',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
+            <FileCheck size={32} />
+          </div>
         </div>
         <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}>Menyiapkan Dokumen</h3>
         <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '24px' }}>Mohon tunggu sebentar, kami sedang memproses sertifikat digital Anda...</p>
-        
+
         <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
-           <div style={{ 
-             width: `${progress}%`, height: '100%', 
-             background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
-             transition: 'width 0.4s ease-out'
-           }}></div>
+          <div style={{
+            width: `${progress}%`, height: '100%',
+            background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
+            transition: 'width 0.4s ease-out'
+          }}></div>
         </div>
         <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4f46e5', textAlign: 'right' }}>{progress}%</div>
       </div>
@@ -1473,104 +1411,104 @@ function GeneratingOverlay({ progress }) {
 function CertificateTemplate({ id, data }) {
   const isAccepted = data?.status === 'accepted';
   return (
-    <div id={id} style={{ 
-      width: '210mm', height: '297mm', background: 'white', 
+    <div id={id} style={{
+      width: '210mm', height: '297mm', background: 'white',
       padding: '15mm', boxSizing: 'border-box', position: 'relative',
       fontFamily: "'Inter', sans-serif", color: '#1e293b'
     }}>
       {/* BORDER DESIGN */}
       <div style={{ position: 'absolute', inset: '10mm', border: '2px solid #e2e8f0', borderRadius: '4px' }}></div>
       <div style={{ position: 'absolute', inset: '12mm', border: '5px solid #4f46e5', borderRadius: '4px' }}></div>
-      
+
       {/* CORNER ACCENTS */}
       <div style={{ position: 'absolute', top: '12mm', left: '12mm', width: '40mm', height: '40mm', background: '#4f46e5', clipPath: 'polygon(0 0, 100% 0, 0 100%)', opacity: 0.1 }}></div>
       <div style={{ position: 'absolute', bottom: '12mm', right: '12mm', width: '40mm', height: '40mm', background: '#4f46e5', clipPath: 'polygon(100% 100%, 100% 0, 0 100%)', opacity: 0.1 }}></div>
 
       {/* CONTENT */}
       <div style={{ position: 'relative', zIndex: 1, padding: '20mm' }}>
-         {/* Header */}
-         <div style={{ textAlign: 'center', marginBottom: '20mm' }}>
-            <div style={{ color: '#4f46e5', marginBottom: '8mm' }}><GraduationCap size={64} /></div>
-            <h1 style={{ fontSize: '28pt', fontWeight: 900, margin: '0 0 4mm', letterSpacing: '-0.02em', color: '#1e293b' }}>
-               {isAccepted ? 'SURAT KETERANGAN PENERIMAAN' : 'BUKTI PENDAFTARAN ONLINE'}
-            </h1>
-            <p style={{ fontSize: '14pt', color: '#64748b', fontWeight: 600, margin: 0 }}>Penerimaan Peserta Didik Baru (PPDB)</p>
-            <div style={{ width: '40mm', height: '2pt', background: '#e2e8f0', margin: '6mm auto' }}></div>
-         </div>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '20mm' }}>
+          <div style={{ color: '#4f46e5', marginBottom: '8mm' }}><GraduationCap size={64} /></div>
+          <h1 style={{ fontSize: '28pt', fontWeight: 900, margin: '0 0 4mm', letterSpacing: '-0.02em', color: '#1e293b' }}>
+            {isAccepted ? 'SURAT KETERANGAN PENERIMAAN' : 'BUKTI PENDAFTARAN ONLINE'}
+          </h1>
+          <p style={{ fontSize: '14pt', color: '#64748b', fontWeight: 600, margin: 0 }}>Penerimaan Peserta Didik Baru (PPDB)</p>
+          <div style={{ width: '40mm', height: '2pt', background: '#e2e8f0', margin: '6mm auto' }}></div>
+        </div>
 
-         {/* Main Body */}
-         <div style={{ marginBottom: '15mm' }}>
-            <p style={{ fontSize: '12pt', lineHeight: 1.6, color: '#475569', marginBottom: '10mm' }}>
-               Berdasarkan data yang telah masuk ke sistem PPDB Online, bersama ini kami menerangkan bahwa:
+        {/* Main Body */}
+        <div style={{ marginBottom: '15mm' }}>
+          <p style={{ fontSize: '12pt', lineHeight: 1.6, color: '#475569', marginBottom: '10mm' }}>
+            Berdasarkan data yang telah masuk ke sistem PPDB Online, bersama ini kami menerangkan bahwa:
+          </p>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '12mm' }}>
+            <tbody>
+              {[
+                ['No. Registrasi', data?.registration_number],
+                ['Pilihan Jurusan', data?.jurusan_pilihan || '-'],
+                ['Nama Lengkap', data?.nama_lengkap],
+                ['NISN / NIK', `${data?.nisn || '-'} / ${data?.nik || '-'}`],
+                ['Tempat, Tgl Lahir', `${data?.tempat_lahir || '-'}, ${data?.tgl_lahir ? new Date(data.tgl_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}`],
+                ['Jenis Kelamin', data?.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'],
+                ['Alamat', data?.alamat_lengkap || '-'],
+                ['No. WhatsApp', data?.no_whatsapp || '-'],
+              ].map(([k, v]) => (
+                <tr key={k}>
+                  <td style={{ padding: '4mm 0', fontSize: '11pt', fontWeight: 700, color: '#64748b', width: '45mm', borderBottom: '1pt solid #f1f5f9' }}>{k}</td>
+                  <td style={{ padding: '4mm 0', fontSize: '11pt', fontWeight: 800, color: '#1e293b', borderBottom: '1pt solid #f1f5f9' }}>{v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {isAccepted && (
+            <div style={{ background: '#f0fdf4', border: '1pt solid #dcfce7', padding: '8mm', borderRadius: '4mm', marginBottom: '10mm' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4mm', marginBottom: '3mm' }}>
+                <ShieldCheck size={24} style={{ color: '#16a34a' }} />
+                <h4 style={{ margin: 0, fontSize: '13pt', fontWeight: 900, color: '#166534' }}>STATUS: DINYATAKAN DITERIMA</h4>
+              </div>
+              <p style={{ margin: 0, fontSize: '11pt', color: '#15803d', lineHeight: 1.5 }}>
+                Selamat! Anda telah lolos seleksi dan terdaftar sebagai siswa baru pada kelas <strong>{data?.kelas_nama || '-'}</strong>.
+                Mohon segera melakukan daftar ulang sesuai jadwal yang telah ditentukan.
+              </p>
+            </div>
+          )}
+
+          {!isAccepted && (
+            <div style={{ background: '#eff6ff', border: '1pt solid #dbeafe', padding: '8mm', borderRadius: '4mm', marginBottom: '10mm' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4mm', marginBottom: '3mm' }}>
+                <FileCheck size={24} style={{ color: '#2563eb' }} />
+                <h4 style={{ margin: 0, fontSize: '13pt', fontWeight: 900, color: '#1e40af' }}>STATUS: PENDAFTARAN TERKUNCI</h4>
+              </div>
+              <p style={{ margin: 0, fontSize: '11pt', color: '#1d4ed8', lineHeight: 1.5 }}>
+                Pendaftaran Anda sedang dalam proses verifikasi oleh panitia. Mohon simpan bukti ini untuk keperluan administrasi selanjutnya.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer & Verification */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '20mm' }}>
+          <div>
+            <div style={{ padding: '4mm', background: 'white', border: '1pt solid #e2e8f0', borderRadius: '4mm', display: 'inline-block', marginBottom: '4mm' }}>
+              <QRCodeSVG value={`VERIFIED-PPDB-${data?.registration_number}`} size={100} />
+            </div>
+            <p style={{ margin: 0, fontSize: '8pt', color: '#94a3b8', fontWeight: 600 }}>Scan untuk verifikasi digital</p>
+          </div>
+          <div style={{ textAlign: 'center', width: '60mm' }}>
+            <p style={{ margin: '0 0 20mm', fontSize: '11pt', color: '#475569' }}>
+              Dicetak pada: <br /><strong>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
             </p>
-            
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '12mm' }}>
-               <tbody>
-                  {[
-                     ['No. Registrasi', data?.registration_number],
-                     ['Pilihan Jurusan', data?.jurusan_pilihan || '-'],
-                     ['Nama Lengkap', data?.nama_lengkap],
-                     ['NISN / NIK', `${data?.nisn || '-'} / ${data?.nik || '-'}`],
-                     ['Tempat, Tgl Lahir', `${data?.tempat_lahir || '-'}, ${data?.tgl_lahir ? new Date(data.tgl_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}`],
-                     ['Jenis Kelamin', data?.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'],
-                     ['Alamat', data?.alamat_lengkap || '-'],
-                     ['No. WhatsApp', data?.no_whatsapp || '-'],
-                  ].map(([k, v]) => (
-                     <tr key={k}>
-                        <td style={{ padding: '4mm 0', fontSize: '11pt', fontWeight: 700, color: '#64748b', width: '45mm', borderBottom: '1pt solid #f1f5f9' }}>{k}</td>
-                        <td style={{ padding: '4mm 0', fontSize: '11pt', fontWeight: 800, color: '#1e293b', borderBottom: '1pt solid #f1f5f9' }}>{v}</td>
-                     </tr>
-                  ))}
-               </tbody>
-            </table>
-
-            {isAccepted && (
-               <div style={{ background: '#f0fdf4', border: '1pt solid #dcfce7', padding: '8mm', borderRadius: '4mm', marginBottom: '10mm' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4mm', marginBottom: '3mm' }}>
-                     <ShieldCheck size={24} style={{ color: '#16a34a' }} />
-                     <h4 style={{ margin: 0, fontSize: '13pt', fontWeight: 900, color: '#166534' }}>STATUS: DINYATAKAN DITERIMA</h4>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '11pt', color: '#15803d', lineHeight: 1.5 }}>
-                     Selamat! Anda telah lolos seleksi dan terdaftar sebagai siswa baru pada kelas <strong>{data?.kelas_nama || '-'}</strong>. 
-                     Mohon segera melakukan daftar ulang sesuai jadwal yang telah ditentukan.
-                  </p>
-               </div>
-            )}
-            
-            {!isAccepted && (
-               <div style={{ background: '#eff6ff', border: '1pt solid #dbeafe', padding: '8mm', borderRadius: '4mm', marginBottom: '10mm' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4mm', marginBottom: '3mm' }}>
-                     <FileCheck size={24} style={{ color: '#2563eb' }} />
-                     <h4 style={{ margin: 0, fontSize: '13pt', fontWeight: 900, color: '#1e40af' }}>STATUS: PENDAFTARAN TERKUNCI</h4>
-                  </div>
-                  <p style={{ margin: 0, fontSize: '11pt', color: '#1d4ed8', lineHeight: 1.5 }}>
-                     Pendaftaran Anda sedang dalam proses verifikasi oleh panitia. Mohon simpan bukti ini untuk keperluan administrasi selanjutnya.
-                  </p>
-               </div>
-            )}
-         </div>
-
-         {/* Footer & Verification */}
-         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '20mm' }}>
-            <div>
-               <div style={{ padding: '4mm', background: 'white', border: '1pt solid #e2e8f0', borderRadius: '4mm', display: 'inline-block', marginBottom: '4mm' }}>
-                  <QRCodeSVG value={`VERIFIED-PPDB-${data?.registration_number}`} size={100} />
-               </div>
-               <p style={{ margin: 0, fontSize: '8pt', color: '#94a3b8', fontWeight: 600 }}>Scan untuk verifikasi digital</p>
-            </div>
-            <div style={{ textAlign: 'center', width: '60mm' }}>
-               <p style={{ margin: '0 0 20mm', fontSize: '11pt', color: '#475569' }}>
-                  Dicetak pada: <br/><strong>{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-               </p>
-               <div style={{ width: '100%', height: '1pt', background: '#1e293b', marginBottom: '2mm' }}></div>
-               <p style={{ margin: 0, fontSize: '11pt', fontWeight: 900, color: '#1e293b' }}>PANITIA PPDB ONLINE</p>
-               <p style={{ margin: 0, fontSize: '9pt', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Dokumen Sah Digital</p>
-            </div>
-         </div>
+            <div style={{ width: '100%', height: '1pt', background: '#1e293b', marginBottom: '2mm' }}></div>
+            <p style={{ margin: 0, fontSize: '11pt', fontWeight: 900, color: '#1e293b' }}>PANITIA PPDB ONLINE</p>
+            <p style={{ margin: 0, fontSize: '9pt', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Dokumen Sah Digital</p>
+          </div>
+        </div>
       </div>
 
       {/* Watermark */}
-      <div style={{ 
+      <div style={{
         position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(-45deg)',
         fontSize: '80pt', fontWeight: 900, color: '#f1f5f9', zIndex: 0, whiteSpace: 'nowrap', pointerEvents: 'none', opacity: 0.4
       }}>

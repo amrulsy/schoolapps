@@ -64,12 +64,12 @@ router.post('/', async (req, res) => {
         `, [nisnVal, nisVal, nama, jk, status || 'aktif', tempatLahir, tglLahir || null, telp, alamat, wali, kelasId, angkatan || null, jenis_pendaftaran || 'Baru', tanggal_mulai_sekolah || null]);
 
         res.status(201).json({ id: result.insertId });
-    } catch (err) { 
+    } catch (err) {
         console.error('[POST /api/siswa] Error:', err);
         let errorMsg = 'Gagal menambah siswa: ' + err.message;
         if (err.code === 'ER_DUP_ENTRY') errorMsg = 'Gagal: NIS atau NISN sudah terdaftar di siswa lain.';
         if (err.code === 'ER_BAD_FIELD_ERROR') errorMsg = 'Gagal: Struktur database tidak sesuai. Silakan jalankan script migrasi terbaru.';
-        res.status(500).json({ error: errorMsg }); 
+        res.status(500).json({ error: errorMsg });
     }
 });
 
@@ -143,12 +143,12 @@ router.put('/:id', async (req, res) => {
         if (wali_detail) await updateParent('wali', wali_detail);
 
         res.json({ success: true });
-    } catch (err) { 
+    } catch (err) {
         console.error('[PUT /api/siswa/:id] Error:', err);
         let errorMsg = 'Gagal memperbarui siswa: ' + err.message;
         if (err.code === 'ER_DUP_ENTRY') errorMsg = 'Gagal: NIS atau NISN sudah digunakan siswa lain.';
         if (err.code === 'ER_BAD_FIELD_ERROR') errorMsg = 'Gagal: Struktur database tidak sesuai (mungkin kolom hubungan/alamat/semester_aktif belum ada).';
-        res.status(500).json({ error: errorMsg }); 
+        res.status(500).json({ error: errorMsg });
     }
 });
 
@@ -222,7 +222,7 @@ router.post('/import', uploadTemp.single('file'), async (req, res) => {
 
         const workbook = xlsx.readFile(req.file.path);
         let sheetName = workbook.SheetNames[0];
-        
+
         if (workbook.SheetNames.includes('Data Siswa')) {
             sheetName = 'Data Siswa';
         }
@@ -255,7 +255,7 @@ router.post('/import', uploadTemp.single('file'), async (req, res) => {
                 const nisn = row['NISN'] || null;
                 const nis = row['NIS'] || null;
                 const tempatLahir = row['Tempat Lahir'] || null;
-                
+
                 let tglLahir = null;
                 if (row['Tanggal Lahir']) {
                     const rawDate = row['Tanggal Lahir'];
@@ -265,7 +265,7 @@ router.post('/import', uploadTemp.single('file'), async (req, res) => {
                     } else if (typeof rawDate === 'string') {
                         try {
                             tglLahir = new Date(rawDate).toISOString().split('T')[0];
-                        } catch(e) { }
+                        } catch (e) { /* ignore invalid date */ }
                     }
                 }
 

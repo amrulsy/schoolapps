@@ -25,7 +25,7 @@ async function runResetAndSeedAdmin() {
         // 1. Get all tables
         console.log('🔍 Fetching all tables in the database...');
         const [rows] = await conn.query('SHOW TABLES');
-        const dbNameKey = `Tables_in_${process.env.TIDB_DATABASE}`;
+
         const tables = rows.map(row => Object.values(row)[0]);
 
         // 2. Clear all tables
@@ -36,7 +36,7 @@ async function runResetAndSeedAdmin() {
         for (const table of tables) {
             console.log(`   Deleting all from ${table}...`);
             await conn.query(`DELETE FROM ${table}`);
-            try { await conn.query(`ALTER TABLE ${table} AUTO_INCREMENT = 1`); } catch (e) { }
+            try { await conn.query(`ALTER TABLE ${table} AUTO_INCREMENT = 1`); } catch (e) { console.warn('Reset AI warning:', e.message); }
         }
         await conn.query('SET FOREIGN_KEY_CHECKS = 1');
 

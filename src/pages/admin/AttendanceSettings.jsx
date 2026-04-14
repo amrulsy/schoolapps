@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { 
-    Save, Clock, MessageCircle, Bell, Loader2, Info, 
+    Clock, MessageCircle, Loader2, Info, 
     CheckCircle2, LogIn, LogOut, Activity, AlertTriangle, 
     ChevronRight, Smartphone
 } from 'lucide-react'

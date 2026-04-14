@@ -1,11 +1,15 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { UiProvider, useUi } from './UiContext';
-import { AuthProvider, useAuth } from './AuthContext';
-import { SettingsProvider, useSettings } from './SettingsContext';
-import { SiswaProvider, useSiswa } from './SiswaContext';
-import { KeuanganProvider, useKeuangan } from './KeuanganContext';
-
-const AppContext = createContext();
+import { useEffect, useState } from 'react';
+import { AppContext } from './AppContext';
+import { UiProvider } from './UiProvider';
+import { useUi } from './UiContext';
+import { AuthProvider } from './AuthProvider';
+import { useAuth } from './AuthContext';
+import { SettingsProvider } from './SettingsProvider';
+import { useSettings } from './SettingsContext';
+import { SiswaProvider } from './SiswaProvider';
+import { useSiswa } from './SiswaContext';
+import { KeuanganProvider } from './KeuanganProvider';
+import { useKeuangan } from './KeuanganContext';
 
 export function LegacyAppProvider({ children }) {
     const ui = useUi();
@@ -49,10 +53,4 @@ export function AppProvider({ children }) {
             </AuthProvider>
         </UiProvider>
     );
-}
-
-export function useApp() {
-    const ctx = useContext(AppContext);
-    if (!ctx) throw new Error('useApp must be used within AppProvider');
-    return ctx;
 }

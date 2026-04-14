@@ -1,11 +1,11 @@
-import React from 'react';
+
 import { render, waitFor } from '@testing-library/react';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, test, expect, vi } from 'vitest';
 
 import PortalHome from '../portal/pages/PortalHome';
-import { PortalProvider } from '../portal/context/PortalContext';
+
 
 vi.mock('../context/AppContext', () => ({
     useApp: () => ({

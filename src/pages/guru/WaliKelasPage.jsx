@@ -422,7 +422,7 @@ export default function WaliKelasPage() {
 
     useEffect(() => {
         checkStatus()
-    }, [])
+    }, [checkStatus])
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -454,9 +454,9 @@ export default function WaliKelasPage() {
         if (showPreview && Array.isArray(printData) && pageRefs.current[activeStudentIdx]) {
             pageRefs.current[activeStudentIdx].scrollIntoView({ behavior: 'smooth', block: 'start' })
         }
-    }, [activeStudentIdx, showPreview])
+    }, [activeStudentIdx, showPreview, printData])
 
-    const checkStatus = async () => {
+    const checkStatus = useCallback(async () => {
         try {
             setLoading(true)
             const res = await api.get('/guru/wali-kelas/check')
@@ -469,9 +469,9 @@ export default function WaliKelasPage() {
         } catch {
             setLoading(false)
         }
-    }
+    }, [loadLeger])
 
-    const loadLeger = async (ctx) => {
+    const loadLeger = useCallback(async (ctx) => {
         try {
             const res = await api.get('/guru/wali-kelas/leger', {
                 params: {
@@ -487,9 +487,9 @@ export default function WaliKelasPage() {
         } catch {
             setLoading(false)
         }
-    }
+    }, [])
 
-    const loadAttendance = async () => {
+    const loadAttendance = useCallback(async () => {
         try {
             const res = await api.get('/guru/wali-kelas/attendance', {
                 params: {
@@ -500,9 +500,9 @@ export default function WaliKelasPage() {
             })
             setAttendance(res.data)
         } catch { /* silent */ }
-    }
+    }, [info])
 
-    const loadEkskul = async () => {
+    const loadEkskul = useCallback(async () => {
         if (!info) return
         try {
             const res = await api.get('/guru/wali-kelas/ekskul', {
@@ -523,12 +523,12 @@ export default function WaliKelasPage() {
             })
             setEkskulList(baseList)
         } catch { /* silent */ }
-    }
+    }, [info, students])
 
     useEffect(() => {
         if (activeTab === 'attendance' && info) loadAttendance()
         if (activeTab === 'ekskul' && info) loadEkskul()
-    }, [activeTab])
+    }, [activeTab, info, loadAttendance, loadEkskul])
 
     const handleSaveCatatan = async () => {
         try {
@@ -626,7 +626,6 @@ export default function WaliKelasPage() {
 
     const triggerPrint = () => { window.print() }
     const isBatch = Array.isArray(printData)
-    const batchCount = isBatch ? printData.length : 1
 
     const closePreview = useCallback(() => {
         setShowPreview(false)
@@ -652,18 +651,7 @@ export default function WaliKelasPage() {
 
     const isAllLocked = students.every(s => Object.values(s.mapel_scores).every(n => n.is_locked))
 
-    const renderPreviewTemplate = (data, isSingle = false) => {
-        if (printMode === 'sts') {
-            return <STSPrintTemplate 
-                data={isSingle ? data : null} 
-                batchData={!isSingle ? data : null} 
-            />
-        }
-        return <RaporPrintTemplate 
-            data={isSingle ? data : null} 
-            batchData={!isSingle ? data : null} 
-        />
-    }
+
 
     // Compute stats for Hero Banner
     const avgClass = students.length > 0 

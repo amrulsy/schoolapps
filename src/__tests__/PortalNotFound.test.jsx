@@ -1,6 +1,6 @@
-import React from 'react'
+
 import { render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, test, expect, vi } from 'vitest'
 import { HelmetProvider } from 'react-helmet-async'
 

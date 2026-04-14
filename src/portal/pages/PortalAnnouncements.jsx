@@ -15,6 +15,7 @@ export default function PortalAnnouncements() {
 
     useEffect(() => {
         loadPosts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, category])
 
     async function loadPosts() {

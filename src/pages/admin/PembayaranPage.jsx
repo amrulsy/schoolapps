@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
-import Modal from '../../components/Modal'
-import { useReactToPrint } from 'react-to-print'
-import { downloadFile } from '../../utils/downloadHelper'
+
+
+
 import { Search, CreditCard, AlertCircle, MessageCircle } from 'lucide-react'
 
 // Features

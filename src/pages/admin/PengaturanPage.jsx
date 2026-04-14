@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
-import { 
-    Save, Upload, AlertTriangle, Calendar, Clock, 
+import {
+    Save, Upload, AlertTriangle, Calendar, Clock,
     MessageSquare, Database, Shield, Layout,
     CheckCircle, XCircle, RefreshCw, Trash2, Plus, FileText, Printer
 } from 'lucide-react'
@@ -9,12 +9,12 @@ import { Link } from 'react-router-dom'
 import api, { API_BASE } from '../../services/api'
 
 export default function PengaturanPage() {
-    const { 
-        schoolSettings, updateSchoolSettings, 
-        tahunAjaranList, setTahunAjaranAktif, addTahunAjaran,
-        addToast 
+    const {
+        schoolSettings, updateSchoolSettings,
+        tahunAjaranList, setTahunAjaranAktif,
+        addToast
     } = useApp()
-    
+
     const [activeTab, setActiveTab] = useState('profil')
     const [loading, setLoading] = useState(false)
 
@@ -182,7 +182,7 @@ export default function PengaturanPage() {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             if (!res.ok) throw new Error('Download failed');
-            
+
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -218,7 +218,7 @@ export default function PengaturanPage() {
                 {/* Sidebar Tabs */}
                 <div className="settings-nav card" style={{ padding: '12px 0', alignSelf: 'start' }}>
                     {tabs.map(tab => (
-                        <button 
+                        <button
                             key={tab.id}
                             className={`settings-nav-item ${activeTab === tab.id ? 'active' : ''}`}
                             onClick={() => setActiveTab(tab.id)}
@@ -248,21 +248,21 @@ export default function PengaturanPage() {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>Nama Sekolah</label>
-                                    <input className="form-control" value={localProfile.nama} onChange={e => setLocalProfile(p => ({...p, nama: e.target.value}))} />
+                                    <input className="form-control" value={localProfile.nama} onChange={e => setLocalProfile(p => ({ ...p, nama: e.target.value }))} />
                                 </div>
                                 <div className="form-group">
                                     <label>Telepon</label>
-                                    <input className="form-control" value={localProfile.telepon} onChange={e => setLocalProfile(p => ({...p, telepon: e.target.value}))} />
+                                    <input className="form-control" value={localProfile.telepon} onChange={e => setLocalProfile(p => ({ ...p, telepon: e.target.value }))} />
                                 </div>
                             </div>
                             <div className="form-group">
                                 <label>Alamat</label>
-                                <textarea className="form-control" rows="3" value={localProfile.alamat} onChange={e => setLocalProfile(p => ({...p, alamat: e.target.value}))}></textarea>
+                                <textarea className="form-control" rows="3" value={localProfile.alamat} onChange={e => setLocalProfile(p => ({ ...p, alamat: e.target.value }))}></textarea>
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>Email</label>
-                                    <input className="form-control" value={localProfile.email} onChange={e => setLocalProfile(p => ({...p, email: e.target.value}))} />
+                                    <input className="form-control" value={localProfile.email} onChange={e => setLocalProfile(p => ({ ...p, email: e.target.value }))} />
                                 </div>
                                 <div className="form-group">
                                     <label>Logo Sekolah</label>
@@ -274,11 +274,11 @@ export default function PengaturanPage() {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>Kepala Sekolah</label>
-                                    <input className="form-control" value={localProfile.kepala_sekolah} onChange={e => setLocalProfile(p => ({...p, kepala_sekolah: e.target.value}))} />
+                                    <input className="form-control" value={localProfile.kepala_sekolah} onChange={e => setLocalProfile(p => ({ ...p, kepala_sekolah: e.target.value }))} />
                                 </div>
                                 <div className="form-group">
                                     <label>NIP Kepala Sekolah</label>
-                                    <input className="form-control" value={localProfile.nip_kepsek} onChange={e => setLocalProfile(p => ({...p, nip_kepsek: e.target.value}))} />
+                                    <input className="form-control" value={localProfile.nip_kepsek} onChange={e => setLocalProfile(p => ({ ...p, nip_kepsek: e.target.value }))} />
                                 </div>
                             </div>
                             <div style={{ textAlign: 'right', marginTop: 20 }}>
@@ -294,7 +294,7 @@ export default function PengaturanPage() {
                             <div className="card-header">
                                 <h3>📅 Manajemen Tahun Ajaran</h3>
                             </div>
-                            
+
                             <table className="table" style={{ marginTop: 16 }}>
                                 <thead>
                                     <tr>
@@ -339,15 +339,15 @@ export default function PengaturanPage() {
                             <div className="card-header">
                                 <h3>🏖️ Kalender Hari Libur</h3>
                             </div>
-                            
+
                             <div className="form-row" style={{ alignItems: 'flex-end', marginTop: 16 }}>
                                 <div className="form-group">
                                     <label>Tanggal</label>
-                                    <input type="date" className="form-control" value={newHoliday.tanggal} onChange={e => setNewHoliday(prev => ({...prev, tanggal: e.target.value}))} />
+                                    <input type="date" className="form-control" value={newHoliday.tanggal} onChange={e => setNewHoliday(prev => ({ ...prev, tanggal: e.target.value }))} />
                                 </div>
                                 <div className="form-group" style={{ flex: 2 }}>
                                     <label>Keterangan</label>
-                                    <input type="text" className="form-control" placeholder="Contoh: Libur Idul Fitri" value={newHoliday.keterangan} onChange={e => setNewHoliday(prev => ({...prev, keterangan: e.target.value}))} />
+                                    <input type="text" className="form-control" placeholder="Contoh: Libur Idul Fitri" value={newHoliday.keterangan} onChange={e => setNewHoliday(prev => ({ ...prev, keterangan: e.target.value }))} />
                                 </div>
                                 <div className="form-group">
                                     <button className="btn btn-primary" onClick={handleAddHoliday}>
@@ -395,41 +395,41 @@ export default function PengaturanPage() {
                             <div className="card-header">
                                 <h3>⌚ Pengaturan Presensi RFID</h3>
                             </div>
-                            
+
                             <div className="form-row" style={{ marginTop: 16 }}>
                                 <div className="form-group">
                                     <label>Batas Waktu Terlambat</label>
-                                    <input type="time" className="form-control" value={attendanceSettings.late_threshold_time || ''} onChange={e => setAttendanceSettings(p => ({...p, late_threshold_time: e.target.value}))} />
-                                    <small className="text-muted">Tap setelah jam ini akan dicatat sebagai 'Terlambat'</small>
+                                    <input type="time" className="form-control" value={attendanceSettings.late_threshold_time || ''} onChange={e => setAttendanceSettings(p => ({ ...p, late_threshold_time: e.target.value }))} />
+                                    <small className="text-muted">Tap setelah jam ini akan dicatat sebagai &apos;Terlambat&apos;</small>
                                 </div>
                                 <div className="form-group">
                                     <label>Mulai Pulang</label>
-                                    <input type="time" className="form-control" value={attendanceSettings.exit_start_time || ''} onChange={e => setAttendanceSettings(p => ({...p, exit_start_time: e.target.value}))} />
+                                    <input type="time" className="form-control" value={attendanceSettings.exit_start_time || ''} onChange={e => setAttendanceSettings(p => ({ ...p, exit_start_time: e.target.value }))} />
                                     <small className="text-muted">Tap pulang diperbolehkan setelah jam ini</small>
                                 </div>
                             </div>
 
                             <div className="form-group">
                                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <input type="checkbox" checked={attendanceSettings.wa_notification_enabled === 'true'} onChange={e => setAttendanceSettings(p => ({...p, wa_notification_enabled: e.target.checked ? 'true' : 'false'}))} />
+                                    <input type="checkbox" checked={attendanceSettings.wa_notification_enabled === 'true'} onChange={e => setAttendanceSettings(p => ({ ...p, wa_notification_enabled: e.target.checked ? 'true' : 'false' }))} />
                                     Aktifkan Notifikasi WhatsApp Otomatis
                                 </label>
                             </div>
 
                             <div className="form-group">
                                 <label>Template Pesan Masuk (Hadir)</label>
-                                <textarea className="form-control" rows="2" value={attendanceSettings.wa_template_masuk || ''} onChange={e => setAttendanceSettings(p => ({...p, wa_template_masuk: e.target.value}))}></textarea>
+                                <textarea className="form-control" rows="2" value={attendanceSettings.wa_template_masuk || ''} onChange={e => setAttendanceSettings(p => ({ ...p, wa_template_masuk: e.target.value }))}></textarea>
                                 <small className="text-muted">Tersedia placeholder: [nama], [jam]</small>
                             </div>
 
                             <div className="form-group">
                                 <label>Template Pesan Masuk (Terlambat)</label>
-                                <textarea className="form-control" rows="2" value={attendanceSettings.wa_template_terlambat || ''} onChange={e => setAttendanceSettings(p => ({...p, wa_template_terlambat: e.target.value}))}></textarea>
+                                <textarea className="form-control" rows="2" value={attendanceSettings.wa_template_terlambat || ''} onChange={e => setAttendanceSettings(p => ({ ...p, wa_template_terlambat: e.target.value }))}></textarea>
                             </div>
 
                             <div className="form-group">
                                 <label>Template Pesan Pulang</label>
-                                <textarea className="form-control" rows="2" value={attendanceSettings.wa_template_pulang || ''} onChange={e => setAttendanceSettings(p => ({...p, wa_template_pulang: e.target.value}))}></textarea>
+                                <textarea className="form-control" rows="2" value={attendanceSettings.wa_template_pulang || ''} onChange={e => setAttendanceSettings(p => ({ ...p, wa_template_pulang: e.target.value }))}></textarea>
                             </div>
 
                             <div style={{ textAlign: 'right', marginTop: 20 }}>
@@ -445,29 +445,29 @@ export default function PengaturanPage() {
                             <div className="card-header">
                                 <h3>💰 Pengaturan Infaq Harian</h3>
                             </div>
-                            
+
                             <div className="form-group" style={{ marginTop: 16 }}>
                                 <label>Nominal Default (Rp)</label>
-                                <input type="number" className="form-control" value={infaqSettings.nominal_default || ''} onChange={e => setInfaqSettings(p => ({...p, nominal_default: e.target.value}))} />
+                                <input type="number" className="form-control" value={infaqSettings.nominal_default || ''} onChange={e => setInfaqSettings(p => ({ ...p, nominal_default: e.target.value }))} />
                             </div>
 
                             <div className="form-group">
                                 <label>Hari Koleksi Infaq</label>
                                 <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                                    {[1,2,3,4,5,6].map(day => (
+                                    {[1, 2, 3, 4, 5, 6].map(day => (
                                         <label key={day} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={infaqSettings.active_days?.includes(day)} 
+                                            <input
+                                                type="checkbox"
+                                                checked={infaqSettings.active_days?.includes(day)}
                                                 onChange={e => {
                                                     const current = infaqSettings.active_days || []
-                                                    const updated = e.target.checked 
-                                                        ? [...current, day] 
+                                                    const updated = e.target.checked
+                                                        ? [...current, day]
                                                         : current.filter(d => d !== day)
-                                                    setInfaqSettings(p => ({...p, active_days: updated}))
-                                                }} 
+                                                    setInfaqSettings(p => ({ ...p, active_days: updated }))
+                                                }}
                                             />
-                                            {['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][day]}
+                                            {['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][day]}
                                         </label>
                                     ))}
                                 </div>
@@ -486,23 +486,23 @@ export default function PengaturanPage() {
                             <div className="card-header">
                                 <h3>📂 Konfigurasi Berkas Digital Siswa</h3>
                             </div>
-                            
+
                             <div className="form-row" style={{ alignItems: 'flex-end', marginTop: 16 }}>
                                 <div className="form-group" style={{ flex: 1 }}>
                                     <label>Kode</label>
-                                    <input type="text" className="form-control" placeholder="Cth: KK" value={newDokumen.kode} onChange={e => setNewDokumen(prev => ({...prev, kode: e.target.value.toUpperCase().replace(/\s+/g, '_')}))} />
+                                    <input type="text" className="form-control" placeholder="Cth: KK" value={newDokumen.kode} onChange={e => setNewDokumen(prev => ({ ...prev, kode: e.target.value.toUpperCase().replace(/\s+/g, '_') }))} />
                                 </div>
                                 <div className="form-group" style={{ flex: 2 }}>
                                     <label>Nama Dokumen</label>
-                                    <input type="text" className="form-control" placeholder="Cth: Kartu Keluarga" value={newDokumen.nama} onChange={e => setNewDokumen(prev => ({...prev, nama: e.target.value}))} />
+                                    <input type="text" className="form-control" placeholder="Cth: Kartu Keluarga" value={newDokumen.nama} onChange={e => setNewDokumen(prev => ({ ...prev, nama: e.target.value }))} />
                                 </div>
                                 <div className="form-group" style={{ flex: 2 }}>
                                     <label>Keterangan (Opsional)</label>
-                                    <input type="text" className="form-control" placeholder="Cth: FC KTP ortu gabung di dalam file" value={newDokumen.keterangan} onChange={e => setNewDokumen(prev => ({...prev, keterangan: e.target.value}))} />
+                                    <input type="text" className="form-control" placeholder="Cth: FC KTP ortu gabung di dalam file" value={newDokumen.keterangan} onChange={e => setNewDokumen(prev => ({ ...prev, keterangan: e.target.value }))} />
                                 </div>
                                 <div className="form-group">
                                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, cursor: 'pointer', marginBottom: 0 }}>
-                                        <input type="checkbox" checked={newDokumen.is_required} onChange={e => setNewDokumen(prev => ({...prev, is_required: e.target.checked}))} />
+                                        <input type="checkbox" checked={newDokumen.is_required} onChange={e => setNewDokumen(prev => ({ ...prev, is_required: e.target.checked }))} />
                                         Wajib?
                                     </label>
                                 </div>
@@ -562,20 +562,20 @@ export default function PengaturanPage() {
                                 </div>
                                 <div className="form-group">
                                     <label>Header Baris 1 (Nama Toko / Sekolah)</label>
-                                    <input className="form-control" value={receiptConfig.header1} onChange={e => setReceiptConfig(p => ({...p, header1: e.target.value}))} placeholder="Contoh: SMK PPRQ" />
+                                    <input className="form-control" value={receiptConfig.header1} onChange={e => setReceiptConfig(p => ({ ...p, header1: e.target.value }))} placeholder="Contoh: SMK PPRQ" />
                                     <small className="text-muted">Ditampilkan dengan ukuran paling besar dan ditebalkan (bold).</small>
                                 </div>
                                 <div className="form-group">
                                     <label>Header Baris 2 (Alamat)</label>
-                                    <input className="form-control" value={receiptConfig.header2} onChange={e => setReceiptConfig(p => ({...p, header2: e.target.value}))} placeholder="Contoh: Jl. Pesantren No.1, Kota" />
+                                    <input className="form-control" value={receiptConfig.header2} onChange={e => setReceiptConfig(p => ({ ...p, header2: e.target.value }))} placeholder="Contoh: Jl. Pesantren No.1, Kota" />
                                 </div>
                                 <div className="form-group">
                                     <label>Header Baris 3 (Telepon / Kontak)</label>
-                                    <input className="form-control" value={receiptConfig.header3} onChange={e => setReceiptConfig(p => ({...p, header3: e.target.value}))} placeholder="Contoh: Telp: (021) 123-4567" />
+                                    <input className="form-control" value={receiptConfig.header3} onChange={e => setReceiptConfig(p => ({ ...p, header3: e.target.value }))} placeholder="Contoh: Telp: (021) 123-4567" />
                                 </div>
                                 <div className="form-group" style={{ marginTop: 24 }}>
                                     <label>Pesan Penutup (Footer)</label>
-                                    <textarea className="form-control" rows="3" value={receiptConfig.footer} onChange={e => setReceiptConfig(p => ({...p, footer: e.target.value}))} placeholder="Contoh: Terima kasih atas pembayarannya!"></textarea>
+                                    <textarea className="form-control" rows="3" value={receiptConfig.footer} onChange={e => setReceiptConfig(p => ({ ...p, footer: e.target.value }))} placeholder="Contoh: Terima kasih atas pembayarannya!"></textarea>
                                     <small className="text-muted">Pesan ini akan tercetak di bagian paling bawah struk.</small>
                                 </div>
                                 <div style={{ textAlign: 'right', marginTop: 32 }}>
@@ -584,14 +584,14 @@ export default function PengaturanPage() {
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div className="card" style={{ background: '#f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'sticky', top: 20 }}>
                                 <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                     <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <Printer size={16} /> Live Preview
                                     </div>
-                                    <select 
-                                        className="form-control" 
+                                    <select
+                                        className="form-control"
                                         style={{ width: 'auto', padding: '4px 8px', height: 'auto', fontSize: '0.8rem', borderRadius: 8 }}
                                         value={previewSize}
                                         onChange={(e) => setPreviewSize(e.target.value)}
@@ -601,17 +601,17 @@ export default function PengaturanPage() {
                                         <option value="A4">A4</option>
                                     </select>
                                 </div>
-                                
-                                <div style={{ 
-                                    width: previewSize === 'A4' ? '100%' : (previewSize === '80mm' ? '280px' : '200px'), 
-                                    background: 'white', 
-                                    padding: previewSize === 'A4' ? '32px' : '24px 16px', 
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)', 
+
+                                <div style={{
+                                    width: previewSize === 'A4' ? '100%' : (previewSize === '80mm' ? '280px' : '200px'),
+                                    background: 'white',
+                                    padding: previewSize === 'A4' ? '32px' : '24px 16px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
                                     border: previewSize === 'A4' ? '1px solid #cbd5e1' : 'none',
-                                    borderTop: previewSize === 'A4' ? '1px solid #cbd5e1' : '4px dashed #cbd5e1', 
-                                    borderBottom: previewSize === 'A4' ? '1px solid #cbd5e1' : '4px dashed #cbd5e1', 
-                                    fontFamily: '"Courier New", Courier, monospace', 
-                                    fontSize: previewSize === 'A4' ? '1rem' : (previewSize === '80mm' ? '0.9rem' : '0.8rem'), 
+                                    borderTop: previewSize === 'A4' ? '1px solid #cbd5e1' : '4px dashed #cbd5e1',
+                                    borderBottom: previewSize === 'A4' ? '1px solid #cbd5e1' : '4px dashed #cbd5e1',
+                                    fontFamily: '"Courier New", Courier, monospace',
+                                    fontSize: previewSize === 'A4' ? '1rem' : (previewSize === '80mm' ? '0.9rem' : '0.8rem'),
                                     color: '#000',
                                     transition: 'all 0.3s ease'
                                 }}>
@@ -653,18 +653,18 @@ export default function PengaturanPage() {
                             <div className="card fade-in" style={{ gridColumn: '1 / -1' }}>
                                 <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <AlertTriangle size={20} color={maintenanceMode ? "var(--warning-500)" : "var(--slate-400)"} /> 
+                                        <AlertTriangle size={20} color={maintenanceMode ? "var(--warning-500)" : "var(--slate-400)"} />
                                         Mode Pemeliharaan (Maintenance)
                                     </h3>
                                     <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <span style={{ fontWeight: 600, color: maintenanceMode ? 'var(--danger-600)' : 'var(--slate-500)', fontSize: '0.9rem' }}>
                                             {maintenanceMode ? 'Sistem Terkunci' : 'Publik Terbuka'}
                                         </span>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={maintenanceMode} 
+                                        <input
+                                            type="checkbox"
+                                            checked={maintenanceMode}
                                             onChange={handleToggleMaintenance}
-                                            style={{ width: 44, height: 24, cursor: 'pointer', accentColor: 'var(--danger-500)' }} 
+                                            style={{ width: 44, height: 24, cursor: 'pointer', accentColor: 'var(--danger-500)' }}
                                         />
                                     </label>
                                 </div>
@@ -677,7 +677,7 @@ export default function PengaturanPage() {
                                             <AlertTriangle size={20} />
                                             <div>
                                                 <strong>Mode Pemeliharaan Saat Ini Aktif!</strong>
-                                                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>Pengunjung publik hanya melihat halaman "Sedang dalam Perbaikan", namun Anda tetap bisa beraktivitas penuh sebagai Admin di layar ini.</p>
+                                                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>Pengunjung publik hanya melihat halaman &quot;Sedang dalam Perbaikan&quot;, namun Anda tetap bisa beraktivitas penuh sebagai Admin di layar ini.</p>
                                             </div>
                                         </div>
                                     )}
@@ -707,7 +707,7 @@ export default function PengaturanPage() {
                                             <p className="text-muted">{waStatus?.statusMessage || 'Sedang memuat status...'}</p>
                                         </div>
                                     )}
-                                    
+
                                     <button className="btn btn-ghost" style={{ marginTop: 20 }} onClick={fetchWaStatus}>
                                         <RefreshCw size={16} /> Refresh Status
                                     </button>
@@ -722,7 +722,7 @@ export default function PengaturanPage() {
                                     <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: 20 }}>
                                         Backup data Anda secara berkala untuk mencegah kehilangan data. File backup akan mencakup seluruh database dan file unggahan.
                                     </p>
-                                    
+
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                         <button className="btn btn-ghost" style={{ justifyContent: 'center', padding: 12 }} onClick={handleBackup}>
                                             <Database size={18} /> Export Backup (.zip)

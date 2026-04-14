@@ -1,16 +1,16 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { API_BASE, getAuthHeaders } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import {
-    Clock, Info, Save, UserX, UserCheck, CheckCircle2,
-    BookOpen, Search, Users, Activity, ChevronRight, CheckCircle,
-    History, Layout, PlayCircle, PlusCircle, TrendingUp, ArrowRight, HelpCircle,
-    Calendar, Zap, Lightbulb, Flame, Keyboard, X, BarChart2, Award
+    Clock, Info, UserCheck, CheckCircle,
+    BookOpen, Users, Activity,
+    History, Layout, PlayCircle,  TrendingUp, ArrowRight,
+    Calendar, Zap, Lightbulb, Flame, X, BarChart2, Award
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
-import { useGuruSession } from '../../layouts/GuruLayout'
+import { useGuruSession } from '../../layouts/GuruSessionContext'
 import confetti from 'canvas-confetti'
 
 // --- STYLES ---
@@ -490,7 +490,7 @@ export default function GuruDashboard() {
             setSessionBadge(null)
         }
         return () => setSessionBadge(null)
-    }, [runningCount, remainingCount, perfectStreak])
+    }, [runningCount, remainingCount, perfectStreak, setSessionBadge])
 
     // Fire Confetti Once on 100%
     useEffect(() => {

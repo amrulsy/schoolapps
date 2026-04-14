@@ -4,9 +4,9 @@ import { useApp } from '../context/AppContext'
 import { filterMenuSections, getRoleDisplay } from '../utils/permissions'
 import {
     LayoutDashboard, Users, Building2, Calendar, ClipboardList, Landmark,
-    FileText, CreditCard, BookOpen, BarChart3, UserCog, Settings,
-    ChevronLeft, ChevronDown, History, Zap, Layout, Database, LayoutTemplate, Clock,
-    Package, Wallet, ShieldCheck, Globe, MessageCircle, Monitor, CreditCard as Card,
+    CreditCard, BookOpen, UserCog, Settings,
+    ChevronLeft, ChevronDown, History, Zap, Layout, Database, LayoutTemplate,
+    Package, Wallet, ShieldCheck, Globe, MessageCircle, Monitor,
     HandHeart, CalendarOff
 } from 'lucide-react'
 
@@ -104,7 +104,7 @@ export default function Sidebar() {
         ...section,
         items: section.items.filter(item => {
             const matchesSearch = item.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                 section.label.toLowerCase().includes(searchTerm.toLowerCase())
+                section.label.toLowerCase().includes(searchTerm.toLowerCase())
             return matchesSearch
         })
     })).filter(section => section.items.length > 0)
@@ -195,8 +195,8 @@ export default function Sidebar() {
                     </button>
                 </div>
                 {!sidebarCollapsed && (
-                    <div className="developer-attribution" style={{ 
-                        fontSize: '10px', 
+                    <div className="developer-attribution" style={{
+                        fontSize: '10px',
                         background: 'rgba(0, 0, 0, 0.4)',
                         backdropFilter: 'blur(8px)',
                         padding: '10px',
@@ -207,7 +207,7 @@ export default function Sidebar() {
                         color: 'rgba(255, 255, 255, 0.6)',
                         border: '1px solid rgba(255, 255, 255, 0.05)'
                     }}>
-                        Developed by <a href="https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', textDecoration: 'none', fontWeight: '600' }}>Amrul Al Syaif'Fu</a>
+                        Developed by <a href="https://www.linkedin.com/in/muhamad-amrul-syaifulloh-35019a242/" target="_blank" rel="noopener noreferrer" style={{ color: '#fff', textDecoration: 'none', fontWeight: '600' }}>Amrul Al Syaif&apos;Fu</a>
                     </div>
                 )}
             </div>

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { 
-    Play, X, ChevronLeft, ChevronRight, ArrowRight, CheckCircle, 
-    ChevronDown, MessageCircle, GraduationCap, Trophy, Briefcase, Calendar, MapPin, Clock, Eye,
+import {
+    Play, X, ChevronLeft, ChevronRight, ArrowRight, CheckCircle,
+    ChevronDown,   Trophy, Briefcase, Calendar, MapPin, Clock, 
     BarChart3, Users, Globe,
     ChevronLeft as PrevIcon, ChevronRight as NextIcon
 } from 'lucide-react'
@@ -18,7 +18,6 @@ export default function PortalHome() {
 
     const [stats, setStats] = useState(null)
     const [posts, setPosts] = useState([])
-    const [trendingPosts, setTrendingPosts] = useState([])
     const [agendas, setAgendas] = useState([])
     const [hoveredAgendaId, setHoveredAgendaId] = useState(null)
     const [visitorStats, setVisitorStats] = useState(null)
@@ -111,23 +110,22 @@ export default function PortalHome() {
     useEffect(() => {
         async function loadData() {
             setLoading(true)
-            
+
             // 1. First, optimistic track visit if not visited this session
             if (!sessionStorage.getItem('visited_today')) {
                 postPublic('/visit', {}).then(res => {
                     if (res && res.success) sessionStorage.setItem('visited_today', 'true')
-                }).catch(() => {})
+                }).catch(() => { })
             }
 
             // 2. Load all initial data in parallel
             const [
-                statsData, postsData, trendingData, agendaData, visitStatsData,
-                bannersData, programsData, partnersData, settingsData, 
+                statsData, postsData, agendaData, visitStatsData,
+                bannersData, programsData, partnersData, settingsData,
                 testimonialsData, galleryData, faqData, identityData
             ] = await Promise.all([
                 fetchPublic('/stats'),
                 fetchPublic('/posts?limit=3'),
-                fetchPublic('/posts/trending'),
                 fetchPublic('/agenda'),
                 fetchPublic('/visitor-stats'),
                 fetchPublic('/banners'),
@@ -142,10 +140,9 @@ export default function PortalHome() {
 
             if (statsData) setStats(statsData)
             if (postsData && postsData.data) setPosts(postsData.data)
-            if (trendingData) setTrendingPosts(trendingData)
             if (agendaData) setAgendas(agendaData)
             if (visitStatsData && !visitStatsData.error) setVisitorStats(visitStatsData)
-            
+
             if (bannersData) setBanners(bannersData)
             if (programsData) setPrograms(programsData)
             if (partnersData) setPartners(partnersData)
@@ -157,6 +154,7 @@ export default function PortalHome() {
             setLoading(false)
         }
         loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchPublic])
 
     const scrollPartners = (direction) => {
@@ -181,26 +179,25 @@ export default function PortalHome() {
     const getCalendarDays = (targetDate = new Date()) => {
         const year = targetDate.getFullYear();
         const month = targetDate.getMonth();
-        const start = new Date(year, month, 1);
         const end = new Date(year, month + 1, 0);
-        
+
         const days = [];
         const firstDayOfMonth = new Date(year, month, 1);
-        
+
         // Pad start with previous month days
-        const prevDaysCount = firstDayOfMonth.getDay(); 
+        const prevDaysCount = firstDayOfMonth.getDay();
         for (let i = prevDaysCount - 1; i >= 0; i--) {
-            days.push({ 
-                date: new Date(year, month, -i), 
-                current: false 
+            days.push({
+                date: new Date(year, month, -i),
+                current: false
             });
         }
-        
+
         // Current month
         for (let i = 1; i <= end.getDate(); i++) {
             days.push({ date: new Date(year, month, i), current: true });
         }
-        
+
         // Pad end
         const remaining = 42 - days.length;
         for (let i = 1; i <= remaining; i++) {
@@ -416,10 +413,10 @@ export default function PortalHome() {
                                         className={`program-card stagger-item ${hoveredCard === program.id ? 'hovered' : ''}`}
                                         onMouseEnter={() => setHoveredCard(program.id)}
                                         onMouseLeave={() => setHoveredCard(null)}
-                                        style={{ 
-                                            textDecoration: 'none', 
-                                            '--prog-color': themeColor, 
-                                            animationDelay: `${idx * 0.2}s` 
+                                        style={{
+                                            textDecoration: 'none',
+                                            '--prog-color': themeColor,
+                                            animationDelay: `${idx * 0.2}s`
                                         }}
                                     >
                                         <div className="program-card-header" style={{ background: `linear-gradient(135deg, ${themeColor} 0%, ${themeColor}dd 100%)` }}>
@@ -609,19 +606,19 @@ export default function PortalHome() {
                             <h2 className="portal-section-title">Agenda Utama Sekolah</h2>
                             <p className="portal-section-subtitle">Aktivitas dan kegiatan mendatang untuk seluruh warga sekolah.</p>
                         </div>
-                        
+
                         <div className="portal-agenda-split">
                             {/* Left: Interactive List (Desktop Only) */}
                             <div className="agenda-list-side desktop-only-agenda">
                                 <div className="agenda-tabs">
                                     <div className={`agenda-tab-indicator ${activeAgendaTab}`} />
-                                    <button 
+                                    <button
                                         className={`agenda-tab-btn ${activeAgendaTab === 'upcoming' ? 'active' : ''}`}
                                         onClick={() => setActiveAgendaTab('upcoming')}
                                     >
                                         <Calendar size={18} /> Yang Akan Datang
                                     </button>
-                                    <button 
+                                    <button
                                         className={`agenda-tab-btn ${activeAgendaTab === 'finished' ? 'active' : ''}`}
                                         onClick={() => setActiveAgendaTab('finished')}
                                     >
@@ -631,8 +628,8 @@ export default function PortalHome() {
 
                                 {(() => {
                                     const today = new Date();
-                                    today.setHours(0,0,0,0);
-                                    
+                                    today.setHours(0, 0, 0, 0);
+
                                     const filtered = agendas.filter(item => {
                                         const eventDate = new Date(item.event_date);
                                         const eventISO = formatLocalDateISO(eventDate);
@@ -661,11 +658,11 @@ export default function PortalHome() {
                                         const eventISO = formatLocalDateISO(eventDate);
                                         const todayISO = formatLocalDateISO(new Date());
                                         const isPastItem = eventISO < todayISO;
-    
+
                                         const isHovered = hoveredAgendaId === item.id;
                                         return (
-                                            <div 
-                                                key={item.id} 
+                                            <div
+                                                key={item.id}
                                                 className={`agenda-item-modern stagger-item ${isHovered ? 'active' : ''} ${isPastItem ? 'is-past' : ''}`}
                                                 onMouseEnter={() => setHoveredAgendaId(item.id)}
                                                 onMouseLeave={() => setHoveredAgendaId(null)}
@@ -683,8 +680,8 @@ export default function PortalHome() {
                                                     </div>
                                                     <p className="agenda-excerpt">{item.description || 'Agenda sekolah untuk mempererat tali silaturahmi dan pengembangan kreativitas siswa.'}</p>
                                                     <div className="agenda-detail-hidden">
-                                                        <div className="agenda-meta-item"><Clock size={16}/> {item.time || '08:00 WIB'}</div>
-                                                        <div className="agenda-meta-item"><MapPin size={16}/> {item.location || 'Aula Utama'}</div>
+                                                        <div className="agenda-meta-item"><Clock size={16} /> {item.time || '08:00 WIB'}</div>
+                                                        <div className="agenda-meta-item"><MapPin size={16} /> {item.location || 'Aula Utama'}</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -696,26 +693,26 @@ export default function PortalHome() {
                             {/* Right: Modern Calendar Widget */}
                             <div className="agenda-calendar-side stagger-item" style={{ animationDelay: '0.4s' }}>
                                 <div className="calendar-mobile-hint">
-                                    <Calendar size={16} /> 
+                                    <Calendar size={16} />
                                     <span>Ketuk tanggal berwarna untuk detail</span>
                                 </div>
                                 <div className="modern-calendar-widget">
                                     <div className="calendar-header">
                                         <h5>{currentMonthName}</h5>
                                         <div style={{ display: 'flex', gap: '10px' }}>
-                                            <PrevIcon 
-                                                size={18} 
-                                                style={{ cursor: 'pointer', color: 'var(--primary-color)' }} 
+                                            <PrevIcon
+                                                size={18}
+                                                style={{ cursor: 'pointer', color: 'var(--primary-color)' }}
                                                 onClick={handlePrevMonth}
                                             />
-                                            <NextIcon 
-                                                size={18} 
-                                                style={{ cursor: 'pointer', color: 'var(--primary-color)' }} 
+                                            <NextIcon
+                                                size={18}
+                                                style={{ cursor: 'pointer', color: 'var(--primary-color)' }}
                                                 onClick={handleNextMonth}
                                             />
                                         </div>
                                     </div>
-                                    
+
                                     <div className="calendar-body">
                                         <div className="calendar-grid">
                                             {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => (
@@ -724,24 +721,24 @@ export default function PortalHome() {
                                             {calendarDays.map((dayObj, i) => {
                                                 const d = dayObj.date;
                                                 const dateStr = formatLocalDateISO(d);
-                                                
+
                                                 // Check if it's a past date
                                                 const todayISO = formatLocalDateISO(new Date());
                                                 const isPast = dateStr < todayISO;
-                                                
+
                                                 // Find matching agendas for this day
                                                 const matchingAgendas = agendas.filter(a => formatLocalDateISO(new Date(a.event_date)) === dateStr);
                                                 const hasActiveEvent = matchingAgendas.length > 0;
-                                                
+
                                                 // Color matching based on first event index in main list
                                                 const firstMatchingIdx = agendas.findIndex(a => formatLocalDateISO(new Date(a.event_date)) === dateStr);
                                                 const colorType = hasActiveEvent ? (firstMatchingIdx % 3) + 1 : 0;
-                                                
+
                                                 const isHighlighted = hoveredAgendaId && formatLocalDateISO(new Date(agendas.find(a => a.id === hoveredAgendaId)?.event_date)) === dateStr;
-                                                
+
                                                 return (
-                                                    <div 
-                                                        key={i} 
+                                                    <div
+                                                        key={i}
                                                         className={`calendar-date ${dayObj.current ? 'current-month' : ''} ${hasActiveEvent ? `has-event event-type-${colorType} ${isPast ? 'is-past' : ''}` : ''} ${isHighlighted ? 'active-event' : ''}`}
                                                         onMouseEnter={() => {
                                                             if (hasActiveEvent) setHoveredAgendaId(matchingAgendas[0].id);
@@ -777,11 +774,11 @@ export default function PortalHome() {
             {selectedAgendasForModal && (
                 <div className="portal-agenda-modal-overlay" onClick={() => setSelectedAgendasForModal(null)}>
                     <div className={`portal-agenda-modal-content event-type-${selectedAgendasForModal.type}`} onClick={e => e.stopPropagation()}>
-                        <button className="modal-close-btn" onClick={() => setSelectedAgendasForModal(null)}><X size={24}/></button>
+                        <button className="modal-close-btn" onClick={() => setSelectedAgendasForModal(null)}><X size={24} /></button>
                         <div className="modal-scroll-area">
                             <h3 className="modal-title">Agenda Sekolah</h3>
                             <p className="modal-subtitle">Detail acara untuk tanggal {new Date(selectedAgendasForModal.items[0].event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                            
+
                             <div className="modal-agendas-list">
                                 {selectedAgendasForModal.items.map(item => (
                                     <div key={item.id} className="modal-agenda-card">
@@ -791,8 +788,8 @@ export default function PortalHome() {
                                         <h4>{item.title}</h4>
                                         <p>{item.description || 'Agenda sekolah untuk mempererat tali silaturahmi dan pengembangan kreativitas siswa.'}</p>
                                         <div className="modal-meta-grid">
-                                            <div className="meta-item"><Clock size={16}/> {item.time || '08:00 WIB'}</div>
-                                            <div className="meta-item"><MapPin size={16}/> {item.location || 'Aula Utama'}</div>
+                                            <div className="meta-item"><Clock size={16} /> {item.time || '08:00 WIB'}</div>
+                                            <div className="meta-item"><MapPin size={16} /> {item.location || 'Aula Utama'}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -1055,7 +1052,7 @@ export default function PortalHome() {
                                             <span key={i}>⭐</span>
                                         ))}
                                     </div>
-                                    <p className="portal-testimonial-text">"{t.quote}"</p>
+                                    <p className="portal-testimonial-text">&quot;{t.quote}&quot;</p>
                                     <div className="portal-testimonial-author">
                                         <div className="portal-testimonial-avatar">
                                             {t.photo_url ? (

@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../../../context/AppContext'
-import { Search, Filter, Trash2, CheckCircle, XCircle, Clock, Eye, Download, UserPlus, Users, GraduationCap, X, MapPin, Phone, Calendar, Send, RefreshCw, ListOrdered, CheckCircle2, Edit2, Plus, Layers, Save, Settings, BarChart3, Megaphone, Waves, Image, FileText, AlertCircle, ExternalLink, FolderOpen, RotateCcw, LayoutGrid, List, CheckSquare, Square } from 'lucide-react'
+import { Search, Filter, Trash2, CheckCircle, XCircle, Clock, Eye, UserPlus, Users, GraduationCap, MapPin, Phone, Calendar, Send, RefreshCw, ListOrdered, CheckCircle2, Edit2, Plus, Layers, Save, Settings, BarChart3, Megaphone, Waves, Image, FileText, ExternalLink, FolderOpen, RotateCcw, LayoutGrid, List, CheckSquare, Square } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { useCustomAlert } from '../../../hooks/useCustomAlert'
-import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import React from 'react'
 
 class ChartErrorBoundary extends React.Component {
     constructor(props) { super(props); this.state = { hasError: false, errorStr: '' }; }
     static getDerivedStateFromError(error) { return { hasError: true, errorStr: error.toString() }; }
     render() {
-        if (this.state.hasError) return <div style={{ color: '#ef4444', fontSize:'0.75rem', padding: 20 }}>Chart Error: {this.state.errorStr}</div>;
+        if (this.state.hasError) return <div style={{ color: '#ef4444', fontSize: '0.75rem', padding: 20 }}>Chart Error: {this.state.errorStr}</div>;
         return this.props.children;
     }
 }
@@ -144,61 +144,34 @@ export default function CmsPpdbPage() {
         }
     `;
 
-    useEffect(() => {
-        loadAll()
+    const loadAnalytics = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE}/ppdb/analytics`, { headers: getAuthHeaders() });
+            if (res.ok) setAnalytics(await res.json());
+        } catch (err) {
+            // Silently ignore analytics loading errors
+        }
     }, [])
 
-    const loadAll = async () => {
-        setLoading(true)
-        await Promise.all([loadData(), loadSteps(), loadRequirements(), loadSettings(), loadClasses(), loadAnalytics(), loadGelombang(), loadPpdbAnnouncements()])
-        setLoading(false)
-    }
-
-    const loadAnalytics = async () => {
-        try { const res = await fetch(`${API_BASE}/ppdb/analytics`, { headers: getAuthHeaders() }); if (res.ok) setAnalytics(await res.json()); } catch {}
-    }
-    const loadGelombang = async () => {
-        try { const res = await fetch(`${API_BASE}/ppdb/gelombang`, { headers: getAuthHeaders() }); if (res.ok) setGelombang(await res.json()); } catch {}
-    }
-    const loadPpdbAnnouncements = async () => {
-        try { const res = await fetch(`${API_BASE}/ppdb/announcements`, { headers: getAuthHeaders() }); if (res.ok) setPpdbAnnouncements(await res.json()); } catch {}
-    }
-
-    const saveGel = async (e) => {
-        e.preventDefault(); setSavingGel(true)
+    const loadGelombang = useCallback(async () => {
         try {
-            const method = editGel ? 'PUT' : 'POST'
-            const url = editGel ? `${API_BASE}/ppdb/gelombang/${editGel.id}` : `${API_BASE}/ppdb/gelombang`
-            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(gelForm) })
-            if (res.ok) { addToast('success', 'Berhasil', 'Gelombang tersimpan'); setShowGelModal(false); loadGelombang() }
-        } catch { addToast('danger', 'Error', 'Gagal menyimpan') }
-        finally { setSavingGel(false) }
-    }
-    const deleteGel = async (g) => {
-        if (await confirmDelete('Hapus gelombang?', 'Data akan dihapus permanen.')) {
-            try { await fetch(`${API_BASE}/ppdb/gelombang/${g.id}`, { method: 'DELETE', headers: getAuthHeaders() }); loadGelombang() } catch {}
+            const res = await fetch(`${API_BASE}/ppdb/gelombang`, { headers: getAuthHeaders() });
+            if (res.ok) setGelombang(await res.json());
+        } catch (err) {
+            // Silently ignore gelombang loading errors
         }
-    }
-    const openGelModal = (g) => { setEditGel(g || null); setGelForm(g ? { nama: g.nama, kuota: g.kuota, biaya_daftar_ulang: g.biaya_daftar_ulang, tanggal_buka: g.tanggal_buka?.split('T')[0] || '', tanggal_tutup: g.tanggal_tutup?.split('T')[0] || '', is_active: g.is_active } : { nama: '', kuota: 50, biaya_daftar_ulang: 1500000, tanggal_buka: '', tanggal_tutup: '', is_active: 1 }); setShowGelModal(true) }
+    }, [])
 
-    const saveAnn = async (e) => {
-        e.preventDefault(); setSavingAnn(true)
+    const loadPpdbAnnouncements = useCallback(async () => {
         try {
-            const method = editAnn ? 'PUT' : 'POST'
-            const url = editAnn ? `${API_BASE}/ppdb/announcements/${editAnn.id}` : `${API_BASE}/ppdb/announcements`
-            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(annForm) })
-            if (res.ok) { addToast('success', 'Berhasil', 'Pengumuman tersimpan'); setShowAnnModal(false); loadPpdbAnnouncements() }
-        } catch { addToast('danger', 'Error', 'Gagal menyimpan') }
-        finally { setSavingAnn(false) }
-    }
-    const deleteAnn = async (a) => {
-        if (await confirmDelete('Hapus pengumuman?', '')) {
-            try { await fetch(`${API_BASE}/ppdb/announcements/${a.id}`, { method: 'DELETE', headers: getAuthHeaders() }); loadPpdbAnnouncements() } catch {}
+            const res = await fetch(`${API_BASE}/ppdb/announcements`, { headers: getAuthHeaders() });
+            if (res.ok) setPpdbAnnouncements(await res.json());
+        } catch (err) {
+            // Silently ignore announcements loading errors
         }
-    }
-    const openAnnModal = (a) => { setEditAnn(a || null); setAnnForm(a ? { judul: a.judul, isi: a.isi || '', tipe: a.tipe, is_active: a.is_active } : { judul: '', isi: '', tipe: 'info', is_active: 1 }); setShowAnnModal(true) }
+    }, [])
 
-    const loadClasses = async () => {
+    const loadClasses = useCallback(async () => {
         try {
             const res = await fetch(`${API_BASE.replace('/admin/cms', '')}/kelas`, {
                 headers: getBearerHeader()
@@ -210,9 +183,9 @@ export default function CmsPpdbPage() {
         } catch (err) {
             console.error('Failed to load classes:', err)
         }
-    }
+    }, [setClasses])
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/ppdb`, {
@@ -227,6 +200,105 @@ export default function CmsPpdbPage() {
         } finally {
             setLoading(false)
         }
+    }, [addToast, setLoading, setRegistrations])
+
+    const loadSteps = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE}/ppdb-steps`, { headers: getAuthHeaders() })
+            if (res.ok) setSteps(await res.json())
+        } catch (err) {
+            // Silently ignore steps loading errors
+        }
+    }, [])
+
+    const loadRequirements = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE}/ppdb-requirements`, { headers: getAuthHeaders() })
+            if (res.ok) setRequirements(await res.json())
+        } catch (err) {
+            // Silently ignore requirements loading errors
+        }
+    }, [])
+
+    const loadSettings = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE}/settings`, { headers: getAuthHeaders() })
+            if (res.ok) {
+                const data = await res.json()
+                setSettings(prev => {
+                    const map = { ...prev }
+                    data.forEach(s => {
+                        if (s.setting_key.startsWith('ppdb_')) {
+                            map[s.setting_key] = s.setting_value
+                        }
+                    })
+                    return map
+                })
+            }
+        } catch (err) {
+            // Silently ignore settings loading errors
+        }
+    }, [])
+
+    const loadAll = useCallback(async () => {
+        setLoading(true)
+        await Promise.all([loadData(), loadSteps(), loadRequirements(), loadSettings(), loadClasses(), loadAnalytics(), loadGelombang(), loadPpdbAnnouncements()])
+        setLoading(false)
+    }, [loadData, loadSteps, loadRequirements, loadSettings, loadClasses, loadAnalytics, loadGelombang, loadPpdbAnnouncements, setLoading])
+
+    useEffect(() => {
+        loadAll()
+    }, [loadAll])
+
+    const saveGel = async (e) => {
+        e.preventDefault(); setSavingGel(true)
+        try {
+            const method = editGel ? 'PUT' : 'POST'
+            const url = editGel ? `${API_BASE}/ppdb/gelombang/${editGel.id}` : `${API_BASE}/ppdb/gelombang`
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(gelForm) })
+            if (res.ok) { addToast('success', 'Berhasil', 'Gelombang tersimpan'); setShowGelModal(false); loadGelombang() }
+        } catch { addToast('danger', 'Error', 'Gagal menyimpan') }
+        finally { setSavingGel(false) }
+    }
+
+    const deleteGel = async (g) => {
+        if (await confirmDelete('Hapus gelombang?', 'Data akan dihapus permanen.')) {
+            try {
+                await fetch(`${API_BASE}/ppdb/gelombang/${g.id}`, { method: 'DELETE', headers: getAuthHeaders() })
+                loadGelombang()
+            } catch (err) { /* silent */ }
+        }
+    }
+
+    const openGelModal = (g) => { setEditGel(g || null); setGelForm(g ? { nama: g.nama, kuota: g.kuota, biaya_daftar_ulang: g.biaya_daftar_ulang, tanggal_buka: g.tanggal_buka?.split('T')[0] || '', tanggal_tutup: g.tanggal_tutup?.split('T')[0] || '', is_active: g.is_active } : { nama: '', kuota: 50, biaya_daftar_ulang: 1500000, tanggal_buka: '', tanggal_tutup: '', is_active: 1 }); setShowGelModal(true) }
+
+    const saveAnn = async (e) => {
+        e.preventDefault(); setSavingAnn(true)
+        try {
+            const method = editAnn ? 'PUT' : 'POST'
+            const url = editAnn ? `${API_BASE}/ppdb/announcements/${editAnn.id}` : `${API_BASE}/ppdb/announcements`
+            const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(annForm) })
+            if (res.ok) { addToast('success', 'Berhasil', 'Pengumuman tersimpan'); setShowAnnModal(false); loadPpdbAnnouncements() }
+        } catch { addToast('danger', 'Error', 'Gagal menyimpan') }
+        finally { setSavingAnn(false) }
+    }
+
+    const deleteAnn = async (a) => {
+        if (await confirmDelete('Hapus pengumuman?', '')) {
+            try {
+                await fetch(`${API_BASE}/ppdb/announcements/${a.id}`, { method: 'DELETE', headers: getAuthHeaders() })
+                loadPpdbAnnouncements()
+            } catch (err) { /* silent */ }
+        }
+    }
+
+    const openAnnModal = (a) => {
+        setEditAnn(a || null)
+        setAnnForm(a
+            ? { judul: a.judul, isi: a.isi || '', tipe: a.tipe, is_active: a.is_active }
+            : { judul: '', isi: '', tipe: 'info', is_active: 1 }
+        )
+        setShowAnnModal(true)
     }
 
     const handleUpdateStatus = async (id, newStatus) => {
@@ -345,7 +417,7 @@ export default function CmsPpdbPage() {
                     setSelectedReg(prev => ({ ...prev, status: 'pending_verification', siswa_id: null }))
                 }
             } else {
-                addToast('danger', 'Gagal', json.error || 'Gagal membatalkan penerimaan')
+                addToast('danger', 'Gagal', json.error || 'Gagal mematikan penerimaan')
             }
         } catch (err) {
             addToast('danger', 'Error', 'Terjadi kesalahan sistem')
@@ -430,7 +502,7 @@ export default function CmsPpdbPage() {
         if (!isConfirmed) return
         setBulkProcessing(true)
         for (const id of selectedIds) {
-            try { await fetch(`${API_BASE}/ppdb/${id}/status`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify({ status: 'rejected' }) }) } catch {}
+            try { await fetch(`${API_BASE}/ppdb/${id}/status`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify({ status: 'rejected' }) }) } catch (err) { /* silent */ }
         }
         setBulkProcessing(false)
         setSelectedIds(new Set())
@@ -455,21 +527,6 @@ export default function CmsPpdbPage() {
     }
 
     // ==================== SETTINGS LOGIC ====================
-    const loadSettings = async () => {
-        try {
-            const res = await fetch(`${API_BASE}/settings`, { headers: getAuthHeaders() })
-            if (res.ok) {
-                const data = await res.json()
-                const map = { ...settings }
-                data.forEach(s => {
-                    if (s.setting_key.startsWith('ppdb_')) {
-                        map[s.setting_key] = s.setting_value
-                    }
-                })
-                setSettings(map)
-            }
-        } catch { /* silent */ }
-    }
 
     const saveSettings = async (keys) => {
         setSavingSettings(true)
@@ -494,12 +551,6 @@ export default function CmsPpdbPage() {
     }
 
     // ==================== STEPS LOGIC ====================
-    const loadSteps = async () => {
-        try {
-            const res = await fetch(`${API_BASE}/ppdb-steps`, { headers: getAuthHeaders() })
-            if (res.ok) setSteps(await res.json())
-        } catch { /* silent */ }
-    }
 
     const openStepModal = (s = null) => {
         setEditStep(s)
@@ -539,12 +590,6 @@ export default function CmsPpdbPage() {
     }
 
     // ==================== REQUIREMENTS LOGIC ====================
-    const loadRequirements = async () => {
-        try {
-            const res = await fetch(`${API_BASE}/ppdb-requirements`, { headers: getAuthHeaders() })
-            if (res.ok) setRequirements(await res.json())
-        } catch { /* silent */ }
-    }
 
     const openReqModal = (r = null) => {
         setEditReq(r)
@@ -581,6 +626,619 @@ export default function CmsPpdbPage() {
                 if (res.ok) { addToast('success', 'Berhasil', 'Syarat dihapus'); loadRequirements() }
             } catch { addToast('danger', 'Error', 'Gagal menghapus') }
         }
+    }
+
+    // ==================== TAB RENDERS ====================
+
+    function renderStepsTab() {
+        return (
+            <div>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Alur Pendaftaran</h3>
+                        <p className="text-secondary small m-0">Susun langkah-langkah yang harus dilalui calon siswa.</p>
+                    </div>
+                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42, marginLeft: 'auto' }} onClick={() => openStepModal()}>
+                        <Plus size={18} /> Tambah Langkah
+                    </button>
+                </div>
+
+                <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
+                    <table className="table" style={{ margin: 0 }}>
+                        <thead style={{ background: 'var(--bg-hover)' }}>
+                            <tr>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }} width="60">No</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }} width="60">Icon</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Judul</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Deskripsi</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Urutan</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Status</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'right' }} width="100">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {steps.length === 0 ? (
+                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)', fontWeight: 500 }}>Belum ada langkah pendaftaran</td></tr>
+                            ) : steps.map(s => (
+                                <tr key={s.id}>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                                        <div style={{ fontWeight: 800, color: 'var(--primary-color)', fontSize: '1rem' }}>{s.step_number}</div>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                                        <div style={{ fontSize: '1.5rem', background: 'var(--bg-hover)', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10 }}>{s.icon}</div>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-color)' }}>{s.title}</div>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{s.description}</span>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+                                        <span style={{ padding: '4px 10px', background: 'var(--bg-hover)', borderRadius: 6, fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-color)' }}>{s.sort_order}</span>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+                                        <span className={`badge ${s.is_active ? 'badge-success' : 'badge-danger'}`} style={{ borderRadius: 6 }}>
+                                            {s.is_active ? 'Aktif' : 'Nonaktif'}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                            <button className="btn-icon text-primary" onClick={() => openStepModal(s)} title="Edit"><Edit2 size={16} /></button>
+                                            <button className="btn-icon text-danger" onClick={() => deleteStep(s)} title="Hapus"><Trash2 size={16} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        )
+    }
+
+    function renderRequirementsTab() {
+        return (
+            <div>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Syarat Dokumen</h3>
+                        <p className="text-secondary small m-0">Daftar dokumen wajib yang harus diunggah pendaftar.</p>
+                    </div>
+                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42, marginLeft: 'auto' }} onClick={() => openReqModal()}>
+                        <Plus size={18} /> Tambah Syarat
+                    </button>
+                </div>
+
+                <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
+                    <table className="table" style={{ margin: 0 }}>
+                        <thead style={{ background: 'var(--bg-hover)' }}>
+                            <tr>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Persyaratan / Dokumen</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Urutan</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Status</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'right' }} width="100">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {requirements.length === 0 ? (
+                                <tr><td colSpan="4" style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)', fontWeight: 500 }}>Belum ada syarat</td></tr>
+                            ) : requirements.map(r => (
+                                <tr key={r.id}>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <div style={{ padding: 6, background: 'rgba(16, 185, 129, 0.1)', borderRadius: 8, color: '#10b981', display: 'flex' }}>
+                                                <CheckCircle2 size={18} strokeWidth={2.5} />
+                                            </div>
+                                            <span style={{ fontWeight: 600, color: 'var(--text-color)', fontSize: '0.95rem' }}>{r.text}</span>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+                                        <span style={{ padding: '4px 10px', background: 'var(--bg-hover)', borderRadius: 6, fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-color)' }}>{r.sort_order}</span>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+                                        <span className={`badge ${r.is_active ? 'badge-success' : 'badge-danger'}`} style={{ borderRadius: 6 }}>
+                                            {r.is_active ? 'Aktif' : 'Nonaktif'}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                            <button className="btn-icon text-primary" onClick={() => openReqModal(r)} title="Edit"><Edit2 size={16} /></button>
+                                            <button className="btn-icon text-danger" onClick={() => deleteReq(r)} title="Hapus"><Trash2 size={16} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        )
+    }
+
+    function renderSettingsTab() {
+        return (
+            <div style={{ maxWidth: 800 }}>
+                <div className="mb-5">
+                    <h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Konfigurasi PPDB</h3>
+                    <p className="text-secondary small m-0">Atur status pendaftaran, kuota, dan tampilan portal PPDB.</p>
+                </div>
+
+                <div className="grid-2 mb-4" style={{ gap: 30 }}>
+                    <div className="card p-4" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: 20 }}>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <Settings size={18} className="text-primary" /> Status & Kuota
+                        </h4>
+
+                        <div className="form-group mb-4">
+                            <label className="d-flex align-items-center gap-2 mb-2" style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                                Status Pendaftaran
+                            </label>
+                            <div className="d-flex gap-3">
+                                <button
+                                    className={`btn ${settings.ppdb_is_open === '1' ? 'btn-success' : 'btn-outline'}`}
+                                    style={{ flex: 1, borderRadius: 12, height: 44 }}
+                                    onClick={() => handleSettingChange('ppdb_is_open', '1')}
+                                >
+                                    <CheckCircle size={18} className="mr-2" /> Buka
+                                </button>
+                                <button
+                                    className={`btn ${settings.ppdb_is_open === '0' ? 'btn-danger' : 'btn-outline'}`}
+                                    style={{ flex: 1, borderRadius: 12, height: 44 }}
+                                    onClick={() => handleSettingChange('ppdb_is_open', '0')}
+                                >
+                                    <XCircle size={18} className="mr-2" /> Tutup
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="form-group mb-4">
+                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>Tahun Ajaran Target</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={settings.ppdb_year}
+                                onChange={e => handleSettingChange('ppdb_year', e.target.value)}
+                                placeholder="Contoh: 2025/2026"
+                                style={{ borderRadius: 10, height: 44 }}
+                            />
+                        </div>
+
+                        <div className="form-group mb-0">
+                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>Target Kuota (Siswa)</label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                value={settings.ppdb_quota}
+                                onChange={e => handleSettingChange('ppdb_quota', e.target.value)}
+                                style={{ borderRadius: 10, height: 44 }}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="card p-4" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: 20 }}>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <Layers size={18} className="text-primary" /> Tampilan Portal
+                        </h4>
+
+                        <div className="form-group mb-4">
+                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>Judul Hero Portal</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={settings.ppdb_hero_title}
+                                onChange={e => handleSettingChange('ppdb_hero_title', e.target.value)}
+                                style={{ borderRadius: 10, height: 44 }}
+                            />
+                        </div>
+
+                        <div className="form-group mb-4">
+                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>Sub-judul Hero</label>
+                            <textarea
+                                className="form-control"
+                                rows="2"
+                                value={settings.ppdb_hero_subtitle}
+                                onChange={e => handleSettingChange('ppdb_hero_subtitle', e.target.value)}
+                                style={{ borderRadius: 10, resize: 'none' }}
+                            />
+                        </div>
+
+                        <div className="form-group mb-0">
+                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>No. WhatsApp CS</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={settings.ppdb_contact_wa}
+                                onChange={e => handleSettingChange('ppdb_contact_wa', e.target.value)}
+                                placeholder="Contoh: 08123456789"
+                                style={{ borderRadius: 10, height: 44 }}
+                            />
+                            <small className="text-muted mt-1 d-block">Gunakan format 08xxx atau 62xxx</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="d-flex justify-content-end gap-3 mt-4">
+                    <button
+                        className="btn btn-primary"
+                        style={{ borderRadius: 14, height: 50, padding: '0 32px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}
+                        onClick={() => saveSettings(['ppdb_is_open', 'ppdb_year', 'ppdb_quota', 'ppdb_contact_wa', 'ppdb_hero_title', 'ppdb_hero_subtitle'])}
+                        disabled={savingSettings}
+                    >
+                        <Save size={20} />
+                        {savingSettings ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
+    function renderStepModal() {
+        return (
+            <div className="modal-backdrop">
+                <div className="modal" style={{ maxWidth: 500 }}>
+                    <div className="modal-header">
+                        <h3>{editStep ? 'Edit Langkah' : 'Tambah Langkah'}</h3>
+                        <button className="btn-icon" onClick={() => setShowStepModal(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                        <form id="stepForm" onSubmit={saveStep}>
+                            <div className="grid-2 mb-4">
+                                <div className="form-group">
+                                    <label>Nomor Langkah</label>
+                                    <input type="text" className="form-control" value={stepForm.step_number} required
+                                        onChange={e => setStepForm({ ...stepForm, step_number: e.target.value })}
+                                        placeholder="01"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Icon / Emoji</label>
+                                    <input type="text" className="form-control" value={stepForm.icon}
+                                        onChange={e => setStepForm({ ...stepForm, icon: e.target.value })}
+                                        placeholder="📋"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-group mb-4">
+                                <label>Judul <span className="text-danger">*</span></label>
+                                <input type="text" className="form-control" value={stepForm.title} required
+                                    onChange={e => setStepForm({ ...stepForm, title: e.target.value })}
+                                    placeholder="Daftar Online"
+                                />
+                            </div>
+
+                            <div className="form-group mb-4">
+                                <label>Deskripsi Singkat</label>
+                                <textarea className="form-control" rows="2" value={stepForm.description}
+                                    onChange={e => setStepForm({ ...stepForm, description: e.target.value })}
+                                    placeholder="Isi formulir pendaftaran secara lengkap."
+                                />
+                            </div>
+
+                            <div className="grid-2 mb-4">
+                                <div className="form-group">
+                                    <label>Urutan Tampil</label>
+                                    <input type="number" className="form-control" value={stepForm.sort_order}
+                                        onChange={e => setStepForm({ ...stepForm, sort_order: parseInt(e.target.value) || 0 })}
+                                    />
+                                </div>
+                                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 10 }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: 0 }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={stepForm.is_active !== 0}
+                                            onChange={e => setStepForm({ ...stepForm, is_active: e.target.checked ? 1 : 0 })}
+                                            style={{ width: 18, height: 18 }}
+                                        />
+                                        <span style={{ fontWeight: 600 }}>Aktif</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowStepModal(false)} disabled={savingStep}>Batal</button>
+                        <button type="submit" form="stepForm" className="btn btn-primary" disabled={savingStep}>
+                            {savingStep ? 'Menyimpan...' : 'Simpan Langkah'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    function renderReqModal() {
+        return (
+            <div className="modal-backdrop">
+                <div className="modal" style={{ maxWidth: 500 }}>
+                    <div className="modal-header">
+                        <h3>{editReq ? 'Edit Syarat' : 'Tambah Syarat'}</h3>
+                        <button className="btn-icon" onClick={() => setShowReqModal(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                        <form id="reqForm" onSubmit={saveReq}>
+                            <div className="form-group mb-4">
+                                <label>Persyaratan Dokumen <span className="text-danger">*</span></label>
+                                <input type="text" className="form-control" value={reqForm.text} required
+                                    onChange={e => setReqForm({ ...reqForm, text: e.target.value })}
+                                    placeholder="Contoh: Fotokopi Ijazah / SKL"
+                                />
+                            </div>
+
+                            <div className="grid-2 mb-4">
+                                <div className="form-group">
+                                    <label>Urutan Tampil</label>
+                                    <input type="number" className="form-control" value={reqForm.sort_order}
+                                        onChange={e => setReqForm({ ...reqForm, sort_order: parseInt(e.target.value) || 0 })}
+                                    />
+                                </div>
+                                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 10 }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: 0 }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={reqForm.is_active !== 0}
+                                            onChange={e => setReqForm({ ...reqForm, is_active: e.target.checked ? 1 : 0 })}
+                                            style={{ width: 18, height: 18 }}
+                                        />
+                                        <span style={{ fontWeight: 600 }}>Aktif</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowReqModal(false)} disabled={savingReq}>Batal</button>
+                        <button type="submit" form="reqForm" className="btn btn-primary" disabled={savingReq}>
+                            {savingReq ? 'Menyimpan...' : 'Simpan Syarat'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    function renderGelombangTab() {
+        return (
+            <div>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div><h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Gelombang Pendaftaran</h3><p className="text-secondary small m-0">Kelola gelombang dan kuota PPDB.</p></div>
+                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42 }} onClick={() => openGelModal()}><Plus size={18} /> Tambah Gelombang</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+                    {gelombang.map(g => (
+                        <div key={g.id} className="card" style={{ padding: 24, borderRadius: 20, border: '1px solid var(--border-color)', position: 'relative' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 12 }}>
+                                <div>
+                                    <h4 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem' }}>{g.nama}</h4>
+                                    <span className={`badge ${g.is_active ? 'badge-success' : 'badge-danger'}`} style={{ marginTop: 6, display: 'inline-block' }}>{g.is_active ? 'Aktif' : 'Nonaktif'}</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                    <button className="btn-icon text-primary" onClick={() => openGelModal(g)} title="Edit"><Edit2 size={16} /></button>
+                                    <button className="btn-icon text-danger" onClick={() => deleteGel(g)} title="Hapus"><Trash2 size={16} /></button>
+                                </div>
+                            </div>
+                            <div style={{ marginBottom: 12 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: 6 }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Kuota</span>
+                                    <span style={{ color: 'var(--text-color)' }}>{g.terisi || 0} / {g.kuota}</span>
+                                </div>
+                                <div style={{ height: 10, background: 'var(--bg-hover)', borderRadius: 5, overflow: 'hidden' }}>
+                                    <div style={{ height: '100%', width: `${Math.min(((g.terisi || 0) / g.kuota) * 100, 100)}%`, background: (g.terisi || 0) >= g.kuota ? '#ef4444' : '#6366f1', borderRadius: 5, transition: 'width 0.3s' }} />
+                                </div>
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span>💰 Biaya Daftar Ulang: <strong>Rp {Number(g.biaya_daftar_ulang).toLocaleString('id-ID')}</strong></span>
+                                {g.tanggal_buka && <span>📅 {new Date(g.tanggal_buka).toLocaleDateString('id-ID')} — {g.tanggal_tutup ? new Date(g.tanggal_tutup).toLocaleDateString('id-ID') : '...'}</span>}
+                            </div>
+                        </div>
+                    ))}
+                    {gelombang.length === 0 && <p className="text-secondary">Belum ada gelombang. Klik &quot;Tambah Gelombang&quot; untuk memulai.</p>}
+                </div>
+            </div>
+        )
+    }
+
+    function renderPengumumanTab() {
+        return (
+            <div>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div><h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Pengumuman Dasbor PPDB</h3><p className="text-secondary small m-0">Pengumuman ini tampil di dasbor pendaftar.</p></div>
+                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42 }} onClick={() => openAnnModal()}><Plus size={18} /> Tambah Pengumuman</button>
+                </div>
+                <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
+                    <table className="table" style={{ margin: 0 }}>
+                        <thead style={{ background: 'var(--bg-hover)' }}>
+                            <tr>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Judul</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Isi</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Tipe</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Status</th>
+                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'right' }} width="100">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {ppdbAnnouncements.map(a => (
+                                <tr key={a.id}>
+                                    <td style={{ padding: '16px 24px', fontWeight: 700 }}>{a.judul}</td>
+                                    <td style={{ padding: '16px 24px', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.isi || '-'}</td>
+                                    <td style={{ padding: '16px 24px', textAlign: 'center' }}><span className="badge" style={{ background: a.tipe === 'warning' ? '#fef9c3' : a.tipe === 'success' ? '#dcfce7' : '#eff6ff', color: a.tipe === 'warning' ? '#854d0e' : a.tipe === 'success' ? '#166534' : '#1e40af', border: '1px solid', borderColor: a.tipe === 'warning' ? '#fef08a' : a.tipe === 'success' ? '#bbf7d0' : '#bfdbfe' }}>{a.tipe}</span></td>
+                                    <td style={{ padding: '16px 24px', textAlign: 'center' }}><span className={`badge ${a.is_active ? 'badge-success' : 'badge-danger'}`}>{a.is_active ? 'Aktif' : 'Off'}</span></td>
+                                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                            <button className="btn-icon text-primary" onClick={() => openAnnModal(a)}><Edit2 size={16} /></button>
+                                            <button className="btn-icon text-danger" onClick={() => deleteAnn(a)}><Trash2 size={16} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        )
+    }
+
+    function renderGelModal() {
+        return (
+            <div className="modal-backdrop">
+                <div className="modal" style={{ maxWidth: 500 }}>
+                    <div className="modal-header"><h3>{editGel ? 'Edit Gelombang' : 'Tambah Gelombang'}</h3><button className="btn-icon" onClick={() => setShowGelModal(false)}>×</button></div>
+                    <div className="modal-body">
+                        <form id="gelForm" onSubmit={saveGel}>
+                            <div className="form-group mb-3"><label>Nama Gelombang <span className="text-danger">*</span></label><input type="text" className="form-control" value={gelForm.nama} required onChange={e => setGelForm({ ...gelForm, nama: e.target.value })} placeholder="Gelombang 1" /></div>
+                            <div className="grid-2 mb-3">
+                                <div className="form-group"><label>Kuota</label><input type="number" className="form-control" value={gelForm.kuota} onChange={e => setGelForm({ ...gelForm, kuota: parseInt(e.target.value) || 0 })} /></div>
+                                <div className="form-group"><label>Biaya Daftar Ulang</label><input type="number" className="form-control" value={gelForm.biaya_daftar_ulang} onChange={e => setGelForm({ ...gelForm, biaya_daftar_ulang: parseInt(e.target.value) || 0 })} /></div>
+                            </div>
+                            <div className="grid-2 mb-3">
+                                <div className="form-group"><label>Tanggal Buka</label><input type="date" className="form-control" value={gelForm.tanggal_buka} onChange={e => setGelForm({ ...gelForm, tanggal_buka: e.target.value })} /></div>
+                                <div className="form-group"><label>Tanggal Tutup</label><input type="date" className="form-control" value={gelForm.tanggal_tutup} onChange={e => setGelForm({ ...gelForm, tanggal_tutup: e.target.value })} /></div>
+                            </div>
+                            <div className="form-group"><label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}><input type="checkbox" checked={gelForm.is_active === 1} onChange={e => setGelForm({ ...gelForm, is_active: e.target.checked ? 1 : 0 })} style={{ width: 18, height: 18 }} /><span style={{ fontWeight: 600 }}>Aktif</span></label></div>
+                        </form>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowGelModal(false)} disabled={savingGel}>Batal</button>
+                        <button type="submit" form="gelForm" className="btn btn-primary" disabled={savingGel}>{savingGel ? 'Menyimpan...' : 'Simpan'}</button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    function renderAnnModal() {
+        return (
+            <div className="modal-backdrop">
+                <div className="modal" style={{ maxWidth: 500 }}>
+                    <div className="modal-header"><h3>{editAnn ? 'Edit Pengumuman' : 'Tambah Pengumuman'}</h3><button className="btn-icon" onClick={() => setShowAnnModal(false)}>×</button></div>
+                    <div className="modal-body">
+                        <form id="annForm" onSubmit={saveAnn}>
+                            <div className="form-group mb-3"><label>Judul <span className="text-danger">*</span></label><input type="text" className="form-control" value={annForm.judul} required onChange={e => setAnnForm({ ...annForm, judul: e.target.value })} placeholder="Batas waktu pengisian biodata" /></div>
+                            <div className="form-group mb-3"><label>Isi / Detail</label><textarea className="form-control" rows={3} value={annForm.isi} onChange={e => setAnnForm({ ...annForm, isi: e.target.value })} placeholder="Opsional, detail lebih lanjut..." /></div>
+                            <div className="grid-2 mb-3">
+                                <div className="form-group"><label>Tipe</label>
+                                    <select className="form-control" value={annForm.tipe} onChange={e => setAnnForm({ ...annForm, tipe: e.target.value })}>
+                                        <option value="info">Info (Biru)</option>
+                                        <option value="warning">Warning (Kuning)</option>
+                                        <option value="success">Success (Hijau)</option>
+                                    </select>
+                                </div>
+                                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 10 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}><input type="checkbox" checked={annForm.is_active === 1} onChange={e => setAnnForm({ ...annForm, is_active: e.target.checked ? 1 : 0 })} style={{ width: 18, height: 18 }} /><span style={{ fontWeight: 600 }}>Aktif</span></label></div>
+                            </div>
+                        </form>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowAnnModal(false)} disabled={savingAnn}>Batal</button>
+                        <button type="submit" form="annForm" className="btn btn-primary" disabled={savingAnn}>{savingAnn ? 'Menyimpan...' : 'Simpan'}</button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    const PIE_COLORS = ['#6366f1', '#f472b6', '#94a3b8']
+
+    function renderAnalyticsTab() {
+        if (!analytics) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Memuat data analytics...</div>
+
+        // PAD DAILY DATA FOR LINE CHART SO IT DOES NOT CRASH ON SINGLE ELEMENT
+        let dailySafe = (analytics.daily || []).map(d => {
+            const dateObj = new Date(d.date);
+            const safeDate = isNaN(dateObj.valueOf()) ? String(d.date || '') : dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+            return { date: safeDate, count: Number(d.count) || 0 };
+        });
+        if (dailySafe.length === 1) {
+            dailySafe = [{ date: 'Sebelumnya', count: 0 }, ...dailySafe];
+        }
+
+        const genderSafe = (analytics.gender || []).map(g => ({ name: g.jk === 'L' ? 'Laki-laki' : g.jk === 'P' ? 'Perempuan' : 'Lainnya', value: Number(g.count) || 0 }));
+        const schoolsSafe = (analytics.schools || []).map(s => ({ sekolah: String(s.sekolah || 'Tidak Diketahui'), count: Number(s.count) || 0 }));
+        const funnelSafe = analytics.funnel || [];
+
+        return (
+            <div>
+                <div className="mb-4"><h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Analytics PPDB</h3><p className="text-secondary small m-0">Insight visual pendaftaran siswa baru.</p></div>
+                <div className="grid-2 mb-4" style={{ gap: 24 }}>
+                    {/* Line Chart - Daily */}
+                    <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>📈 Pendaftar per Hari (14 Hari)</h4>
+                        {dailySafe.length > 0 ? (
+                            <ChartErrorBoundary>
+                                <LineChart width={400} height={200} data={dailySafe}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                                    <XAxis dataKey="date" style={{ fontSize: '0.7rem' }} />
+                                    <YAxis style={{ fontSize: '0.7rem' }} />
+                                    <Tooltip />
+                                    <Line type="linear" dataKey="count" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1' }} name="Pendaftar" />
+                                </LineChart>
+                            </ChartErrorBoundary>
+                        ) : (
+                            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada data pendaftar.</div>
+                        )}
+                    </div>
+
+                    {/* Pie Chart - Gender */}
+                    <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>👫 Rasio Jenis Kelamin</h4>
+                        {genderSafe.length > 0 ? (
+                            <ChartErrorBoundary>
+                                <PieChart width={400} height={200}>
+                                    <Pie data={genderSafe} cx="50%" cy="50%" outerRadius={70} dataKey="value" labelLine={false}>
+                                        {genderSafe.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend wrapperStyle={{ fontSize: '0.8rem' }} />
+                                </PieChart>
+                            </ChartErrorBoundary>
+                        ) : (
+                            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada data gender.</div>
+                        )}
+                    </div>
+
+                    {/* Bar Chart - Schools */}
+                    <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>🏫 Top 10 Asal Sekolah</h4>
+                        {schoolsSafe.length > 0 ? (
+                            <ChartErrorBoundary>
+                                <BarChart width={400} height={220} data={schoolsSafe} layout="vertical" margin={{ left: 20, right: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                                    <XAxis type="number" style={{ fontSize: '0.7rem' }} />
+                                    <YAxis type="category" dataKey="sekolah" width={120} style={{ fontSize: '0.65rem' }} />
+                                    <Tooltip />
+                                    <Bar dataKey="count" fill="#6366f1" radius={[0, 6, 6, 0]} name="Pendaftar" />
+                                </BarChart>
+                            </ChartErrorBoundary>
+                        ) : (
+                            <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada data sekolah asal.</div>
+                        )}
+                    </div>
+
+                    {/* Funnel - Conversion */}
+                    <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>🔽 Funnel Konversi</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {funnelSafe.map((f, i) => {
+                                const maxCount = Number(funnelSafe[0]?.count) || 1
+                                const fCount = Number(f.count) || 0
+                                const pct = maxCount > 0 ? (fCount / maxCount) * 100 : 0
+                                const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#10b981']
+                                return (
+                                    <div key={i}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>
+                                            <span style={{ color: 'var(--text-color)' }}>{f.stage}</span>
+                                            <span style={{ color: colors[i] || '#cbd5e1' }}>{fCount}</span>
+                                        </div>
+                                        <div style={{ height: 10, background: 'var(--bg-hover)', borderRadius: 5, overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: `${pct}%`, background: colors[i] || '#cbd5e1', borderRadius: 5, transition: 'width 0.5s' }} />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     const getStatusBadge = (status) => {
@@ -779,84 +1437,84 @@ export default function CmsPpdbPage() {
 
                         {/* TABLE VIEW */}
                         {viewMode === 'table' && (
-                        <div className="table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                            <table className="table" style={{ margin: 0, minWidth: '800px' }}>
-                                <thead style={{ background: 'var(--bg-hover)' }}>
-                                    <tr>
-                                        <th style={{ padding: '16px 12px 16px 24px', width: 40 }}>
-                                            <button onClick={toggleSelectAll} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: selectedIds.size === filteredData.length && filteredData.length > 0 ? 'var(--primary-color)' : 'var(--text-muted)', display: 'flex' }}>
-                                                {selectedIds.size === filteredData.length && filteredData.length > 0 ? <CheckSquare size={18} /> : <Square size={18} />}
-                                            </button>
-                                        </th>
-                                        <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Waktu Daftar</th>
-                                        <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>No. Registrasi</th>
-                                        <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Calon Siswa</th>
-                                        <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Asal Sekolah</th>
-                                        <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Status</th>
-                                        <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'right' }}>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {loading ? (
-                                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>Memuat data pendaftaran...</td></tr>
-                                    ) : filteredData.length === 0 ? (
-                                        <tr><td colSpan="7" style={{ textAlign: 'center', padding: '100px 0' }}>
-                                            <div style={{ opacity: 0.3, marginBottom: 15, color: 'var(--text-muted)' }}><UserPlus size={48} style={{ margin: '0 auto' }} /></div>
-                                            <div style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Tidak ada data pendaftaran ditemukan.</div>
-                                        </td></tr>
-                                    ) : filteredData.map(r => (
-                                        <tr key={r.id} style={{ transition: 'all 0.2s', background: selectedIds.has(r.id) ? 'rgba(79,70,229,0.04)' : 'transparent' }}>
-                                            <td style={{ padding: '20px 12px 20px 24px', borderBottom: '1px solid var(--border-color)', width: 40 }}>
-                                                <button onClick={() => toggleSelect(r.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: selectedIds.has(r.id) ? 'var(--primary-color)' : 'var(--text-muted)', display: 'flex' }}>
-                                                    {selectedIds.has(r.id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                            <div className="table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                <table className="table" style={{ margin: 0, minWidth: '800px' }}>
+                                    <thead style={{ background: 'var(--bg-hover)' }}>
+                                        <tr>
+                                            <th style={{ padding: '16px 12px 16px 24px', width: 40 }}>
+                                                <button onClick={toggleSelectAll} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: selectedIds.size === filteredData.length && filteredData.length > 0 ? 'var(--primary-color)' : 'var(--text-muted)', display: 'flex' }}>
+                                                    {selectedIds.size === filteredData.length && filteredData.length > 0 ? <CheckSquare size={18} /> : <Square size={18} />}
                                                 </button>
-                                            </td>
-                                            <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
-                                                <div style={{ fontWeight: 600 }}>{new Date(r.created_at).toLocaleDateString('id-ID')}</div>
-                                                <div className="text-secondary" style={{ fontSize: '0.8rem' }}>{new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
-                                            </td>
-                                            <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
-                                                <span style={{ padding: '6px 12px', background: 'var(--bg-hover)', borderRadius: 8, fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-color)' }}>{r.registration_number}</span>
-                                            </td>
-                                            <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
-                                                <div style={{ fontWeight: 700, color: 'var(--text-color)' }}>{r.nama_lengkap}</div>
-                                                <div className="text-secondary" style={{ fontSize: '0.85rem' }}>NISN: {r.nisn}</div>
-                                            </td>
-                                            <td style={{ padding: '20px 24px', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>{r.asal_sekolah}</td>
-                                            <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>{getStatusBadge(r.status)}</td>
-                                            <td style={{ padding: '20px 24px', textAlign: 'right', borderBottom: '1px solid var(--border-color)' }}>
-                                                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                                    <button className="btn-icon text-primary" onClick={() => setSelectedReg(r)} title="Lihat Detail">
-                                                        <Eye size={18} />
-                                                    </button>
-
-                                                    {(r.status === 'pending_verification' || r.status === 'locked' || r.status === 'wawancara') && (
-                                                        <>
-                                                            <button className="btn-icon text-success" onClick={() => handleAccept(r.id)} title="Terima & Sinkronisasi">
-                                                                <CheckCircle size={18} />
-                                                            </button>
-                                                            <button className="btn-icon text-danger" onClick={() => handleUpdateStatus(r.id, 'rejected')} title="Tolak">
-                                                                <XCircle size={18} />
-                                                            </button>
-                                                        </>
-                                                    )}
-
-                                                    {r.status === 'accepted' && (
-                                                        <button className="btn-icon" style={{ color: '#f59e0b' }} onClick={() => handleRollback(r.id)} title="Batalkan Penerimaan">
-                                                            <RotateCcw size={18} />
-                                                        </button>
-                                                    )}
-
-                                                    <button className="btn-icon text-danger" onClick={() => handleDelete(r.id)} title="Hapus">
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                </div>
-                                            </td>
+                                            </th>
+                                            <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Waktu Daftar</th>
+                                            <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>No. Registrasi</th>
+                                            <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Calon Siswa</th>
+                                            <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Asal Sekolah</th>
+                                            <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Status</th>
+                                            <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'right' }}>Aksi</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {loading ? (
+                                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>Memuat data pendaftaran...</td></tr>
+                                        ) : filteredData.length === 0 ? (
+                                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '100px 0' }}>
+                                                <div style={{ opacity: 0.3, marginBottom: 15, color: 'var(--text-muted)' }}><UserPlus size={48} style={{ margin: '0 auto' }} /></div>
+                                                <div style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Tidak ada data pendaftaran ditemukan.</div>
+                                            </td></tr>
+                                        ) : filteredData.map(r => (
+                                            <tr key={r.id} style={{ transition: 'all 0.2s', background: selectedIds.has(r.id) ? 'rgba(79,70,229,0.04)' : 'transparent' }}>
+                                                <td style={{ padding: '20px 12px 20px 24px', borderBottom: '1px solid var(--border-color)', width: 40 }}>
+                                                    <button onClick={() => toggleSelect(r.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: selectedIds.has(r.id) ? 'var(--primary-color)' : 'var(--text-muted)', display: 'flex' }}>
+                                                        {selectedIds.has(r.id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                                                    </button>
+                                                </td>
+                                                <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                                                    <div style={{ fontWeight: 600 }}>{new Date(r.created_at).toLocaleDateString('id-ID')}</div>
+                                                    <div className="text-secondary" style={{ fontSize: '0.8rem' }}>{new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                                                </td>
+                                                <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                                                    <span style={{ padding: '6px 12px', background: 'var(--bg-hover)', borderRadius: 8, fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-color)' }}>{r.registration_number}</span>
+                                                </td>
+                                                <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
+                                                    <div style={{ fontWeight: 700, color: 'var(--text-color)' }}>{r.nama_lengkap}</div>
+                                                    <div className="text-secondary" style={{ fontSize: '0.85rem' }}>NISN: {r.nisn}</div>
+                                                </td>
+                                                <td style={{ padding: '20px 24px', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)' }}>{r.asal_sekolah}</td>
+                                                <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>{getStatusBadge(r.status)}</td>
+                                                <td style={{ padding: '20px 24px', textAlign: 'right', borderBottom: '1px solid var(--border-color)' }}>
+                                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                                        <button className="btn-icon text-primary" onClick={() => setSelectedReg(r)} title="Lihat Detail">
+                                                            <Eye size={18} />
+                                                        </button>
+
+                                                        {(r.status === 'pending_verification' || r.status === 'locked' || r.status === 'wawancara') && (
+                                                            <>
+                                                                <button className="btn-icon text-success" onClick={() => handleAccept(r.id)} title="Terima & Sinkronisasi">
+                                                                    <CheckCircle size={18} />
+                                                                </button>
+                                                                <button className="btn-icon text-danger" onClick={() => handleUpdateStatus(r.id, 'rejected')} title="Tolak">
+                                                                    <XCircle size={18} />
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                        {r.status === 'accepted' && (
+                                                            <button className="btn-icon" style={{ color: '#f59e0b' }} onClick={() => handleRollback(r.id)} title="Batalkan Penerimaan">
+                                                                <RotateCcw size={18} />
+                                                            </button>
+                                                        )}
+
+                                                        <button className="btn-icon text-danger" onClick={() => handleDelete(r.id)} title="Hapus">
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
 
                         {/* KANBAN VIEW */}
@@ -930,6 +1588,24 @@ export default function CmsPpdbPage() {
             {activeMainTab === 'settings' && (
                 <div className="cms-section-card animate-fade-in" style={{ padding: 32 }}>
                     {renderSettingsTab()}
+                </div>
+            )}
+
+            {activeMainTab === 'analytics' && (
+                <div className="cms-section-card animate-fade-in" style={{ padding: 32 }}>
+                    {renderAnalyticsTab()}
+                </div>
+            )}
+
+            {activeMainTab === 'gelombang' && (
+                <div className="cms-section-card animate-fade-in" style={{ padding: 32 }}>
+                    {renderGelombangTab()}
+                </div>
+            )}
+
+            {activeMainTab === 'pengumuman' && (
+                <div className="cms-section-card animate-fade-in" style={{ padding: 32 }}>
+                    {renderPengumumanTab()}
                 </div>
             )}
 
@@ -1011,7 +1687,7 @@ export default function CmsPpdbPage() {
                                 let berkas = {}
                                 try {
                                     berkas = typeof selectedReg.berkas_json === 'string' ? JSON.parse(selectedReg.berkas_json) : (selectedReg.berkas_json || {})
-                                } catch (e) { }
+                                } catch (e) { /* silent */ }
 
                                 const getFileUrl = (path) => path ? `${API_BASE.replace('/admin/cms', '').replace('/api', '')}${path}` : null;
 
@@ -1138,7 +1814,7 @@ export default function CmsPpdbPage() {
                                 </button>
                                 {selectedReg.status === 'accepted' && (
                                     <button
-                                        className="btn" 
+                                        className="btn"
                                         onClick={() => handleRollback(selectedReg.id)}
                                         style={{ borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontWeight: 700 }}
                                     >
@@ -1159,633 +1835,11 @@ export default function CmsPpdbPage() {
                 </div>
             )}
 
-            {activeMainTab === 'steps' && renderStepsTab()}
-            {activeMainTab === 'requirements' && renderRequirementsTab()}
-            {activeMainTab === 'settings' && renderSettingsTab()}
-            {activeMainTab === 'analytics' && renderAnalyticsTab()}
-            {activeMainTab === 'gelombang' && renderGelombangTab()}
-            {activeMainTab === 'pengumuman' && renderPengumumanTab()}
-
             {/* Modals */}
             {showStepModal && renderStepModal()}
             {showReqModal && renderReqModal()}
             {showGelModal && renderGelModal()}
             {showAnnModal && renderAnnModal()}
         </div>
-    )
-
-    // ==================== TAB RENDERS ====================
-
-    function renderStepsTab() {
-        return (
-            <div>
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Alur Pendaftaran</h3>
-                        <p className="text-secondary small m-0">Susun langkah-langkah yang harus dilalui calon siswa.</p>
-                    </div>
-                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42, marginLeft: 'auto' }} onClick={() => openStepModal()}>
-                        <Plus size={18} /> Tambah Langkah
-                    </button>
-                </div>
-
-                <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
-                    <table className="table" style={{ margin: 0 }}>
-                        <thead style={{ background: 'var(--bg-hover)' }}>
-                            <tr>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }} width="60">No</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }} width="60">Icon</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Judul</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Deskripsi</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Urutan</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Status</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'right' }} width="100">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {steps.length === 0 ? (
-                                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)', fontWeight: 500 }}>Belum ada langkah pendaftaran</td></tr>
-                            ) : steps.map(s => (
-                                <tr key={s.id}>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
-                                        <div style={{ fontWeight: 800, color: 'var(--primary-color)', fontSize: '1rem' }}>{s.step_number}</div>
-                                    </td>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
-                                        <div style={{ fontSize: '1.5rem', background: 'var(--bg-hover)', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10 }}>{s.icon}</div>
-                                    </td>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
-                                        <div style={{ fontWeight: 700, color: 'var(--text-color)' }}>{s.title}</div>
-                                    </td>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{s.description}</span>
-                                    </td>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
-                                        <span style={{ padding: '4px 10px', background: 'var(--bg-hover)', borderRadius: 6, fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-color)' }}>{s.sort_order}</span>
-                                    </td>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
-                                        <span className={`badge ${s.is_active ? 'badge-success' : 'badge-danger'}`} style={{ borderRadius: 6 }}>
-                                            {s.is_active ? 'Aktif' : 'Nonaktif'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                            <button className="btn-icon text-primary" onClick={() => openStepModal(s)} title="Edit"><Edit2 size={16} /></button>
-                                            <button className="btn-icon text-danger" onClick={() => deleteStep(s)} title="Hapus"><Trash2 size={16} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        )
-    }
-
-    function renderRequirementsTab() {
-        return (
-            <div>
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Syarat Dokumen</h3>
-                        <p className="text-secondary small m-0">Daftar dokumen wajib yang harus diunggah pendaftar.</p>
-                    </div>
-                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42, marginLeft: 'auto' }} onClick={() => openReqModal()}>
-                        <Plus size={18} /> Tambah Syarat
-                    </button>
-                </div>
-
-                <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
-                    <table className="table" style={{ margin: 0 }}>
-                        <thead style={{ background: 'var(--bg-hover)' }}>
-                            <tr>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Persyaratan / Dokumen</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Urutan</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Status</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'right' }} width="100">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {requirements.length === 0 ? (
-                                <tr><td colSpan="4" style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)', fontWeight: 500 }}>Belum ada syarat</td></tr>
-                            ) : requirements.map(r => (
-                                <tr key={r.id}>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                            <div style={{ padding: 6, background: 'rgba(16, 185, 129, 0.1)', borderRadius: 8, color: '#10b981', display: 'flex' }}>
-                                                <CheckCircle2 size={18} strokeWidth={2.5} />
-                                            </div>
-                                            <span style={{ fontWeight: 600, color: 'var(--text-color)', fontSize: '0.95rem' }}>{r.text}</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
-                                        <span style={{ padding: '4px 10px', background: 'var(--bg-hover)', borderRadius: 6, fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-color)' }}>{r.sort_order}</span>
-                                    </td>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
-                                        <span className={`badge ${r.is_active ? 'badge-success' : 'badge-danger'}`} style={{ borderRadius: 6 }}>
-                                            {r.is_active ? 'Aktif' : 'Nonaktif'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                            <button className="btn-icon text-primary" onClick={() => openReqModal(r)} title="Edit"><Edit2 size={16} /></button>
-                                            <button className="btn-icon text-danger" onClick={() => deleteReq(r)} title="Hapus"><Trash2 size={16} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        )
-    }
-
-    // ==================== MODALS ====================
-
-    function renderStepModal() {
-        return (
-            <div className="modal-backdrop">
-                <div className="modal" style={{ maxWidth: 500 }}>
-                    <div className="modal-header">
-                        <h3>{editStep ? 'Edit Langkah' : 'Tambah Langkah'}</h3>
-                        <button className="btn-icon" onClick={() => setShowStepModal(false)}>×</button>
-                    </div>
-                    <div className="modal-body">
-                        <form id="stepForm" onSubmit={saveStep}>
-                            <div className="grid-2 mb-4">
-                                <div className="form-group">
-                                    <label>Nomor Langkah</label>
-                                    <input type="text" className="form-control" value={stepForm.step_number} required
-                                        onChange={e => setStepForm({ ...stepForm, step_number: e.target.value })}
-                                        placeholder="01"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Icon / Emoji</label>
-                                    <input type="text" className="form-control" value={stepForm.icon}
-                                        onChange={e => setStepForm({ ...stepForm, icon: e.target.value })}
-                                        placeholder="📋"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="form-group mb-4">
-                                <label>Judul <span className="text-danger">*</span></label>
-                                <input type="text" className="form-control" value={stepForm.title} required
-                                    onChange={e => setStepForm({ ...stepForm, title: e.target.value })}
-                                    placeholder="Daftar Online"
-                                />
-                            </div>
-
-                            <div className="form-group mb-4">
-                                <label>Deskripsi Singkat</label>
-                                <textarea className="form-control" rows="2" value={stepForm.description}
-                                    onChange={e => setStepForm({ ...stepForm, description: e.target.value })}
-                                    placeholder="Isi formulir pendaftaran secara lengkap."
-                                />
-                            </div>
-
-                            <div className="grid-2 mb-4">
-                                <div className="form-group">
-                                    <label>Urutan Tampil</label>
-                                    <input type="number" className="form-control" value={stepForm.sort_order}
-                                        onChange={e => setStepForm({ ...stepForm, sort_order: parseInt(e.target.value) || 0 })}
-                                    />
-                                </div>
-                                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 10 }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: 0 }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={stepForm.is_active !== 0}
-                                            onChange={e => setStepForm({ ...stepForm, is_active: e.target.checked ? 1 : 0 })}
-                                            style={{ width: 18, height: 18 }}
-                                        />
-                                        <span style={{ fontWeight: 600 }}>Aktif</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div className="modal-footer">
-                        <button className="btn btn-secondary" onClick={() => setShowStepModal(false)} disabled={savingStep}>Batal</button>
-                        <button type="submit" form="stepForm" className="btn btn-primary" disabled={savingStep}>
-                            {savingStep ? 'Menyimpan...' : 'Simpan Langkah'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    function renderReqModal() {
-        return (
-            <div className="modal-backdrop">
-                <div className="modal" style={{ maxWidth: 500 }}>
-                    <div className="modal-header">
-                        <h3>{editReq ? 'Edit Syarat' : 'Tambah Syarat'}</h3>
-                        <button className="btn-icon" onClick={() => setShowReqModal(false)}>×</button>
-                    </div>
-                    <div className="modal-body">
-                        <form id="reqForm" onSubmit={saveReq}>
-                            <div className="form-group mb-4">
-                                <label>Persyaratan Dokumen <span className="text-danger">*</span></label>
-                                <input type="text" className="form-control" value={reqForm.text} required
-                                    onChange={e => setReqForm({ ...reqForm, text: e.target.value })}
-                                    placeholder="Contoh: Fotokopi Ijazah / SKL"
-                                />
-                            </div>
-
-                            <div className="grid-2 mb-4">
-                                <div className="form-group">
-                                    <label>Urutan Tampil</label>
-                                    <input type="number" className="form-control" value={reqForm.sort_order}
-                                        onChange={e => setReqForm({ ...reqForm, sort_order: parseInt(e.target.value) || 0 })}
-                                    />
-                                </div>
-                                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 10 }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', margin: 0 }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={reqForm.is_active !== 0}
-                                            onChange={e => setReqForm({ ...reqForm, is_active: e.target.checked ? 1 : 0 })}
-                                            style={{ width: 18, height: 18 }}
-                                        />
-                                        <span style={{ fontWeight: 600 }}>Aktif</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div className="modal-footer">
-                        <button className="btn btn-secondary" onClick={() => setShowReqModal(false)} disabled={savingReq}>Batal</button>
-                        <button type="submit" form="reqForm" className="btn btn-primary" disabled={savingReq}>
-                            {savingReq ? 'Menyimpan...' : 'Simpan Syarat'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    function renderSettingsTab() {
-        return (
-            <div style={{ maxWidth: 800 }}>
-                <div className="mb-5">
-                    <h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Konfigurasi PPDB</h3>
-                    <p className="text-secondary small m-0">Atur status pendaftaran, kuota, dan tampilan portal PPDB.</p>
-                </div>
-
-                <div className="grid-2 mb-4" style={{ gap: 30 }}>
-                    <div className="card p-4" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: 20 }}>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Settings size={18} className="text-primary" /> Status & Kuota
-                        </h4>
-
-                        <div className="form-group mb-4">
-                            <label className="d-flex align-items-center gap-2 mb-2" style={{ fontWeight: 700, fontSize: '0.9rem' }}>
-                                Status Pendaftaran
-                            </label>
-                            <div className="d-flex gap-3">
-                                <button
-                                    className={`btn ${settings.ppdb_is_open === '1' ? 'btn-success' : 'btn-outline'}`}
-                                    style={{ flex: 1, borderRadius: 12, height: 44 }}
-                                    onClick={() => handleSettingChange('ppdb_is_open', '1')}
-                                >
-                                    <CheckCircle size={18} className="mr-2" /> Buka
-                                </button>
-                                <button
-                                    className={`btn ${settings.ppdb_is_open === '0' ? 'btn-danger' : 'btn-outline'}`}
-                                    style={{ flex: 1, borderRadius: 12, height: 44 }}
-                                    onClick={() => handleSettingChange('ppdb_is_open', '0')}
-                                >
-                                    <XCircle size={18} className="mr-2" /> Tutup
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="form-group mb-4">
-                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>Tahun Ajaran Target</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                value={settings.ppdb_year}
-                                onChange={e => handleSettingChange('ppdb_year', e.target.value)}
-                                placeholder="Contoh: 2025/2026"
-                                style={{ borderRadius: 10, height: 44 }}
-                            />
-                        </div>
-
-                        <div className="form-group mb-0">
-                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>Target Kuota (Siswa)</label>
-                            <input
-                                type="number"
-                                className="form-control"
-                                value={settings.ppdb_quota}
-                                onChange={e => handleSettingChange('ppdb_quota', e.target.value)}
-                                style={{ borderRadius: 10, height: 44 }}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="card p-4" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: 20 }}>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Layers size={18} className="text-primary" /> Tampilan Portal
-                        </h4>
-
-                        <div className="form-group mb-4">
-                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>Judul Hero Portal</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                value={settings.ppdb_hero_title}
-                                onChange={e => handleSettingChange('ppdb_hero_title', e.target.value)}
-                                style={{ borderRadius: 10, height: 44 }}
-                            />
-                        </div>
-
-                        <div className="form-group mb-4">
-                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>Sub-judul Hero</label>
-                            <textarea
-                                className="form-control"
-                                rows="2"
-                                value={settings.ppdb_hero_subtitle}
-                                onChange={e => handleSettingChange('ppdb_hero_subtitle', e.target.value)}
-                                style={{ borderRadius: 10, resize: 'none' }}
-                            />
-                        </div>
-
-                        <div className="form-group mb-0">
-                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>No. WhatsApp CS</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                value={settings.ppdb_contact_wa}
-                                onChange={e => handleSettingChange('ppdb_contact_wa', e.target.value)}
-                                placeholder="Contoh: 08123456789"
-                                style={{ borderRadius: 10, height: 44 }}
-                            />
-                            <small className="text-muted mt-1 d-block">Gunakan format 08xxx atau 62xxx</small>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="d-flex justify-content-end gap-3 mt-4">
-                    <button
-                        className="btn btn-primary"
-                        style={{ borderRadius: 14, height: 50, padding: '0 32px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}
-                        onClick={() => saveSettings(['ppdb_is_open', 'ppdb_year', 'ppdb_quota', 'ppdb_contact_wa', 'ppdb_hero_title', 'ppdb_hero_subtitle'])}
-                        disabled={savingSettings}
-                    >
-                        <Save size={20} />
-                        {savingSettings ? 'Menyimpan...' : 'Simpan Pengaturan'}
-                    </button>
-                </div>
-            </div>
-        )
-    }
-
-    const PIE_COLORS = ['#6366f1', '#f472b6', '#94a3b8']
-
-    function renderAnalyticsTab() {
-        if (!analytics) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Memuat data analytics...</div>
-        
-        // PAD DAILY DATA FOR LINE CHART SO IT DOES NOT CRASH ON SINGLE ELEMENT
-        let dailySafe = (analytics.daily || []).map(d => {
-            const dateObj = new Date(d.date);
-            const safeDate = isNaN(dateObj.valueOf()) ? String(d.date || '') : dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
-            return { date: safeDate, count: Number(d.count) || 0 };
-        });
-        if (dailySafe.length === 1) {
-            dailySafe = [{ date: 'Sebelumnya', count: 0 }, ...dailySafe];
-        }
-
-        const genderSafe = (analytics.gender || []).map(g => ({ name: g.jk === 'L' ? 'Laki-laki' : g.jk === 'P' ? 'Perempuan' : 'Lainnya', value: Number(g.count) || 0 }));
-        const schoolsSafe = (analytics.schools || []).map(s => ({ sekolah: String(s.sekolah || 'Tidak Diketahui'), count: Number(s.count) || 0 }));
-        const funnelSafe = analytics.funnel || [];
-
-        return (
-            <div>
-                <div className="mb-4"><h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Analytics PPDB</h3><p className="text-secondary small m-0">Insight visual pendaftaran siswa baru.</p></div>
-                <div className="grid-2 mb-4" style={{ gap: 24 }}>
-                    {/* Line Chart - Daily */}
-                    <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>📈 Pendaftar per Hari (14 Hari)</h4>
-                        {dailySafe.length > 0 ? (
-                            <ChartErrorBoundary>
-                                <LineChart width={400} height={200} data={dailySafe}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                                    <XAxis dataKey="date" style={{ fontSize: '0.7rem' }} />
-                                    <YAxis style={{ fontSize: '0.7rem' }} />
-                                    <Tooltip />
-                                    <Line type="linear" dataKey="count" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1' }} name="Pendaftar" />
-                                </LineChart>
-                            </ChartErrorBoundary>
-                        ) : (
-                            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada data pendaftar.</div>
-                        )}
-                    </div>
-
-                    {/* Pie Chart - Gender */}
-                    <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>👫 Rasio Jenis Kelamin</h4>
-                        {genderSafe.length > 0 ? (
-                            <ChartErrorBoundary>
-                                <PieChart width={400} height={200}>
-                                    <Pie data={genderSafe} cx="50%" cy="50%" outerRadius={70} dataKey="value" labelLine={false}>
-                                        {genderSafe.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend wrapperStyle={{ fontSize: '0.8rem' }} />
-                                </PieChart>
-                            </ChartErrorBoundary>
-                        ) : (
-                            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada data gender.</div>
-                        )}
-                    </div>
-
-                    {/* Bar Chart - Schools */}
-                    <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>🏫 Top 10 Asal Sekolah</h4>
-                        {schoolsSafe.length > 0 ? (
-                            <ChartErrorBoundary>
-                                <BarChart width={400} height={220} data={schoolsSafe} layout="vertical" margin={{ left: 20, right: 20 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                                    <XAxis type="number" style={{ fontSize: '0.7rem' }} />
-                                    <YAxis type="category" dataKey="sekolah" width={120} style={{ fontSize: '0.65rem' }} />
-                                    <Tooltip />
-                                    <Bar dataKey="count" fill="#6366f1" radius={[0, 6, 6, 0]} name="Pendaftar" />
-                                </BarChart>
-                            </ChartErrorBoundary>
-                        ) : (
-                            <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada data sekolah asal.</div>
-                        )}
-                    </div>
-
-                    {/* Funnel - Conversion */}
-                    <div className="card p-4" style={{ borderRadius: 20, border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16 }}>🔽 Funnel Konversi</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {funnelSafe.map((f, i) => {
-                                const maxCount = Number(funnelSafe[0]?.count) || 1
-                                const fCount = Number(f.count) || 0
-                                const pct = maxCount > 0 ? (fCount / maxCount) * 100 : 0
-                                const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#10b981']
-                                return (
-                                    <div key={i}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: 4 }}>
-                                            <span style={{ color: 'var(--text-color)' }}>{f.stage}</span>
-                                            <span style={{ color: colors[i] || '#cbd5e1' }}>{fCount}</span>
-                                        </div>
-                                        <div style={{ height: 10, background: 'var(--bg-hover)', borderRadius: 5, overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', width: `${pct}%`, background: colors[i] || '#cbd5e1', borderRadius: 5, transition: 'width 0.5s' }} />
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    function renderGelombangTab() {
-        return (
-            <div>
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div><h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Gelombang Pendaftaran</h3><p className="text-secondary small m-0">Kelola gelombang dan kuota PPDB.</p></div>
-                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42 }} onClick={() => openGelModal()}><Plus size={18} /> Tambah Gelombang</button>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-                    {gelombang.map(g => (
-                        <div key={g.id} className="card" style={{ padding: 24, borderRadius: 20, border: '1px solid var(--border-color)', position: 'relative' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 12 }}>
-                                <div>
-                                    <h4 style={{ margin: 0, fontWeight: 800, fontSize: '1.1rem' }}>{g.nama}</h4>
-                                    <span className={`badge ${g.is_active ? 'badge-success' : 'badge-danger'}`} style={{ marginTop: 6, display: 'inline-block' }}>{g.is_active ? 'Aktif' : 'Nonaktif'}</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                    <button className="btn-icon text-primary" onClick={() => openGelModal(g)} title="Edit"><Edit2 size={16} /></button>
-                                    <button className="btn-icon text-danger" onClick={() => deleteGel(g)} title="Hapus"><Trash2 size={16} /></button>
-                                </div>
-                            </div>
-                            <div style={{ marginBottom: 12 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, marginBottom: 6 }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>Kuota</span>
-                                    <span style={{ color: 'var(--text-color)' }}>{g.terisi || 0} / {g.kuota}</span>
-                                </div>
-                                <div style={{ height: 10, background: 'var(--bg-hover)', borderRadius: 5, overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', width: `${Math.min(((g.terisi || 0) / g.kuota) * 100, 100)}%`, background: (g.terisi || 0) >= g.kuota ? '#ef4444' : '#6366f1', borderRadius: 5, transition: 'width 0.3s' }} />
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                <span>💰 Biaya Daftar Ulang: <strong>Rp {Number(g.biaya_daftar_ulang).toLocaleString('id-ID')}</strong></span>
-                                {g.tanggal_buka && <span>📅 {new Date(g.tanggal_buka).toLocaleDateString('id-ID')} — {g.tanggal_tutup ? new Date(g.tanggal_tutup).toLocaleDateString('id-ID') : '...'}</span>}
-                            </div>
-                        </div>
-                    ))}
-                    {gelombang.length === 0 && <p className="text-secondary">Belum ada gelombang. Klik "Tambah Gelombang" untuk memulai.</p>}
-                </div>
-            </div>
-        )
-    }
-
-    function renderPengumumanTab() {
-        return (
-            <div>
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div><h3 className="cms-section-title" style={{ fontSize: '1.4rem' }}>Pengumuman Dasbor PPDB</h3><p className="text-secondary small m-0">Pengumuman ini tampil di dasbor pendaftar.</p></div>
-                    <button className="btn btn-primary" style={{ borderRadius: 12, height: 42 }} onClick={() => openAnnModal()}><Plus size={18} /> Tambah Pengumuman</button>
-                </div>
-                <div className="table-responsive" style={{ border: '1px solid var(--border-color)', borderRadius: 16, overflow: 'hidden' }}>
-                    <table className="table" style={{ margin: 0 }}>
-                        <thead style={{ background: 'var(--bg-hover)' }}>
-                            <tr>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Judul</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Isi</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Tipe</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'center' }} width="80">Status</th>
-                                <th style={{ padding: '16px 24px', color: 'var(--text-muted)', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', textAlign: 'right' }} width="100">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {ppdbAnnouncements.map(a => (
-                                <tr key={a.id}>
-                                    <td style={{ padding: '16px 24px', fontWeight: 700 }}>{a.judul}</td>
-                                    <td style={{ padding: '16px 24px', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.isi || '-'}</td>
-                                    <td style={{ padding: '16px 24px', textAlign: 'center' }}><span className="badge" style={{ background: a.tipe === 'warning' ? '#fef9c3' : a.tipe === 'success' ? '#dcfce7' : '#eff6ff', color: a.tipe === 'warning' ? '#854d0e' : a.tipe === 'success' ? '#166534' : '#1e40af', border: '1px solid', borderColor: a.tipe === 'warning' ? '#fef08a' : a.tipe === 'success' ? '#bbf7d0' : '#bfdbfe' }}>{a.tipe}</span></td>
-                                    <td style={{ padding: '16px 24px', textAlign: 'center' }}><span className={`badge ${a.is_active ? 'badge-success' : 'badge-danger'}`}>{a.is_active ? 'Aktif' : 'Off'}</span></td>
-                                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                                            <button className="btn-icon text-primary" onClick={() => openAnnModal(a)}><Edit2 size={16} /></button>
-                                            <button className="btn-icon text-danger" onClick={() => deleteAnn(a)}><Trash2 size={16} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        )
-    }
-
-    function renderGelModal() {
-        return (
-            <div className="modal-backdrop">
-                <div className="modal" style={{ maxWidth: 500 }}>
-                    <div className="modal-header"><h3>{editGel ? 'Edit Gelombang' : 'Tambah Gelombang'}</h3><button className="btn-icon" onClick={() => setShowGelModal(false)}>×</button></div>
-                    <div className="modal-body">
-                        <form id="gelForm" onSubmit={saveGel}>
-                            <div className="form-group mb-3"><label>Nama Gelombang <span className="text-danger">*</span></label><input type="text" className="form-control" value={gelForm.nama} required onChange={e => setGelForm({...gelForm, nama: e.target.value})} placeholder="Gelombang 1" /></div>
-                            <div className="grid-2 mb-3">
-                                <div className="form-group"><label>Kuota</label><input type="number" className="form-control" value={gelForm.kuota} onChange={e => setGelForm({...gelForm, kuota: parseInt(e.target.value) || 0})} /></div>
-                                <div className="form-group"><label>Biaya Daftar Ulang</label><input type="number" className="form-control" value={gelForm.biaya_daftar_ulang} onChange={e => setGelForm({...gelForm, biaya_daftar_ulang: parseInt(e.target.value) || 0})} /></div>
-                            </div>
-                            <div className="grid-2 mb-3">
-                                <div className="form-group"><label>Tanggal Buka</label><input type="date" className="form-control" value={gelForm.tanggal_buka} onChange={e => setGelForm({...gelForm, tanggal_buka: e.target.value})} /></div>
-                                <div className="form-group"><label>Tanggal Tutup</label><input type="date" className="form-control" value={gelForm.tanggal_tutup} onChange={e => setGelForm({...gelForm, tanggal_tutup: e.target.value})} /></div>
-                            </div>
-                            <div className="form-group"><label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}><input type="checkbox" checked={gelForm.is_active === 1} onChange={e => setGelForm({...gelForm, is_active: e.target.checked ? 1 : 0})} style={{ width: 18, height: 18 }} /><span style={{ fontWeight: 600 }}>Aktif</span></label></div>
-                        </form>
-                    </div>
-                    <div className="modal-footer">
-                        <button className="btn btn-secondary" onClick={() => setShowGelModal(false)} disabled={savingGel}>Batal</button>
-                        <button type="submit" form="gelForm" className="btn btn-primary" disabled={savingGel}>{savingGel ? 'Menyimpan...' : 'Simpan'}</button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
-    function renderAnnModal() {
-        return (
-            <div className="modal-backdrop">
-                <div className="modal" style={{ maxWidth: 500 }}>
-                    <div className="modal-header"><h3>{editAnn ? 'Edit Pengumuman' : 'Tambah Pengumuman'}</h3><button className="btn-icon" onClick={() => setShowAnnModal(false)}>×</button></div>
-                    <div className="modal-body">
-                        <form id="annForm" onSubmit={saveAnn}>
-                            <div className="form-group mb-3"><label>Judul <span className="text-danger">*</span></label><input type="text" className="form-control" value={annForm.judul} required onChange={e => setAnnForm({...annForm, judul: e.target.value})} placeholder="Batas waktu pengisian biodata" /></div>
-                            <div className="form-group mb-3"><label>Isi / Detail</label><textarea className="form-control" rows={3} value={annForm.isi} onChange={e => setAnnForm({...annForm, isi: e.target.value})} placeholder="Opsional, detail lebih lanjut..." /></div>
-                            <div className="grid-2 mb-3">
-                                <div className="form-group"><label>Tipe</label>
-                                    <select className="form-control" value={annForm.tipe} onChange={e => setAnnForm({...annForm, tipe: e.target.value})}>
-                                        <option value="info">Info (Biru)</option>
-                                        <option value="warning">Warning (Kuning)</option>
-                                        <option value="success">Success (Hijau)</option>
-                                    </select>
-                                </div>
-                                <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 10 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}><input type="checkbox" checked={annForm.is_active === 1} onChange={e => setAnnForm({...annForm, is_active: e.target.checked ? 1 : 0})} style={{ width: 18, height: 18 }} /><span style={{ fontWeight: 600 }}>Aktif</span></label></div>
-                            </div>
-                        </form>
-                    </div>
-                    <div className="modal-footer">
-                        <button className="btn btn-secondary" onClick={() => setShowAnnModal(false)} disabled={savingAnn}>Batal</button>
-                        <button type="submit" form="annForm" className="btn btn-primary" disabled={savingAnn}>{savingAnn ? 'Menyimpan...' : 'Simpan'}</button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
+    );
 }

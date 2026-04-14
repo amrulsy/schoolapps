@@ -1,17 +1,15 @@
-import React, { useState, useEffect, createContext, useContext } from 'react'
+import React, {  useEffect } from 'react'
 import { Outlet, Navigate, Link, useNavigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useApp } from '../context/AppContext'
-import { LogOut, BookOpen, Sun, Moon, History, FileSpreadsheet, Users, Layout, Activity } from 'lucide-react'
+import { LogOut, BookOpen, Sun, Moon, History, FileSpreadsheet, Users, Layout } from 'lucide-react'
 import { useUi } from '../context/UiContext'
 import CommandPalette from '../components/CommandPalette'
 import LoginPage from '../pages/admin/LoginPage'
 import LoadingSpinner from '../components/LoadingSpinner'
 import api from '../services/api'
 
-// Context untuk share session status dari Dashboard ke Layout
-export const GuruSessionContext = createContext({ sessionBadge: null })
-export const useGuruSession = () => useContext(GuruSessionContext)
+import { GuruSessionContext } from './GuruSessionContext'
 
 export default function GuruLayout() {
     const { guruUser, isLoaded, login, logout } = useApp()

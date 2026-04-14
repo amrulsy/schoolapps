@@ -5,7 +5,7 @@ import { useCustomAlert } from '../../../hooks/useCustomAlert'
 import { getDirectDriveUrl } from '../../../utils/urlHelper'
 import MediaUploadField from '../../../components/MediaUploadField'
 
-import { API_BASE_CMS as API_BASE, getAuthHeaders, getBearerHeader } from '../../../services/api'
+import { API_BASE_CMS as API_BASE, getAuthHeaders } from '../../../services/api'
 import CmsBannersPage from './CmsBannersPage'
 import CmsPostsPage from './CmsPostsPage'
 import CmsAgendaPage from './CmsAgendaPage'
@@ -126,6 +126,7 @@ export default function CmsHomePage() {
     const [identityForm, setIdentityForm] = useState({ label: '', name: '', logo_url: '', color_class: 'yayasan', sort_order: 0 })
     const [savingIdentity, setSavingIdentity] = useState(false)
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { loadAll() }, [])
 
     const loadAll = async () => {
@@ -488,7 +489,7 @@ export default function CmsHomePage() {
                                     onChange={e => handleSettingChange('hero_title', e.target.value)}
                                     placeholder="Gunakan Baris Baru Untuk Pemisah Visual"
                                 />
-                                <small className="text-muted mt-1 d-block">💡 Tips: Gunakan 'Enter' untuk membagi judul menjadi beberapa baris.</small>
+                                <small className="text-muted mt-1 d-block">💡 Tips: Gunakan &apos;Enter&apos; untuk membagi judul menjadi beberapa baris.</small>
                             </div>
 
                             <div className="form-group mb-4">
@@ -614,7 +615,7 @@ export default function CmsHomePage() {
                     </div>
 
                     {programs.length === 0 ? (
-                        <div className="cms-empty-state">Belum ada program keahlian. Klik tombol "Tambah Program" untuk menambahkan.</div>
+                        <div className="cms-empty-state">Belum ada program keahlian. Klik tombol &quot;Tambah Program&quot; untuk menambahkan.</div>
                     ) : (
                         <div style={{ display: 'grid', gap: 12 }}>
                             {programs.map(p => (
@@ -654,7 +655,7 @@ export default function CmsHomePage() {
                 </div>
 
                 {partners.length === 0 ? (
-                    <div className="cms-empty-state">Belum ada partner. Klik tombol "Tambah Partner" untuk menambahkan.</div>
+                    <div className="cms-empty-state">Belum ada partner. Klik tombol &quot;Tambah Partner&quot; untuk menambahkan.</div>
                 ) : (
                     <div className="table-container">
                         <table>
@@ -1360,8 +1361,8 @@ export default function CmsHomePage() {
                             </div>
                             <div className="form-group mb-4">
                                 <label>Kategori <span className="text-danger">*</span></label>
-                                <select 
-                                    className="form-control" 
+                                <select
+                                    className="form-control"
                                     value={partnerForm.category}
                                     onChange={e => setPartnerForm({ ...partnerForm, category: e.target.value })}
                                     required
@@ -1522,7 +1523,7 @@ export default function CmsHomePage() {
                 {testimonials.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: 16 }}>
                         <MessageSquare size={32} className="mb-2" style={{ opacity: 0.3 }} />
-                        <p>Belum ada testimoni. Klik "Tambah Testimoni" untuk memulai.</p>
+                        <p>Belum ada testimoni. Klik &quot;Tambah Testimoni&quot; untuk memulai.</p>
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gap: 12 }}>
@@ -1534,7 +1535,7 @@ export default function CmsHomePage() {
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t.name}</div>
                                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{t.role}{t.company ? ` • ${t.company}` : ''}</div>
-                                    <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>"{t.quote}"</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>&quot;{t.quote}&quot;</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                                     <span style={{ ...badgeStyle, background: t.is_active ? '#dcfce7' : '#fee2e2', color: t.is_active ? '#16a34a' : '#dc2626' }}>
@@ -1670,7 +1671,7 @@ export default function CmsHomePage() {
                 {galleryItems.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: 16 }}>
                         <Camera size={32} className="mb-2" style={{ opacity: 0.3 }} />
-                        <p>Belum ada gambar di galeri. Klik "Tambah Gambar" untuk memulai.</p>
+                        <p>Belum ada gambar di galeri. Klik &quot;Tambah Gambar&quot; untuk memulai.</p>
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
@@ -1802,7 +1803,7 @@ export default function CmsHomePage() {
                 {faqItems.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: 16 }}>
                         <HelpCircle size={32} className="mb-2" style={{ opacity: 0.3 }} />
-                        <p>Belum ada FAQ. Klik "Tambah FAQ" untuk memulai.</p>
+                        <p>Belum ada FAQ. Klik &quot;Tambah FAQ&quot; untuk memulai.</p>
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gap: 8 }}>
@@ -1885,7 +1886,7 @@ export default function CmsHomePage() {
         return fetch(`${API_BASE}/identity-logos`, { headers: getAuthHeaders() })
             .then(res => res.ok ? res.json() : [])
             .then(data => setIdentityLogos(data))
-            .catch(() => {})
+            .catch(() => { })
     }
 
     function openIdentityModal(item = null) {
@@ -1946,7 +1947,7 @@ export default function CmsHomePage() {
                 </div>
 
                 {identityLogos.length === 0 ? (
-                    <div className="cms-empty-state">Belum ada logo identitas. Klik tombol "Tambah Logo" untuk menambahkan.</div>
+                    <div className="cms-empty-state">Belum ada logo identitas. Klik tombol &quot;Tambah Logo&quot; untuk menambahkan.</div>
                 ) : (
                     <div className="table-container">
                         <table>
@@ -2016,7 +2017,7 @@ export default function CmsHomePage() {
                             <div className="grid-2 gap-4 mb-4">
                                 <div className="form-group">
                                     <label className="cms-label">
-                                        <Type size={14} className="text-primary" /> Label 
+                                        <Type size={14} className="text-primary" /> Label
                                         <span className="text-danger ml-1">*</span>
                                     </label>
                                     <input type="text" className="form-control" value={identityForm.label}

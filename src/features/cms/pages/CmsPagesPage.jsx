@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../../../context/AppContext'
 import { Edit2, Eye, Layout } from 'lucide-react'
 import EmptyState from '../../../components/EmptyState'
@@ -18,11 +18,7 @@ export default function CmsPagesPage() {
         title: '', content: '', meta_description: ''
     })
 
-    useEffect(() => {
-        loadPages()
-    }, [])
-
-    const loadPages = async () => {
+    const loadPages = useCallback(async () => {
         try {
             setLoading(true)
             const res = await fetch(`${API_BASE}/pages`, {
@@ -37,7 +33,11 @@ export default function CmsPagesPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [addToast])
+
+    useEffect(() => {
+        loadPages()
+    }, [loadPages])
 
     const handleOpenModal = (page) => {
         setEditData(page)

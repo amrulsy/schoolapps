@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ImageIcon, X, Edit, Upload, Image, Trash2 } from 'lucide-react';
+import { X, Edit, Upload, Image, Trash2 } from 'lucide-react';
 import MediaLibraryModal from './MediaLibraryModal';
 
 /**

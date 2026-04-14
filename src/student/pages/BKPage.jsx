@@ -1,4 +1,4 @@
-import { Shield, Award, AlertTriangle, Calendar, Star, TrendingUp, TrendingDown } from 'lucide-react'
+import { Award, AlertTriangle, Calendar, Star, TrendingUp, TrendingDown } from 'lucide-react'
 import { useStudent } from '../StudentApp'
 
 export default function BKPage() {

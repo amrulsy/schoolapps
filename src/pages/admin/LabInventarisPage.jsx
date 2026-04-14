@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useApp } from '../../context/AppContext'
 import {
     Package, Search, Plus, Edit2, Trash2, ArrowLeftRight, RotateCcw,
-    Filter, BarChart3, Clock, AlertTriangle, CheckCircle, Settings,
-    ChevronDown, X, Monitor, Wrench, FileText, TrendingUp, Users
+    BarChart3, Clock, AlertTriangle, CheckCircle, Settings,
+     X, Wrench, FileText, TrendingUp
 } from 'lucide-react'
 import api from '../../services/api'
 import EmptyState from '../../components/EmptyState'
@@ -35,7 +35,7 @@ const PINJAM_STATUS = {
 }
 
 export default function LabInventarisPage() {
-    const { addToast, students, units } = useApp()
+    const { addToast, students } = useApp()
     const [activeTab, setActiveTab] = useState('dashboard')
     const [inventaris, setInventaris] = useState([])
     const [kategori, setKategori] = useState([])
@@ -56,9 +56,7 @@ export default function LabInventarisPage() {
     const [pinjamModal, setPinjamModal] = useState({ show: false })
     const [returnModal, setReturnModal] = useState({ show: false, data: null })
 
-    useEffect(() => { fetchAll() }, [])
-
-    const fetchAll = async () => {
+    const fetchAll = useCallback(async () => {
         setLoading(true)
         try {
             const [invRes, katRes, dashRes, setRes] = await Promise.all([
@@ -75,18 +73,20 @@ export default function LabInventarisPage() {
             addToast('danger', 'Error', err.message)
         }
         setLoading(false)
-    }
+    }, [addToast])
 
-    const fetchPeminjaman = async (filter) => {
+    useEffect(() => { fetchAll() }, [fetchAll])
+
+    const fetchPeminjaman = useCallback(async (filter) => {
         try {
             const { data } = await api.get(`/admin/lab/peminjaman?status=${filter}`)
             setPeminjaman(data)
         } catch (err) { addToast('danger', 'Error', err.message) }
-    }
+    }, [addToast])
 
     useEffect(() => {
         if (activeTab === 'peminjaman') fetchPeminjaman(peminjamanFilter)
-    }, [activeTab, peminjamanFilter])
+    }, [activeTab, peminjamanFilter, fetchPeminjaman])
 
     // Filtered inventaris
     const filtered = useMemo(() => {
@@ -303,7 +303,7 @@ export default function LabInventarisPage() {
 // ==================== DASHBOARD TAB ====================
 function DashboardTab({ dashboard, formatDate }) {
     if (!dashboard) return null
-    const { stats, topItems, overdueList, monthlyData, stockData } = dashboard
+    const { stats, topItems, overdueList, stockData } = dashboard
 
     const statCards = [
         { label: 'Total Item', value: stats.total, icon: Package, bg: '#6366f1', color: '#fff' },
@@ -430,7 +430,7 @@ function DashboardTab({ dashboard, formatDate }) {
 }
 
 // ==================== INVENTARIS TAB ====================
-function InventarisTab({ paginated, filtered, kategori, search, setSearch, filterKategori, setFilterKategori, filterStatus, setFilterStatus, page, setPage, totalPages, onAdd, onEdit, onDelete, formatDate }) {
+function InventarisTab({ paginated, filtered, kategori, search, setSearch, filterKategori, setFilterKategori, filterStatus, setFilterStatus, page, setPage, totalPages, onAdd, onEdit, onDelete }) {
     return (
         <div>
             {/* Toolbar */}
@@ -802,9 +802,9 @@ function ItemModal({ data, kategori, onSave, onClose }) {
                     <div className="col-md-4">
                         <label className="form-label small fw-semibold">Durasi Pinjam</label>
                         <div className="input-group">
-                            <input 
-                                type="number" className="form-control rounded-start-3" min="1" 
-                                value={form.durasi_pinjam} onChange={e => setForm({ ...form, durasi_pinjam: e.target.value })} 
+                            <input
+                                type="number" className="form-control rounded-start-3" min="1"
+                                value={form.durasi_pinjam} onChange={e => setForm({ ...form, durasi_pinjam: e.target.value })}
                                 disabled={form.durasi_tipe === 'akhir_hari'}
                             />
                             <select className="form-select rounded-end-3" value={form.durasi_tipe} onChange={e => setForm({ ...form, durasi_tipe: e.target.value })}>

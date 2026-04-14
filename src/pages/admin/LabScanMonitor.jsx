@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { io } from 'socket.io-client'
-import { Package, CheckCircle, AlertTriangle, Clock, ArrowRight, RotateCcw, Search } from 'lucide-react'
+import { Package, AlertTriangle, Clock, ArrowRight, RotateCcw, Search } from 'lucide-react'
 import api, { API_BASE } from '../../services/api'
 
 export default function LabScanMonitor() {
@@ -17,7 +17,6 @@ export default function LabScanMonitor() {
     const [kioskMode, setKioskMode] = useState('pinjam') // 'pinjam' | 'kembali'
     const [studentLoans, setStudentLoans] = useState(null) // { student, loans }
     const [isProcessing, setIsProcessing] = useState(false)
-    const [lastError, setLastError] = useState(null)
 
     const inputRef = useRef(null)
     const timerRef = useRef(null)
@@ -35,21 +34,6 @@ export default function LabScanMonitor() {
             setInventaris(data)
         } catch (err) { console.error(err) }
     }
-
-    // Socket.io
-    useEffect(() => {
-        const socketOrigin = API_BASE.replace('/api', '')
-        const socket = io(socketOrigin, {
-            path: '/api/socket.io',
-            transports: ['polling']
-        })
-
-        socket.on('connect', () => console.log('[Lab Socket] Connected'))
-        socket.on('lab_scan_success', (data) => showScanResult(data))
-        socket.on('lab_scan_info', (data) => showScanInfo(data))
-
-        return () => socket.disconnect()
-    }, [])
 
     // Clock
     useEffect(() => {
@@ -78,7 +62,7 @@ export default function LabScanMonitor() {
             osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1)
             gain.gain.setValueAtTime(0.1, ctx.currentTime)
             osc.start(); osc.stop(ctx.currentTime + 0.1)
-        } catch(e) {}
+        } catch (e) { /* ignore audio error */ }
     }
 
     const playBuzzer = () => {
@@ -90,7 +74,7 @@ export default function LabScanMonitor() {
             osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, ctx.currentTime)
             gain.gain.setValueAtTime(0.1, ctx.currentTime)
             osc.start(); osc.stop(ctx.currentTime + 0.4)
-        } catch(e) {}
+        } catch (e) { /* ignore audio error */ }
     }
 
     const speakMessage = (text) => {
@@ -107,7 +91,7 @@ export default function LabScanMonitor() {
         window.speechSynthesis.speak(msg)
     }
 
-    const showScanResult = (data) => {
+    const showScanResult = useCallback((data) => {
         if (timerRef.current) clearTimeout(timerRef.current)
         setScanInfo(null)
         setScanData(data)
@@ -135,63 +119,41 @@ export default function LabScanMonitor() {
             setKioskMode('pinjam')
             fetchItems()
         }, 6000)
-    }
+    }, [timerRef])
 
-    const showScanInfo = (data) => {
+    const showScanInfo = useCallback((data) => {
         if (timerRef.current) clearTimeout(timerRef.current)
         setScanData(null)
         setScanInfo(data)
         playBuzzer()
         setTimeout(() => speakMessage('Mohon maaf, ' + data.message), 300)
         timerRef.current = setTimeout(() => setScanInfo(null), 5000)
-    }
+    }, [timerRef])
 
-    const handleScan = async (e) => {
-        e.preventDefault()
-        const input = rfidInput;
-        setRfidInput('')
+    // Socket.io
+    useEffect(() => {
+        const socketOrigin = API_BASE.replace('/api', '')
+        const socket = io(socketOrigin, {
+            path: '/api/socket.io',
+            transports: ['polling']
+        })
 
-        if (kioskMode === 'pinjam') {
-            if (!selectedItem) return
-            try {
-                await api.post('/lab/scan', { rfid_uid: input, inventaris_id: selectedItem.id })
-            } catch (err) { console.error('Scan error:', err) }
-        } else {
-            // Mode Kembali: Scan card first to see items
-            if (!studentLoans) {
-                try {
-                    const { data } = await api.get(`/lab/student-loans/${input}`)
-                    if (data.loans.length === 0) {
-                        showScanInfo({ message: `Halo ${data.student}, Anda tidak memiliki pinjaman aktif.` })
-                    } else {
-                        setStudentLoans(data)
-                    }
-                } catch (err) {
-                    showScanInfo({ message: err.response?.data?.error || 'Kesalahan sistem' })
-                }
-            }
-        }
-    }
+        socket.on('connect', () => console.log('[Lab Socket] Connected'))
+        socket.on('lab_scan_success', (data) => showScanResult(data))
+        socket.on('lab_scan_info', (data) => showScanInfo(data))
 
-    const processReturn = async (loan) => {
-        try {
-            await api.post('/lab/scan', { rfid_uid: rfidInput || 'AUTO', inventaris_id: loan.inventaris_id, force_rfid: studentLoans.student }) 
-            // Note: scanBorrow backend will match student by loan record if we adjust it, 
-            // but the easiest is just send the same rfid again. 
-            // In return mode, we already have the RFID. Let's store it.
-        } catch (err) { console.error(err) }
-    }
+        return () => socket.disconnect()
+    }, [showScanResult, showScanInfo])
 
     // Since we need the RFID to finish the return even after selection, let's store it
     const [activeRfid, setActiveRfid] = useState('')
     const handleScanEnhanced = async (e) => {
         e.preventDefault()
-        const input = rfidInput.trim();
+        const input = rfidInput.trim()
         setRfidInput('')
         if (!input || isProcessing) return
 
         setIsProcessing(true)
-        setLastError(null)
 
         if (kioskMode === 'pinjam') {
             if (!selectedItem) {
@@ -201,13 +163,12 @@ export default function LabScanMonitor() {
             try {
                 const { data } = await api.post('/lab/scan', { rfid_uid: input, inventaris_id: selectedItem.id })
                 if (data.success) {
-                    showScanResult(data);
+                    showScanResult(data)
                 } else {
-                    showScanInfo({ message: data.error || 'Terjadi kesalahan sistem' });
+                    showScanInfo({ message: data.error || 'Terjadi kesalahan sistem' })
                 }
             } catch (err) {
-                const errMsg = err.response?.data?.error || err.message || 'Kesalahan Koneksi';
-                setLastError(errMsg)
+                const errMsg = err.response?.data?.error || err.message || 'Kesalahan Koneksi'
                 showScanInfo({ message: errMsg })
             } finally {
                 setIsProcessing(false)
@@ -223,9 +184,8 @@ export default function LabScanMonitor() {
                         setActiveRfid(input)
                     }
                 } catch (err) {
-                    const errMsg = err.response?.data?.error || 'Kesalahan sistem';
+                    const errMsg = err.response?.data?.error || 'Kesalahan sistem'
                     showScanInfo({ message: errMsg })
-                    setLastError(errMsg)
                 } finally {
                     setIsProcessing(false)
                 }
@@ -243,7 +203,7 @@ export default function LabScanMonitor() {
             } else {
                 showScanInfo({ message: data.error || 'Gagal mengembalikan barang' });
             }
-        } catch (err) { 
+        } catch (err) {
             console.error(err);
             showScanInfo({ message: err.response?.data?.error || err.message || 'Kesalahan Koneksi' });
         }
@@ -307,9 +267,9 @@ export default function LabScanMonitor() {
             {/* Mode Switcher */}
             {!scanData && !scanInfo && (
                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '10px 0', display: 'flex', justifyContent: 'center', gap: 20 }}>
-                    <button 
+                    <button
                         onClick={() => { setKioskMode('pinjam'); setSelectedItem(null); setStudentLoans(null); }}
-                        style={{ 
+                        style={{
                             padding: '12px 30px', borderRadius: 15, border: 'none', fontSize: '1.1rem', fontWeight: 800, cursor: 'pointer',
                             background: kioskMode === 'pinjam' ? '#3b82f6' : 'transparent',
                             color: kioskMode === 'pinjam' ? '#fff' : '#94a3b8',
@@ -318,9 +278,9 @@ export default function LabScanMonitor() {
                     >
                         <ArrowRight size={20} /> PINJAM BARANG
                     </button>
-                    <button 
+                    <button
                         onClick={() => { setKioskMode('kembali'); setSelectedItem(null); setStudentLoans(null); }}
-                        style={{ 
+                        style={{
                             padding: '12px 30px', borderRadius: 15, border: 'none', fontSize: '1.1rem', fontWeight: 800, cursor: 'pointer',
                             background: kioskMode === 'kembali' ? '#f59e0b' : 'transparent',
                             color: kioskMode === 'kembali' ? '#fff' : '#94a3b8',
@@ -503,7 +463,7 @@ export default function LabScanMonitor() {
                         </div>
 
                         <div style={{ textAlign: 'center', marginTop: 40 }}>
-                            <button 
+                            <button
                                 onClick={() => { setStudentLoans(null); setKioskMode('pinjam') }}
                                 style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12, color: '#94a3b8', padding: '12px 30px', cursor: 'pointer' }}
                             >

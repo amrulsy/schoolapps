@@ -2,8 +2,8 @@ import { useApp } from '../../context/AppContext'
 import { useMemo, useEffect, useState } from 'react'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import {
-    Users, UserCheck, GraduationCap, Building2,
-    MessageSquare, UserPlus, Calendar, ArrowRight,
+    Users, UserCheck, GraduationCap,
+    UserPlus, ArrowRight,
     TrendingUp, Activity, Sparkles, Zap, ShieldCheck
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -22,7 +22,6 @@ export default function DashboardPage() {
 
     const mainStats = useMemo(() => {
         const active = students.filter(s => s.status === 'aktif').length
-        const totalUnits = units.length
         const totalKelas = units.reduce((s, u) => s + (u.kelas?.length || 0), 0)
 
         return [
@@ -83,9 +82,8 @@ export default function DashboardPage() {
             {/* Bento Grid */}
             <div className="bento-grid">
 
-                {/* Main Stats Cards */}
-                {mainStats.map((stat, i) => (
-                    <div key={i} className="bento-card glass" style={{ '--accent-light': stat.accent }}>
+                {mainStats.map((stat) => (
+                    <div key={stat.label} className="bento-card glass" style={{ '--accent-light': stat.accent }}>
                         <div className="d-flex justify-content-between align-items-start mb-3">
                             <div className="p-3 rounded-4" style={{ backgroundColor: `${stat.color}15`, color: stat.color }}>
                                 <stat.icon size={26} />
@@ -117,7 +115,7 @@ export default function DashboardPage() {
                         <Activity size={20} className="text-muted" />
                     </div>
                     <div className="activity-feed-premium flex-grow-1">
-                        {recentActivity.map((activity, i) => (
+                        {recentActivity.map((activity) => (
                             <div key={activity.id} className="activity-item-premium mb-2 border-bottom border-light">
                                 <div className="activity-icon-sm" style={{ backgroundColor: `${activity.color}15`, color: activity.color }}>
                                     <activity.icon size={16} />

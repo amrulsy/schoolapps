@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { usePortal } from '../context/PortalContext'
 import {
     ArrowRight, GraduationCap, Users, Trophy, Briefcase,
-    ChevronRight, Star, Target, BookOpen, CheckCircle, Layers
+     Star, Target, BookOpen, CheckCircle, Layers
 } from 'lucide-react'
 import { getDirectDriveUrl } from '../../utils/urlHelper'
 import '../styles/portal-programs.css'

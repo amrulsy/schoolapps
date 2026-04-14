@@ -213,7 +213,7 @@ router.post('/api/pembayaran', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        const { siswaId, selectedBillIds, amountPaid, total, change, partialPayMap, kasir, sendWA } = req.body;
+        const { siswaId, selectedBillIds, amountPaid, total, change, partialPayMap, sendWA } = req.body;
         const now = new Date().toISOString().slice(0, 10);
         const invoiceNo = `INV-${now.replace(/-/g, '')}-${String(Date.now()).slice(-4)}`;
 
@@ -264,7 +264,7 @@ router.post('/api/pembayaran', async (req, res) => {
                     // Ambil data siswa & nomor HP orang tua
                     const [siswaRows] = await pool.query('SELECT nama, telp FROM siswa WHERE id = ?', [siswaId]);
                     const [ortuRows] = await pool.query('SELECT hp, jenis FROM siswa_orangtua WHERE siswa_id = ?', [siswaId]);
-                    
+
                     const siswa = siswaRows[0];
                     const phoneTargets = [];
                     if (siswa?.telp) phoneTargets.push(siswa.telp);
@@ -273,11 +273,11 @@ router.post('/api/pembayaran', async (req, res) => {
                     if (phoneTargets.length > 0) {
                         const formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
                         const itemList = paidItems.map(i => `• ${i.kategori} (${i.bulan} ${i.tahun}): ${formatRp(i.nominal)}`).join('\n');
-                        
+
                         // Ambil template dari pengaturan sekolah
                         const [settingRows] = await pool.query('SELECT `value` FROM school_settings WHERE `key` = "wa_template_pembayaran"');
                         let template = settingRows.length > 0 ? settingRows[0].value : `*📋 NOTA PEMBAYARAN*\n*SMK PPRQ - SIAS*\n\nNo. Invoice: *{invoiceNo}*\nNama Siswa: *{siswaNama}*\n\n*Rincian Pembayaran:*\n{rincian}\n\n*Total: {total}*\nDibayar: {dibayar}\nKembali: {kembali}\n\nTerima kasih atas pembayarannya. 🙏`;
-                        
+
                         // Ganti variabel dengan nilai dinamis
                         const message = template
                             .replace(/{invoiceNo}/g, invoiceNo)
@@ -334,7 +334,7 @@ router.post('/api/cashflow', async (req, res) => {
 router.put('/api/tagihan/discount', async (req, res) => {
     try {
         const { billIds, type, value } = req.body;
-                if (!billIds || !Array.isArray(billIds)) return res.status(400).json({ error: 'Invalid bill IDs' });
+        if (!billIds || !Array.isArray(billIds)) return res.status(400).json({ error: 'Invalid bill IDs' });
         for (const id of billIds) {
             // Get current bill to calculate discount
             const [rows] = await pool.query('SELECT nominal, nominal_asli FROM tagihan WHERE id = ?', [id]);

@@ -5,7 +5,7 @@ import { API_BASE } from '../../services/api'
 import {
     Calendar, Users, Save, CheckCircle, AlertCircle,
     Clock, PieChart as PieChartIcon, Activity, UserCheck,
-    UserMinus, Search, Filter, MessageCircle, ChevronRight,
+    UserMinus, Search, MessageCircle,
     LayoutDashboard, UserCircle, Settings as SettingsIcon, ClipboardList
 } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
@@ -264,7 +264,6 @@ export default function AttendancePage() {
     const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }))
     const [selectedKelasId, setSelectedKelasId] = useState('')
     const [students, setStudents] = useState([])
-    const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [sendWA, setSendWA] = useState(false)
@@ -285,7 +284,7 @@ export default function AttendancePage() {
             setStudents([])
             return
         }
-        setLoading(true)
+        // setLoading(true) removed as unused
         try {
             const res = await fetch(`${API_BASE}/admin/presensi?date=${selectedDate}&kelasId=${selectedKelasId}`, {
                 headers: getAuthHeaders(),
@@ -301,7 +300,7 @@ export default function AttendancePage() {
                 showError('Kesalahan', err.message)
             }
         } finally {
-            if (isMounted.current && (!signal || !signal.aborted)) setLoading(false)
+            // if (isMounted.current && (!signal || !signal.aborted)) setLoading(false)
         }
     }, [selectedDate, selectedKelasId, showError])
 

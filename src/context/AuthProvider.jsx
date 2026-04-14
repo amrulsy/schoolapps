@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { API_BASE, getAuthHeaders } from '../services/api';
-
-const AuthContext = createContext();
+import { useState, useEffect } from 'react';
+import { API_BASE } from '../services/api';
+import { AuthContext } from './AuthContext';
 
 export function AuthProvider({ children }) {
     const [users, setUsers] = useState([]);
@@ -116,8 +115,4 @@ export function AuthProvider({ children }) {
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-    return useContext(AuthContext);
 }

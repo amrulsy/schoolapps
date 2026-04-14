@@ -64,7 +64,7 @@ async function seed() {
         console.log('Seeding Users...');
         const adminHash = await bcrypt.hash('admin123', 10);
         const kasirHash = await bcrypt.hash('kasir123', 10);
-        
+
         await connection.query(`
             INSERT INTO users (id, nama, username, password_hash, role) VALUES 
             (1, "Pak Ahmad", "admin", ?, "admin"),
@@ -78,7 +78,7 @@ async function seed() {
         const studentValues = [];
         let studentId = 1;
 
-        for (const [kId, uId, kName] of kelas) {
+        for (const [kId, , kName] of kelas) {
             for (let i = 0; i < 4; i++) {
                 const fName = firstNames[Math.floor(Math.random() * firstNames.length)];
                 const lName = lastNames[Math.floor(Math.random() * lastNames.length)];
@@ -110,7 +110,9 @@ async function seed() {
 
         activeStudents.forEach(s => {
             const sid = s[0];
-            const currentKid = s[1];
+            months.forEach((bulan, idx) => {
+                const billYear = idx < 6 ? 2025 : 2026;
+                const isPaid = idx < 2;
                 tagihanValues.push([
                     sid, 1, 1, bulan, billYear, 150000, 150000,
                     isPaid ? 'lunas' : 'belum',
@@ -177,4 +179,7 @@ async function seed() {
     }
 }
 
-seed();
+seed().catch(err => {
+    console.error('Unhandled seed error:', err);
+    process.exit(1);
+});

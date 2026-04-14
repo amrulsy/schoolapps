@@ -1,12 +1,12 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import { API_BASE } from '../../services/api'
 import { usePagination } from '../../hooks/usePagination'
-import Modal from '../../components/Modal'
+
 import EmptyState from '../../components/EmptyState'
-import { useReactToPrint } from 'react-to-print'
-import { downloadFile } from '../../utils/downloadHelper'
-import { FileText, Printer, FileDown, RotateCcw, Search, Eye, Trash2 } from 'lucide-react'
+
+
+import { FileText,    Search, Eye, Trash2 } from 'lucide-react'
 import ReceiptReprintModal from '../../features/transaksi/ReceiptReprintModal'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 

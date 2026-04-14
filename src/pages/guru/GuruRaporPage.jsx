@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { BookOpen, Plus, Trash2, Save, Wand2, ChevronDown, FileSpreadsheet, ListChecks, Loader2, AlertCircle, CheckCircle2, Edit3, BarChart2 } from 'lucide-react'
+import { BookOpen, Plus, Trash2, Save, Wand2, FileSpreadsheet, ListChecks, Loader2, AlertCircle, CheckCircle2, Edit3, BarChart2 } from 'lucide-react'
 import api from '../../services/api'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 
@@ -177,7 +177,7 @@ export default function GuruRaporPage() {
     const [showSaveToast, setShowSaveToast] = useState(false)
     const autoSaveTimer = useRef(null)
     const latestSaveState = useRef({})
-    
+
 
     const [classes, setClasses] = useState([])
     const [tahunAjaran, setTahunAjaran] = useState(null)
@@ -202,9 +202,9 @@ export default function GuruRaporPage() {
 
     useEffect(() => {
         loadMyClasses()
-    }, [])
+    }, [loadMyClasses])
 
-    const loadMyClasses = async () => {
+    const loadMyClasses = useCallback(async () => {
         try {
             setLoading(true)
             const res = await api.get('/guru/rapor/my-classes')
@@ -218,7 +218,7 @@ export default function GuruRaporPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [showAlert])
 
     // Load TPs when class changes
     useEffect(() => {
@@ -226,15 +226,15 @@ export default function GuruRaporPage() {
             loadTPs()
             if (activeTab === 'input') loadGradeData()
         }
-    }, [selectedClass, tahunAjaran])
+    }, [selectedClass, tahunAjaran, loadTPs, loadGradeData, activeTab])
 
     useEffect(() => {
         if (selectedClass && tahunAjaran && activeTab === 'input') {
             loadGradeData()
         }
-    }, [activeTab])
+    }, [activeTab, selectedClass, tahunAjaran, loadGradeData])
 
-    const loadTPs = async () => {
+    const loadTPs = useCallback(async () => {
         if (!selectedClass || !tahunAjaran) return
         try {
             const res = await api.get('/guru/rapor/tp', {
@@ -247,9 +247,9 @@ export default function GuruRaporPage() {
             })
             setTps(res.data)
         } catch { /* silent */ }
-    }
+    }, [selectedClass, tahunAjaran])
 
-    const loadGradeData = async () => {
+    const loadGradeData = useCallback(async () => {
         if (!selectedClass || !tahunAjaran) return
         try {
             const res = await api.get(`/guru/rapor/input/${selectedClass.kelas_id}/${selectedClass.mapel_id}`, {
@@ -262,7 +262,7 @@ export default function GuruRaporPage() {
             if (res.data.tps) setTps(res.data.tps)
             if (res.data.bobot) setBobot(res.data.bobot)
         } catch { /* silent */ }
-    }
+    }, [selectedClass, tahunAjaran])
 
     // TP CRUD
     const handleAddTp = async () => {
@@ -525,7 +525,7 @@ export default function GuruRaporPage() {
                     {tps.length === 0 ? (
                         <div className="empty-state">
                             <AlertCircle size={48} />
-                            <p>Tambahkan Tujuan Pembelajaran terlebih dahulu di tab "Tujuan Pembelajaran".</p>
+                            <p>Tambahkan Tujuan Pembelajaran terlebih dahulu di tab &quot;Tujuan Pembelajaran&quot;.</p>
                         </div>
                     ) : (
                         <>

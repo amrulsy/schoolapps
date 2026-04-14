@@ -1,12 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MONTHS, ACTIVITY_LOG } from '../data/seedData';
 import { API_BASE } from '../services/api';
 import { useUi } from './UiContext';
 import { useAuth } from './AuthContext';
 import { useSiswa } from './SiswaContext';
 import { useSettings } from './SettingsContext';
-
-const KeuanganContext = createContext();
+import { KeuanganContext } from './KeuanganContext';
 
 export function KeuanganProvider({ children }) {
     const { addToast } = useUi();
@@ -97,6 +96,7 @@ export function KeuanganProvider({ children }) {
             }
         } catch (err) { addToast('danger', 'Error', 'Gagal generate tagihan massal'); }
         return 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bills, categories, students, addToast, MONTHS, tahunAjaranList, fetchBills, currentUser]);
 
     const generateSingleBill = useCallback(async (siswaId, inputKategori, customNominal, mIndices, inputTAId = null) => {
@@ -154,6 +154,7 @@ export function KeuanganProvider({ children }) {
             }
         } catch (err) { addToast('danger', 'Error', 'Gagal membuat tagihan tunggal'); }
         return 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bills, categories, students, addToast, MONTHS, tahunAjaranList, fetchBills, currentUser]);
 
     const rollbackGeneration = useCallback(async (logId) => {
@@ -274,8 +275,4 @@ export function KeuanganProvider({ children }) {
     };
 
     return <KeuanganContext.Provider value={value}>{children}</KeuanganContext.Provider>;
-}
-
-export function useKeuangan() {
-    return useContext(KeuanganContext);
 }

@@ -23,7 +23,7 @@ async function setupSettings() {
 
         for (const [key, value] of initialSettings) {
             await pool.query(
-                'INSERT IGNORE INTO school_settings (\`key\`, \`value\`) VALUES (?, ?)',
+                'INSERT IGNORE INTO school_settings (`key`, `value`) VALUES (?, ?)',
                 [key, value]
             );
         }

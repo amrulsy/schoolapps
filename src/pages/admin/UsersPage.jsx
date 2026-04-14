@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { UserCog, Plus, Trash2, X, Save, Shield, Key } from 'lucide-react'
 import { API_BASE, getAuthHeaders } from '../../services/api'
@@ -17,17 +17,17 @@ export default function UsersPage() {
         role: 'staf_tu'
     })
 
-    useEffect(() => {
-        fetchUsers()
-    }, [])
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const res = await fetch(`${API_BASE}/users`, { headers: getAuthHeaders() })
             const data = await res.json()
             if (Array.isArray(data)) setUsers(data)
         } catch (err) { console.error('Gagal fetch users:', err) }
-    }
+    }, [setUsers])
+
+    useEffect(() => {
+        fetchUsers()
+    }, [fetchUsers])
 
     const handleOpenModal = (user = null) => {
         if (user) {

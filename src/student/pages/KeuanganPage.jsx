@@ -1,10 +1,10 @@
 import { useStudent } from '../StudentApp'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import * as LucideIcons from 'lucide-react'
-import { 
-    Wallet, Receipt, ChevronDown, ChevronUp, CheckCircle, 
-    Clock, ShieldCheck, Sparkles, Building2, BookOpen, 
-    Shirt, CreditCard, ArrowRight, Star
+import {
+    Wallet, Receipt, ChevronDown, ChevronUp, CheckCircle,
+    Clock, ShieldCheck, Sparkles, Building2, BookOpen,
+    Shirt, CreditCard, Star
 } from 'lucide-react'
 
 // Helper for category-based icons
@@ -26,9 +26,9 @@ const PaymentPulseRing = ({ percentage }) => {
         <div className="stu-pulse-container">
             <svg className="stu-pulse-ring-svg" width="64" height="64">
                 <circle className="stu-pulse-ring-bg" cx="32" cy="32" r={radius} />
-                <circle 
-                    className="stu-pulse-ring-fill" 
-                    cx="32" cy="32" r={radius} 
+                <circle
+                    className="stu-pulse-ring-fill"
+                    cx="32" cy="32" r={radius}
                     style={{ strokeDasharray: circumference, strokeDashoffset: offset }}
                 />
             </svg>
@@ -154,9 +154,9 @@ export default function KeuanganPage() {
                         {transactions.length === 0 ? (
                             <div className="stu-empty-mini stu-fade-up">Belum ada riwayat transaksi digital.</div>
                         ) : transactions.map((tx, idx) => (
-                            <div 
-                                key={tx.id} 
-                                className={`stu-tx-card stu-fade-up`} 
+                            <div
+                                key={tx.id}
+                                className={`stu-tx-card stu-fade-up`}
                                 style={{ animationDelay: `${idx * 0.1 + 0.2}s` }}
                                 onClick={() => setExpandedTx(expandedTx === tx.id ? null : tx.id)}
                             >

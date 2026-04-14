@@ -6,7 +6,6 @@ import { Bluetooth, RefreshCw, CheckCircle2, Circle, Trash2, Printer } from 'luc
 export default function PrinterSettingsModal({ onClose }) {
     const [devices, setDevices] = useState([])
     const [defaultId, setDefaultId] = useState(bluetoothHelper.getDefaultPrinterId())
-    const [loading, setLoading] = useState(false)
     const [scanning, setScanning] = useState(false)
 
     useEffect(() => {
@@ -14,10 +13,8 @@ export default function PrinterSettingsModal({ onClose }) {
     }, [])
 
     const loadDevices = async () => {
-        setLoading(true)
         const list = await bluetoothHelper.getAuthorizedDevices()
         setDevices(list)
-        setLoading(false)
     }
 
     const handleScan = async () => {
@@ -29,7 +26,7 @@ export default function PrinterSettingsModal({ onClose }) {
                 // Simpan perangkat di memory dan jadikan default
                 bluetoothHelper.setActiveDevice(device)
                 setDefaultId(device.id)
-                
+
                 // Tambahkan ke state lokal segera tanpa menunggu getDevices
                 setDevices(prev => {
                     const exists = prev.find(d => d.id === device.id)
@@ -66,8 +63,8 @@ export default function PrinterSettingsModal({ onClose }) {
     }
 
     return (
-        <Modal 
-            title="⚙️ Pengaturan Printer Bluetooth" 
+        <Modal
+            title="⚙️ Pengaturan Printer Bluetooth"
             onClose={onClose}
             footer={
                 <button className="btn btn-primary" onClick={onClose} style={{ borderRadius: 12 }}>
@@ -83,8 +80,8 @@ export default function PrinterSettingsModal({ onClose }) {
                 <div className="printer-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {devices.length > 0 ? (
                         devices.map((device) => (
-                            <div 
-                                key={device.id} 
+                            <div
+                                key={device.id}
                                 onClick={() => handleSetDefault(device.id)}
                                 style={{
                                     display: 'flex',
@@ -99,10 +96,10 @@ export default function PrinterSettingsModal({ onClose }) {
                                     position: 'relative'
                                 }}
                             >
-                                <div style={{ 
-                                    width: '44px', 
-                                    height: '44px', 
-                                    borderRadius: '12px', 
+                                <div style={{
+                                    width: '44px',
+                                    height: '44px',
+                                    borderRadius: '12px',
                                     background: defaultId === device.id ? 'var(--pos-primary)' : '#e2e8f0',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -111,7 +108,7 @@ export default function PrinterSettingsModal({ onClose }) {
                                 }}>
                                     <Printer size={22} />
                                 </div>
-                                
+
                                 <div style={{ flex: 1 }}>
                                     <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{device.name || 'Printer Bluetooth'}</h4>
                                     <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>ID: {device.id.slice(0, 8)}...</span>
@@ -123,11 +120,11 @@ export default function PrinterSettingsModal({ onClose }) {
                                     <Circle color="#cbd5e1" size={24} />
                                 )}
 
-                                <button 
+                                <button
                                     onClick={(e) => { e.stopPropagation(); handleForget(device); }}
-                                    style={{ 
-                                        position: 'absolute', 
-                                        top: '8px', 
+                                    style={{
+                                        position: 'absolute',
+                                        top: '8px',
                                         right: '8px',
                                         padding: '4px',
                                         background: 'transparent',
@@ -142,12 +139,12 @@ export default function PrinterSettingsModal({ onClose }) {
                             </div>
                         ))
                     ) : (
-                        <div style={{ 
-                            textAlign: 'center', 
-                            padding: '30px 20px', 
-                            background: '#f1f5f9', 
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '30px 20px',
+                            background: '#f1f5f9',
                             borderRadius: '16px',
-                            color: '#64748b' 
+                            color: '#64748b'
                         }}>
                             <Bluetooth size={40} style={{ opacity: 0.2, marginBottom: '12px' }} />
                             <p style={{ fontSize: '0.85rem' }}>Belum ada printer yang tersimpan.</p>
@@ -156,12 +153,12 @@ export default function PrinterSettingsModal({ onClose }) {
                 </div>
 
                 <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
-                    <button 
+                    <button
                         className={`btn ${scanning ? 'btn-ghost' : 'btn-outline'}`}
                         disabled={scanning}
                         onClick={handleScan}
-                        style={{ 
-                            borderRadius: '14px', 
+                        style={{
+                            borderRadius: '14px',
                             gap: '8px',
                             padding: '10px 24px',
                             borderWidth: '1.5px',
@@ -180,7 +177,8 @@ export default function PrinterSettingsModal({ onClose }) {
                 </div>
             </div>
 
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @keyframes pulse-glow {
                     0% { box-shadow: 0 0 0 0 rgba(var(--pos-primary-rgb), 0.4); }
                     70% { box-shadow: 0 0 0 10px rgba(var(--pos-primary-rgb), 0); }

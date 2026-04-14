@@ -39,7 +39,7 @@ export default function ReceiptReprintModal({ receipt, formatRupiah, onClose }) 
     // Dynamic print styles based on paper size
     const getPageStyle = () => {
         const pageSizeCss = paperSize === 'A4' ? 'A4' : paperSize // '58mm' or '80mm'
-        const bodyPad = paperSize === 'A4' ? '20mm' : '2mm 0'
+
         const receiptPad = paperSize === 'A4' ? '32px' : '8px 4px'
         const receiptMaxW = paperSize === 'A4' ? '100%' : paperWidths[paperSize]
         const receiptFontSize = paperSize === 'A4' ? '12pt' : (paperSize === '80mm' ? '10pt' : '8pt')

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { API_BASE, getAuthHeaders } from '../../services/api'
-import LoadingSpinner from '../../components/LoadingSpinner'
+
 import { PlusCircle, Search, PiggyBank, ArrowDownCircle, ArrowUpCircle, Wallet, TrendingUp, X, BarChart as BarChartIcon, ChevronLeft, ChevronRight, FileText, Download, User, CheckCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
@@ -1099,7 +1099,7 @@ function RecentActivity({ transactions, formatRupiah, loading }) {
                                     color: '#64748b', marginTop: '6px',
                                     fontStyle: 'italic'
                                 }}>
-                                    "{t.note}"
+                                    &quot;{t.note}&quot;
                                 </div>
                             )}
                         </div>

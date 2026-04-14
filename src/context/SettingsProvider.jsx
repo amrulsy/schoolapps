@@ -1,8 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api, { API_BASE } from '../services/api';
+import { useState, useEffect, useCallback } from 'react';
+import api from '../services/api';
 import { useUi } from './UiContext';
-
-const SettingsContext = createContext();
+import { SettingsContext } from './SettingsContext';
 
 export function SettingsProvider({ children }) {
     const { addToast } = useUi();
@@ -26,7 +25,7 @@ export function SettingsProvider({ children }) {
 
     const updateSchoolSettings = useCallback(async (newSettings) => {
         try {
-            const { data } = await api.post('/admin/school-settings', newSettings);
+            await api.post('/admin/school-settings', newSettings);
             setSchoolSettings(prev => ({ ...prev, ...newSettings }));
             addToast('success', 'Berhasil', 'Pengaturan sekolah diperbarui');
         } catch (err) { addToast('danger', 'Error', 'Gagal memperbarui pengaturan sekolah'); }
@@ -74,8 +73,4 @@ export function SettingsProvider({ children }) {
     };
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
-}
-
-export function useSettings() {
-    return useContext(SettingsContext);
 }

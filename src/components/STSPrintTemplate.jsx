@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 const STSPrintTemplate = ({ data, batchData }) => {
     if (batchData && Array.isArray(batchData)) {

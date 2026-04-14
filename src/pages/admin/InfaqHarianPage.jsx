@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import {
     HandHeart, Calendar, Users, CheckCircle2, AlertCircle,
-    ChevronRight, Search, ChevronLeft, Edit3, TrendingUp, Plus, BarChart3,
-    History, MapPin, Settings, X, Clock, Zap, DollarSign, FileText, ArrowUpRight
+    ChevronRight, Search, ChevronLeft, Edit3, TrendingUp, BarChart3,
+    Settings, X, FileText, MapPin, Clock
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts'
 import api from '../../services/api'
@@ -30,25 +30,25 @@ export default function InfaqHarianPage() {
     const [selectedTA, setSelectedTA] = useState('')
     const [showSummaryPanel, setShowSummaryPanel] = useState(false)
 
-    const fetchSummary = async () => {
+    const fetchSummary = useCallback(async () => {
         try {
             const end = new Date().toISOString().split('T')[0]
             const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
             const res = await api.get('/admin/infaq/summary', { params: { startDate: start, endDate: end } })
             setSummaryData(res.data)
         } catch (err) { console.error(err) }
-    }
+    }, [])
 
-    const fetchGlobalSummary = async () => {
+    const fetchGlobalSummary = useCallback(async () => {
         try {
             const params = {}
             if (selectedTA) params.tahun_ajaran_id = selectedTA
             const res = await api.get('/admin/infaq/summary/global', { params })
             setGlobalSummary(res.data)
         } catch (err) { console.error(err) }
-    }
+    }, [selectedTA])
 
-    const fetchTransactions = async (page = 1) => {
+    const fetchTransactions = useCallback(async (page = 1) => {
         try {
             const params = { page, limit: 10 }
             if (selectedTA) params.tahun_ajaran_id = selectedTA
@@ -56,9 +56,9 @@ export default function InfaqHarianPage() {
             setTransactions(res.data)
             setTxPage(page)
         } catch (err) { console.error(err) }
-    }
+    }, [selectedTA])
 
-    const fetchStatus = async () => {
+    const fetchStatus = useCallback(async () => {
         if (!kelasId) return
         setLoading(true)
         try {
@@ -69,22 +69,11 @@ export default function InfaqHarianPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [kelasId, date])
 
-    useEffect(() => { fetchStatus(); fetchSummary() }, [kelasId, date])
-    useEffect(() => { fetchGlobalSummary(); fetchTransactions(1) }, [selectedTA])
+    useEffect(() => { fetchStatus(); fetchSummary() }, [fetchStatus, fetchSummary])
+    useEffect(() => { fetchGlobalSummary(); fetchTransactions(1) }, [fetchGlobalSummary, fetchTransactions])
 
-    const handlePay = async (siswaId, nominal, days = 1) => {
-        try {
-            await api.post('/admin/infaq/pay', {
-                payments: [{ siswa_id: siswaId, date, nominal, days }],
-                user_id: 1
-            })
-            fetchStatus()
-        } catch (err) {
-            Swal.fire('Error', 'Gagal mencatat pembayaran', 'error')
-        }
-    }
 
     const filteredStudents = useMemo(() => {
         return data.students.filter(s =>
@@ -360,7 +349,7 @@ export default function InfaqHarianPage() {
                                             <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                                             <YAxis tick={{ fontSize: 10 }} tickFormatter={v => v >= 1000000 ? `${v / 1000000}jt` : v >= 1000 ? `${v / 1000}rb` : v} />
                                             <RechartsTooltip
-                                                formatter={(value, name) => [formatRupiah(value), 'Total']}
+                                                formatter={(value) => [formatRupiah(value), 'Total']}
                                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                                             />
                                             <Bar dataKey="total" radius={[6, 6, 0, 0]} fill="#3b82f6" barSize={30} />
@@ -457,7 +446,8 @@ export default function InfaqHarianPage() {
                 />
             )}
 
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 .rank-num {
                     width: 24px; height: 24px; background: var(--primary-100); color: var(--primary-600);
                     border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -535,7 +525,7 @@ export default function InfaqHarianPage() {
 // HISTORY MODAL — Batch Select, Tooltips, Quick Pay
 // ============================================================
 
-function HistoryModal({ siswa, onClose, refreshParent, addToast, date: parentDate, settings: parentSettings }) {
+function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
     const [viewDate, setViewDate] = useState(new Date())
     const [data, setData] = useState(null)
     const [editEnrollment, setEditEnrollment] = useState(false)
@@ -544,9 +534,9 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast, date: parentDat
     const [selectedDates, setSelectedDates] = useState(new Set())
     const [hoveredPaidDay, setHoveredPaidDay] = useState(null)
 
-    useEffect(() => { fetchHistory() }, [siswa.id, viewDate])
+    useEffect(() => { fetchHistory() }, [fetchHistory])
 
-    const fetchHistory = async () => {
+    const fetchHistory = useCallback(async () => {
         try {
             const res = await api.get(`/admin/infaq/history/${siswa.id}?year=${viewDate.getFullYear()}&month=${viewDate.getMonth()}`)
             setData(res.data)
@@ -557,7 +547,7 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast, date: parentDat
         } catch (err) {
             addToast?.('danger', 'Gagal memuat riwayat')
         }
-    }
+    }, [siswa.id, viewDate, addToast])
 
     const updateEnrollmentDate = async () => {
         if (!newEnrollmentDate) return

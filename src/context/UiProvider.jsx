@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-
-const UiContext = createContext();
+import { useState, useCallback } from 'react';
+import { UiContext } from './UiContext';
 
 export function UiProvider({ children }) {
     const [theme, setTheme] = useState('light');
@@ -41,8 +40,4 @@ export function UiProvider({ children }) {
     };
 
     return <UiContext.Provider value={value}>{children}</UiContext.Provider>;
-}
-
-export function useUi() {
-    return useContext(UiContext);
 }

@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { API_BASE } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import {
-    MessageSquare, Search, Send, Clock, Check, CheckCheck,
-    Plus, MoreVertical, Phone, Video, Hash, Info
+    MessageSquare, Search, Send,  Check, CheckCheck,
+    Plus, MoreVertical, Phone,  Hash, Info
 } from 'lucide-react'
 
 export default function ManajemenPesanPage() {
@@ -73,7 +73,7 @@ export default function ManajemenPesanPage() {
                             headers: { 'Authorization': `Bearer ${token}` }
                         })
                         if (res.ok) setMessages(await res.json())
-                    } catch (e) { }
+                    } catch (e) { /* ignore refresh error */ }
                 }
                 refreshMessages()
             }, 5000)

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 import { API_BASE } from '../../services/api'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
-import { User, Phone, MapPin, Calendar, FileText, Download, Search, Upload, CheckCircle2, AlertCircle, Briefcase, GraduationCap, Users, Shield, ArrowLeft, HeartPulse, CreditCard, Save, X, Edit3, Trash2, IdCard, BookOpen, FileCheck, Hash, EyeOff, Activity, Home, Heart, Eye } from 'lucide-react'
+import { User, FileText, Download, Upload, CheckCircle2, GraduationCap, Users, Shield, ArrowLeft, Save, X, Edit3, Trash2, IdCard, BookOpen, FileCheck, Hash, EyeOff, Activity, Home, Heart, Eye } from 'lucide-react'
 
 /* ─────────────── helpers ─────────────── */
 const fmtDate = (d) => {
@@ -205,7 +205,6 @@ export default function SiswaProfile({ data, onClose }) {
     const [form, setForm] = useState({})
 
     const [isSaving, setIsSaving] = useState(false)
-    const [loadingDetail, setLoadingDetail] = useState(true)
 
     // Use live data from context to avoid stale prop issues
     const p = students.find(s => s.id === (data.id || data.siswa_id)) || data
@@ -214,7 +213,6 @@ export default function SiswaProfile({ data, onClose }) {
         let isMounted = true
         const fetchDetails = async () => {
             try {
-                setLoadingDetail(true)
                 const res = await fetch(`${API_BASE}/siswa/${data.id}`)
                 if (res.ok) {
                     const d = await res.json()
@@ -233,13 +231,11 @@ export default function SiswaProfile({ data, onClose }) {
                 }
             } catch (err) {
                 console.error("Fetch profile details error:", err)
-            } finally {
-                if (isMounted) setLoadingDetail(false)
             }
         }
         fetchDetails()
         return () => { isMounted = false }
-    }, [data.id, setStudents])
+    }, [data.id, data.siswa_id, setStudents])
 
     const maskNik = (nik) => {
         if (!nik || nik === '-') return '-'

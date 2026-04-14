@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { MessageCircle, GraduationCap } from 'lucide-react'
 import { usePortal } from '../context/PortalContext'

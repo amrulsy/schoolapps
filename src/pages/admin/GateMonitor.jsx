@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { io } from 'socket.io-client'
 import {
     School, Clock, CheckCircle, ArrowRight, ArrowLeft, AlertTriangle, Volume2, History,
-    SortDesc, SortAsc, X, Download, Search, UserCheck, AlertCircle, LogOut
+    SortDesc, SortAsc, X, Download, Search
 } from 'lucide-react'
 import api, { API_BASE } from '../../services/api'
 
@@ -13,12 +13,13 @@ export default function GateMonitor() {
     const [currentTime, setCurrentTime] = useState(new Date())
     const [schoolSettings, setSchoolSettings] = useState(null)
     const [isProcessing, setIsProcessing] = useState(false)
-    const [lastError, setLastError] = useState(null)
+
     const [audioUnlocked, setAudioUnlocked] = useState(false)
     const [tapLog, setTapLog] = useState([])
     const [logSearch, setLogSearch] = useState('')
     const [sortOldest, setSortOldest] = useState(false)
     const [newEntryId, setNewEntryId] = useState(null)
+    const [isShaking, setIsShaking] = useState(false)
 
     const inputRef = useRef(null)
     const timerRef = useRef(null)
@@ -35,34 +36,7 @@ export default function GateMonitor() {
             .catch(console.error)
     }, [])
 
-    // Socket.io Connection
-    useEffect(() => {
-        const socketOrigin = API_BASE.replace('/api', '')
-        const socket = io(socketOrigin, {
-            path: '/api/socket.io',
-            transports: ['polling']
-        })
 
-        socket.on('connect', () => console.log('[Socket] Connected'))
-        socket.on('scan_success', (data) => {
-            showScanResult(data)
-            // Refresh tap log from server to get the latest persisted entry
-            api.get('/admin/presensi/tap-log')
-                .then(res => {
-                    const logs = res.data || []
-                    setTapLog(logs)
-                    // Highlight the newest entry for 4 seconds
-                    if (logs.length > 0) {
-                        setNewEntryId(logs[0].id)
-                        setTimeout(() => setNewEntryId(null), 4000)
-                    }
-                })
-                .catch(() => { })
-        })
-        socket.on('scan_info', (data) => showScanInfo(data))
-
-        return () => socket.disconnect()
-    }, [])
 
     // Clock — R-9: Explicitly use WIB (Asia/Jakarta) timezone
     useEffect(() => {
@@ -99,7 +73,7 @@ export default function GateMonitor() {
             gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
             osc.start();
             osc.stop(ctx.currentTime + 0.1);
-        } catch (e) { }
+        } catch (e) { /* ignore audio context error */ }
     }
 
     const playBuzzer = () => {
@@ -114,7 +88,7 @@ export default function GateMonitor() {
             gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
             osc.start();
             osc.stop(ctx.currentTime + 0.4);
-        } catch (e) { }
+        } catch (e) { /* ignore audio context error */ }
     }
 
     const speakMessage = (text) => {
@@ -146,8 +120,8 @@ export default function GateMonitor() {
         window.speechSynthesis.speak(msg);
     }
 
-    // --- Core Logic ---
-    const showScanResult = (data) => {
+    // --- Core Logic (useCallback so socket useEffect closes over stable refs) ---
+    const showScanResult = useCallback((data) => {
         if (timerRef.current) clearTimeout(timerRef.current)
         setScanInfo(null)
         setScanData(data)
@@ -172,7 +146,7 @@ export default function GateMonitor() {
         timerRef.current = setTimeout(() => {
             setScanData(null)
         }, 5000)
-    }
+    }, [timerRef])
 
     const unlockAudio = () => {
         setAudioUnlocked(true)
@@ -190,7 +164,7 @@ export default function GateMonitor() {
         } catch (e) { console.error(e) }
     }
 
-    const showScanInfo = (data) => {
+    const showScanInfo = useCallback((data) => {
         if (timerRef.current) clearTimeout(timerRef.current)
         setScanData(null)
         setScanInfo(data)
@@ -198,40 +172,66 @@ export default function GateMonitor() {
         if (audioUnlocked) {
             playBuzzer();
             setTimeout(() => speakMessage('Mohon maaf, ' + data.message), 300);
+        } else {
+            // Bug 3 Fix: No audio available — shake the screen so operator notices visually
+            setIsShaking(true)
+            setTimeout(() => setIsShaking(false), 700)
         }
 
         timerRef.current = setTimeout(() => {
             setScanInfo(null)
         }, 5000)
-    }
+    }, [audioUnlocked, timerRef])
+
+    // Socket.io Connection
+    useEffect(() => {
+        const socketOrigin = API_BASE.replace('/api', '')
+        const socket = io(socketOrigin, {
+            path: '/api/socket.io',
+            transports: ['polling']
+        })
+
+        socket.on('connect', () => console.log('[Socket] Connected'))
+        socket.on('scan_success', (data) => {
+            showScanResult(data)
+            // Refresh tap log from server to get the latest persisted entry
+            api.get('/admin/presensi/tap-log')
+                .then(res => {
+                    const logs = res.data || []
+                    setTapLog(logs)
+                    // Highlight the newest entry for 4 seconds
+                    if (logs.length > 0) {
+                        setNewEntryId(logs[0].id)
+                        setTimeout(() => setNewEntryId(null), 4000)
+                    }
+                })
+                .catch(() => { /* ignore refresh error */ })
+        })
+        socket.on('scan_info', (data) => showScanInfo(data))
+
+        return () => socket.disconnect()
+    }, [showScanResult, showScanInfo])
 
     const handleManualScan = async (e) => {
         e.preventDefault()
         if (!rfidInput || isProcessing) return
 
         setIsProcessing(true)
-        setLastError(null)
-        // DONT clear state here immediately so the screen doesn't flicker unnecessarily 
-        // until the response arrives
-
         try {
             const { data } = await api.post('/attendance/scan', { rfid_uid: rfidInput.trim() })
             if (data.success) {
-                showScanResult(data);
+                showScanResult(data)
             } else {
-                setLastError(data.error || 'Server error');
-                showScanInfo({ message: data.error || 'Terjadi kesalahan sistem', type: 'warning' });
+                showScanInfo({ message: data.error || 'Terjadi kesalahan sistem', type: 'warning' })
             }
         } catch (err) {
             console.error('Scan error:', err)
-            const errMsg = err.response?.data?.error || err.message || 'Kesalahan Koneksi';
-            setLastError(errMsg);
-            // Fallback display warning immediately
+            const errMsg = err.response?.data?.error || err.message || 'Kesalahan Koneksi'
             showScanInfo({
                 student: { nama: 'Peringatan' },
                 message: errMsg,
                 type: 'warning'
-            });
+            })
         } finally {
             setRfidInput('')
             setIsProcessing(false)
@@ -293,11 +293,12 @@ export default function GateMonitor() {
     }, [tapLog])
 
     return (
-        <div className="gate-monitor-container" style={{
+        <div className={`gate-monitor-container${isShaking ? ' gate-shake' : ''}`} style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: getBgColor(), color: '#fff', zIndex: 9999,
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
-            transition: 'background 0.5s ease'
+            transition: 'background 0.5s ease',
+            outline: isShaking ? '6px solid #ef4444' : 'none'
         }}>
             {/* HIDDEN RFID INPUT (Fixed for better focus/browser compatibility) */}
             <form onSubmit={handleManualScan} style={{ position: 'fixed', top: -100, left: -100 }}>
@@ -648,6 +649,18 @@ export default function GateMonitor() {
                 @keyframes marquee {
                     0% { transform: translateX(100vw); }
                     100% { transform: translateX(-100%); }
+                }
+                @keyframes gate-shake {
+                    0%, 100% { transform: translateX(0); }
+                    15% { transform: translateX(-10px); }
+                    30% { transform: translateX(10px); }
+                    45% { transform: translateX(-8px); }
+                    60% { transform: translateX(8px); }
+                    75% { transform: translateX(-4px); }
+                    90% { transform: translateX(4px); }
+                }
+                .gate-shake {
+                    animation: gate-shake 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
                 }
                 .mono {
                     font-family: monospace;

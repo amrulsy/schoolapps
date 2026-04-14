@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useApp } from '../../context/AppContext'
-import Modal from '../../components/Modal'
 import EmptyState from '../../components/EmptyState'
 import * as XLSX from 'xlsx'
 import { downloadFile } from '../../utils/downloadHelper'
-import { Search, Plus, TrendingUp, TrendingDown, Wallet, BookOpen, Download } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, BookOpen, Download, Plus } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 // Features

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { API_BASE, getAuthHeaders } from '../../services/api'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import {
     Calendar, PlusCircle, Trash2, Edit, Save, X, Search, Clock,
-    ChevronDown, ChevronRight, BookOpen, RefreshCw, Layout,
-    TrendingUp, CheckCircle, ShieldCheck, List, Info, Book, Users, User, GraduationCap
+    ChevronDown, ChevronRight, BookOpen, RefreshCw,
+    TrendingUp, CheckCircle, List, Info, Book, Users, User, GraduationCap
 } from 'lucide-react'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
 import '../../styles/cms.css'
@@ -45,7 +45,7 @@ export default function JadwalPelajaranPage() {
     const [submitLoadingMapel, setSubmitLoadingMapel] = useState(false)
     const [mapelFormData, setMapelFormData] = useState({ id: '', nama: '', tingkat: 'Nasional', guru_id: '', kelas_id: '' })
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true)
         try {
             const [jadwalRes, guruRes, kelasRes, mapelRes, jamRes] = await Promise.all([
@@ -73,11 +73,11 @@ export default function JadwalPelajaranPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [selectedKelasId])
 
     useEffect(() => {
         fetchData()
-    }, [])
+    }, [fetchData])
 
     /* =========================================
        HANDLERS: JADWAL PELAJARAN

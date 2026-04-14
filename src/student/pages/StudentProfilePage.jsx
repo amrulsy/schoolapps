@@ -1,9 +1,9 @@
 import { useStudent } from '../StudentApp'
-import { User, MapPin, Phone, Mail, Calendar, FileText, Shield, ChevronRight, LogOut } from 'lucide-react'
+import { User, FileText, Shield, LogOut } from 'lucide-react'
 import { useState } from 'react'
 
 export default function StudentProfilePage() {
-const { student, profile, stuTheme, changeTheme, handleLogout } = useStudent()
+    const { student, profile, stuTheme, changeTheme, handleLogout } = useStudent()
     const data = profile || student || {}
     const [activeSection, setActiveSection] = useState('personal')
 
@@ -85,7 +85,7 @@ const { student, profile, stuTheme, changeTheme, handleLogout } = useStudent()
                             { id: 'violet', color: '#8B5CF6' },
                             { id: 'orange', color: '#F59E0B' }
                         ].map(t => (
-                            <div 
+                            <div
                                 key={t.id}
                                 className={`stu-theme-option ${stuTheme === t.id ? 'active' : ''}`}
                                 style={{ color: t.color }}

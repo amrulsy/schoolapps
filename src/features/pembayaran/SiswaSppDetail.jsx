@@ -6,7 +6,7 @@ import { ArrowLeft, Printer, CreditCard } from 'lucide-react'
 
 export default function SiswaSppDetail({ data, onClose, year }) {
     const navigate = useNavigate()
-    const { bills, formatRupiah, MONTHS, tahunAjaran: activeTahunAjaran } = useApp()
+    const { bills, formatRupiah, tahunAjaran: activeTahunAjaran } = useApp()
     const targetTahun = year || activeTahunAjaran
     const kartuRef = useRef(null)
 

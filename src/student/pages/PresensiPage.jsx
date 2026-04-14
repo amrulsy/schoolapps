@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import * as LucideIcons from 'lucide-react'
-import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { AreaChart, Area, ResponsiveContainer } from 'recharts'
 import { useStudent } from '../StudentApp'
 
 const statusConfig = {

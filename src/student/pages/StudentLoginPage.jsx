@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { API_BASE } from '../../services/api'
-import { GraduationCap, Eye, EyeOff, LogIn, ArrowRight } from 'lucide-react'
+import { GraduationCap, ArrowRight } from 'lucide-react'
 
 export default function StudentLoginPage({ onLogin }) {
     const [nisn, setNisn] = useState('')

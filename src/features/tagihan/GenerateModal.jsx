@@ -38,6 +38,7 @@ export default function GenerateModal({ allKelas, categories, MONTHS, formatRupi
         } else if (category.tipe === 'tahunan') {
             setSelectedMonths([0]) // Juli
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [kategoriId])
 
     // Sync from/to for bulanan

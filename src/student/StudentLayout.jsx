@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Home, GraduationCap, Wallet, MessageCircle, User, Bell, Sun, Sunrise, Sunset, Moon, Plus, X, Info } from 'lucide-react'
+import { Home, GraduationCap, Wallet, MessageCircle, User, Bell, Sun, Sunrise, Sunset, Moon,  X, Info } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useStudent } from './StudentApp'
 

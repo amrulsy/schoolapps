@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, X, Command } from 'lucide-react'
+import { Search, Command } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { isPathAllowed } from '../utils/permissions'
 
@@ -137,7 +137,7 @@ export default function CommandPalette() {
 
                 <div className="command-palette-results">
                     {filteredItems.length === 0 ? (
-                        <div className="no-results">Tidak ditemukan hasil untuk "{query}"</div>
+                        <div className="no-results">Tidak ditemukan hasil untuk &quot;{query}&quot;</div>
                     ) : (
                         filteredItems.map((item, index) => (
                             <div

@@ -1,12 +1,9 @@
 import { useState, useRef, useMemo } from 'react'
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
-import { useApp } from '../context/AppContext'
 import MediaLibraryModal from './MediaLibraryModal'
-import { API_BASE_CMS as API_BASE } from '../services/api'
 
 export default function RichTextEditor({ value, onChange, placeholder }) {
-    const { addToast } = useApp()
     const quillRef = useRef()
     const [showMediaModal, setShowMediaModal] = useState(false)
 

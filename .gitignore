@@ -57,3 +57,24 @@ backend/database.sqlite-shm
 backend/database.sqlite-wal
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Lint output artifacts (temporary — generated during debugging sessions)
+lint*.txt
+lint*.json
+*_lint*.txt
+eslint_parsed.txt
+eslint_report.json
+*_lint_output*.txt
+*final_lint_output*.txt
+mega_ultra_final_lint_output*.txt
+auto_fix.cjs
+view_lint_lines.*
+
+# Debug & patch scripts (temporary — use migrations/ for permanent schema changes)
+backend/debug_*.js
+backend/apply_*.js
+backend/*_patch*.sql
+backend/out.log
+backend/*.zip
+backend/routes/**/*.zip
+backend/routes/*.zip
