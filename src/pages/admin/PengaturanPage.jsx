@@ -6,7 +6,7 @@ import {
     CheckCircle, XCircle, RefreshCw, Trash2, Plus, FileText, Printer
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import api, { API_BASE } from '../../services/api'
+import api, { API_BASE, getMediaUrl } from '../../services/api'
 
 export default function PengaturanPage() {
     const {
@@ -293,7 +293,7 @@ export default function PengaturanPage() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                         {localProfile.school_logo && (
                                             <div style={{ width: 48, height: 48, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--slate-200)', flexShrink: 0 }}>
-                                                <img src={API_BASE.replace('/api', '') + localProfile.school_logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                <img src={getMediaUrl(localProfile.school_logo)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                             </div>
                                         )}
                                         <label className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center', cursor: 'pointer', margin: 0 }}>

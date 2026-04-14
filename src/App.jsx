@@ -65,18 +65,29 @@ import { API_BASE } from './services/api';
 export default function App() {
   const { schoolSettings } = useApp();
 
+  // Efek untuk Sinkronisasi Logo ke Favicon
   useEffect(() => {
     if (schoolSettings && schoolSettings.school_logo) {
-      const logoUrl = API_BASE.replace('/api', '') + schoolSettings.school_logo;
-      const iconUrl = logoUrl + '?v=' + new Date().getTime(); // cache busting 
-      const relIcon = document.querySelector("link[rel~='icon']");
-      const appleIcon = document.querySelector("link[rel='apple-touch-icon']");
-      if (relIcon) relIcon.href = iconUrl;
-      if (appleIcon) appleIcon.href = iconUrl;
-      // Option to change document title to school name dynamically
-      if (schoolSettings.school_name) {
-          document.title = 'SIAS - ' + schoolSettings.school_name;
-      }
+      import('./services/api').then(({ getMediaUrl }) => {
+        const logoUrl = getMediaUrl(schoolSettings.school_logo);
+        const iconUrl = logoUrl + '?v=' + new Date().getTime(); // cache busting
+        
+        let linkIcon = document.querySelector("link[rel~='icon']");
+        if (!linkIcon) {
+          linkIcon = document.createElement('link');
+          linkIcon.rel = 'icon';
+          document.head.appendChild(linkIcon);
+        }
+        linkIcon.href = iconUrl;
+
+        let linkApple = document.querySelector("link[rel='apple-touch-icon']");
+        if (!linkApple) {
+          linkApple = document.createElement('link');
+          linkApple.rel = 'apple-touch-icon';
+          document.head.appendChild(linkApple);
+        }
+        linkApple.href = iconUrl;
+      }).catch(console.error);
     }
   }, [schoolSettings]);
 
