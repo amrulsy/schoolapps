@@ -45,7 +45,6 @@ const drawerSections = [
             { to: '/admin/arus-kas', icon: BookOpen, text: 'Arus Kas' },
             { to: '/admin/tabungan', icon: Landmark, text: 'Kasir Tabungan' },
             { to: '/admin/infaq', icon: HandHeart, text: 'Infaq Harian' },
-            { to: '/admin/infaq-libur', icon: CalendarOff, text: 'Pengaturan Libur' },
         ]
     },
     {

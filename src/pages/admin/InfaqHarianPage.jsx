@@ -5,7 +5,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import {
     HandHeart, Calendar, Users, CheckCircle2, AlertCircle,
     ChevronRight, Search, ChevronLeft, Edit3, TrendingUp, BarChart3,
-    Settings, X, FileText, MapPin, Clock
+    Settings, X, FileText, MapPin, Clock, Download, Trash2
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts'
 import api from '../../services/api'
@@ -47,6 +47,29 @@ export default function InfaqHarianPage() {
             setGlobalSummary(res.data)
         } catch (err) { console.error(err) }
     }, [selectedTA])
+
+    const handleExport = async () => {
+        try {
+            const params = {};
+            if (selectedTA) params.tahun_ajaran_id = selectedTA;
+            const res = await api.get('/admin/infaq/export', { params, responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            const disposition = res.headers['content-disposition'];
+            if (disposition && disposition.indexOf('filename=') !== -1) {
+                const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                if (matches != null && matches[1]) link.setAttribute('download', matches[1].replace(/['"]/g, ''));
+                else link.setAttribute('download', 'Laporan_Infaq.xlsx');
+            } else { link.setAttribute('download', 'Laporan_Infaq.xlsx'); }
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (err) {
+            console.error(err);
+            addToast('danger', 'Gagal mengunduh laporan excel');
+        }
+    };
 
     const fetchTransactions = useCallback(async (page = 1) => {
         try {
@@ -300,6 +323,9 @@ export default function InfaqHarianPage() {
                                 <TrendingUp size={20} className="text-primary" /> Ringkasan Global Infaq
                             </h4>
                             <div className="d-flex align-items-center gap-3">
+                                <button className="btn btn-sm btn-success rounded-pill fw-bold px-3 d-flex align-items-center gap-2" onClick={handleExport}>
+                                    <Download size={14} /> Export Excel
+                                </button>
                                 <select
                                     className="form-select form-select-sm rounded-pill border-0 bg-light px-3 fw-bold"
                                     style={{ width: 'auto' }}
@@ -388,7 +414,7 @@ export default function InfaqHarianPage() {
                                         <tr className="text-muted small">
                                             <th>SISWA</th>
                                             <th>KELAS</th>
-                                            <th>TGL INFAQ</th>
+                                            <th>JML HARI</th>
                                             <th>TGL BAYAR</th>
                                             <th>NOMINAL</th>
                                             <th>T.A</th>
@@ -402,7 +428,11 @@ export default function InfaqHarianPage() {
                                                     <div className="text-muted" style={{ fontSize: '0.65rem' }}>{tx.nis}</div>
                                                 </td>
                                                 <td className="small">{tx.kelas_nama || '-'}</td>
-                                                <td className="small">{new Date(tx.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                                <td className="small">
+                                                    <span className="badge bg-light text-dark border">
+                                                        {tx.count_hari} Hari
+                                                    </span>
+                                                </td>
                                                 <td className="small text-muted">{new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                                 <td className="fw-bold text-success small">{formatRupiah(tx.nominal)}</td>
                                                 <td className="small">{tx.tahun_ajaran || '-'}</td>
@@ -533,8 +563,7 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
     const [processing, setProcessing] = useState(false)
     const [selectedDates, setSelectedDates] = useState(new Set())
     const [hoveredPaidDay, setHoveredPaidDay] = useState(null)
-
-    useEffect(() => { fetchHistory() }, [fetchHistory])
+    const [customNominal, setCustomNominal] = useState('')
 
     const fetchHistory = useCallback(async () => {
         try {
@@ -544,10 +573,15 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
                 setNewEnrollmentDate(res.data.student.tanggal_masuk.split('T')[0])
             }
             setSelectedDates(new Set()) // Clear selections on month change
+            if (!customNominal && res.data.settings?.nominal_default) {
+                setCustomNominal(res.data.settings.nominal_default)
+            }
         } catch (err) {
             addToast?.('danger', 'Gagal memuat riwayat')
         }
     }, [siswa.id, viewDate, addToast])
+
+    useEffect(() => { fetchHistory() }, [fetchHistory])
 
     const updateEnrollmentDate = async () => {
         if (!newEnrollmentDate) return
@@ -568,7 +602,7 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
     // Quick Pay for an entire academic year's arrears
     const handleQuickPay = async (ta) => {
         if (!ta.missed_dates || ta.missed_dates.length === 0) return
-        const nominal = Number(data.settings?.nominal_default) || 2000
+        const nominal = Number(customNominal) || Number(data.settings?.nominal_default) || 2000
         const total = ta.missed_dates.length * nominal
 
         const result = await Swal.fire({
@@ -589,8 +623,7 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
                         nominal,
                         missed_dates: ta.missed_dates,
                         ta_id: ta.id
-                    }],
-                    user_id: 1
+                    }]
                 })
                 addToast?.('success', `Berhasil melunasi ${ta.missed_dates.length} hari tunggakan tahun ${ta.tahun}`)
                 fetchHistory()
@@ -616,7 +649,7 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
     // Batch pay all selected dates
     const handleBatchPay = async () => {
         if (selectedDates.size === 0) return
-        const nominal = Number(data.settings?.nominal_default) || 2000
+        const nominal = Number(customNominal) || Number(data.settings?.nominal_default) || 2000
         const total = selectedDates.size * nominal
 
         const result = await Swal.fire({
@@ -636,8 +669,7 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
                         siswa_id: siswa.id,
                         nominal,
                         dates: Array.from(selectedDates)
-                    }],
-                    user_id: 1
+                    }]
                 })
                 addToast?.('success', `Berhasil membayar ${selectedDates.size} hari infaq`)
                 setSelectedDates(new Set())
@@ -650,6 +682,31 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
             }
         }
     }
+
+    const handleVoidTransaction = async (paymentId, dateStr) => {
+        const result = await Swal.fire({
+            title: 'Batalkan Transaksi?',
+            text: `Data infaq tanggal ${dateStr} ini akan dihapus.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Ya, Batalkan'
+        });
+        if (result.isConfirmed) {
+            setProcessing(true);
+            try {
+                await api.delete(`/admin/infaq/history/${paymentId}`);
+                addToast?.('success', 'Transaksi berhasil dibatalkan');
+                fetchHistory();
+                refreshParent();
+                setHoveredPaidDay(null);
+            } catch (err) {
+                addToast?.('danger', 'Gagal membatalkan transaksi');
+            } finally {
+                setProcessing(false);
+            }
+        }
+    };
 
     // Select all missed days in current month view
     const selectAllMissed = () => {
@@ -690,6 +747,7 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
             holiday: holiday?.keterangan,
             isToday: dStr === todayStr,
             paidAt: payment?.created_at || null,
+            id: payment?.id || null,
             nominal: payment?.nominal || null
         })
     }
@@ -728,7 +786,20 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
                             )}
                         </div>
                     </div>
-                    <button className="btn btn-light btn-icon rounded-circle border" onClick={onClose}><X size={20} /></button>
+                    <div className="d-flex align-items-center gap-3">
+                        <div className="d-flex align-items-center gap-2 border rounded-pill px-3 py-1 bg-white shadow-sm">
+                            <span className="small text-muted fw-bold">Rp/Hari:</span>
+                            <input 
+                                type="number" 
+                                className="border-0 fw-black text-primary p-0" 
+                                style={{ width: '80px', background: 'transparent', outline: 'none' }} 
+                                value={customNominal} 
+                                onChange={(e) => setCustomNominal(e.target.value)} 
+                                title="Nominal kustom pembayaran per hari"
+                            />
+                        </div>
+                        <button className="btn btn-light btn-icon rounded-circle border flex-shrink-0" onClick={onClose}><X size={20} /></button>
+                    </div>
                 </div>
 
                 {/* Arrears Cards (previous years) */}
@@ -845,6 +916,18 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
                                                 <div className="paid-tooltip">
                                                     Dibayar: {new Date(d.paidAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                     {' '}{new Date(d.paidAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                    {d.id && (
+                                                        <div className="mt-2 text-center border-top border-secondary pt-1">
+                                                            <button 
+                                                                className="btn btn-xs btn-danger p-1 rounded d-flex align-items-center justify-content-center w-100 gap-1 mt-1" 
+                                                                style={{ fontSize: '0.65rem', pointerEvents: 'auto' }}
+                                                                onClick={(e) => { e.stopPropagation(); handleVoidTransaction(d.id, d.date); }}
+                                                                disabled={processing}
+                                                            >
+                                                                <Trash2 size={10} /> Batalkan Transaksi
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

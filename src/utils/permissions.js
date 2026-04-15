@@ -23,7 +23,7 @@ export const ROLE_PERMISSIONS = {
         '/admin/tabungan',
     ],
     staf_infaq: [
-        '/admin/infaq', '/admin/infaq-libur',
+        '/admin/infaq', '/admin/infaq-settings'
     ],
 }
 

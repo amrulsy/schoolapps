@@ -28,7 +28,7 @@ const navigationItems = [
     { to: '/admin/arus-kas', text: 'Arus Kas', category: 'Keuangan' },
     { to: '/admin/tabungan', text: 'Kasir Tabungan', category: 'Keuangan' },
     { to: '/admin/infaq', text: 'Infaq Harian', category: 'Keuangan' },
-    { to: '/admin/infaq-libur', text: 'Pengaturan Libur', category: 'Keuangan' },
+    { to: '/admin/infaq-settings', text: 'Pengaturan Libur', category: 'Keuangan' },
     // Sistem
     { to: '/admin/users', text: 'Manajemen User', category: 'Sistem' },
     { to: '/admin/student-menus', text: 'Menu Siswa', category: 'Sistem' },

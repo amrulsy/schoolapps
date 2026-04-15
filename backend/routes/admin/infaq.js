@@ -1,6 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../../db');
+const xlsx = require('xlsx');
+
+function getLocalDateStr(dateObj = new Date()) {
+    try {
+        return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(dateObj);
+    } catch(e) {
+        return dateObj.toISOString().split('T')[0];
+    }
+}
 
 // --- SETTINGS MANAGEMENT ---
 
@@ -177,10 +186,30 @@ router.post('/pay', async (req, res) => {
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-        const { payments, user_id } = req.body;
+        const { payments } = req.body;
+        
+        // DoS Protection
+        if (!Array.isArray(payments) || payments.length > 365) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Payload ditolak (maksimal 365 entry)' });
+        }
+        for (const p of payments) {
+            if (p.dates && p.dates.length > 365) { await connection.rollback(); return res.status(400).json({ error: 'Limit dates 365' }); }
+            if (p.missed_dates && p.missed_dates.length > 365) { await connection.rollback(); return res.status(400).json({ error: 'Limit missed_dates 365' }); }
+        }
+
+        const user_id = req.user?.id || req.body.user_id || 1;
         const settings = await getInfaqSettings();
         const activeDays = settings.active_days || [1, 2, 3, 4, 5, 6];
         const nominalDefault = Number(settings.nominal_default) || 2000;
+
+        // Caching N+1 Fix
+        const [taRows] = await connection.query('SELECT id, tanggal_mulai, tanggal_selesai FROM tahun_ajaran');
+        const getTaIdForDateSync = (dStr) => {
+            const dObj = new Date(dStr);
+            const found = taRows.find(ta => dObj >= new Date(ta.tanggal_mulai) && dObj <= new Date(ta.tanggal_selesai));
+            return found ? found.id : null;
+        };
 
         // Cache snapshot siswa (nama + nis) agar tidak query berulang kali per siswa
         const siswaSnapshotCache = {};
@@ -214,36 +243,40 @@ router.post('/pay', async (req, res) => {
 
         for (const p of payments) {
             const { siswa_id, date, nominal, days = 1, dates, ta_id, missed_dates } = p;
+            
+            if (Number(nominal || nominalDefault) <= 0) {
+                throw new Error("Nominal pembayaran tidak sah (harus lebih dari 0)");
+            }
 
             // MODE 1: Batch dates (from calendar multi-select)
             if (dates && Array.isArray(dates) && dates.length > 0) {
                 for (const d of dates) {
-                    const taId = ta_id || await findTahunAjaranForDate(d, connection);
+                    const taId = ta_id || getTaIdForDateSync(d);
                     await insertInfaq(siswa_id, d, nominal || nominalDefault, user_id, taId);
                 }
             }
             // MODE 2: Quick Pay historical (missed_dates from a specific TA)
             else if (missed_dates && Array.isArray(missed_dates) && missed_dates.length > 0) {
                 for (const d of missed_dates) {
-                    const taId = ta_id || await findTahunAjaranForDate(d, connection);
+                    const taId = ta_id || getTaIdForDateSync(d);
                     await insertInfaq(siswa_id, d, nominal || nominalDefault, user_id, taId);
                 }
             }
             // MODE 3: Single day payment
             else if (days === 1) {
-                const taId = await findTahunAjaranForDate(date, connection);
+                const taId = getTaIdForDateSync(date);
                 await insertInfaq(siswa_id, date, nominal || nominalDefault, user_id, taId);
             }
             // MODE 4: Prepaid (future days)
             else if (days > 1) {
                 const [holidaysRows] = await connection.query('SELECT tanggal FROM harilibur WHERE tanggal >= ?', [date]);
-                const holidays = new Set(holidaysRows.map(h => new Date(h.tanggal).toISOString().split('T')[0]));
+                const holidays = new Set(holidaysRows.map(h => getLocalDateStr(new Date(h.tanggal))));
                 let found = 0;
                 let curr = new Date(date);
                 while (found < days) {
-                    const dStr = curr.toISOString().split('T')[0];
+                    const dStr = getLocalDateStr(curr);
                     if (activeDays.includes(curr.getDay()) && !holidays.has(dStr)) {
-                        const taId = await findTahunAjaranForDate(dStr, connection);
+                        const taId = getTaIdForDateSync(dStr);
                         await insertInfaq(siswa_id, dStr, nominal || nominalDefault, user_id, taId);
                         found++;
                     }
@@ -263,6 +296,15 @@ router.post('/pay', async (req, res) => {
     }
 });
 
+// --- VOID / DELETE TRANSACTION ---
+router.delete('/history/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [result] = await pool.query('DELETE FROM infaq_harian WHERE id = ?', [id]);
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Data tidak ditemukan' });
+        res.json({ success: true, message: 'Transaksi dibatalkan', id });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 // Summary for chart
 router.get('/summary', async (req, res) => {
@@ -360,21 +402,30 @@ router.get('/transactions', async (req, res) => {
         const whereClause = where.length > 0 ? 'WHERE ' + where.join(' AND ') : '';
 
         const [rows] = await pool.query(
-            `SELECT i.id, i.tanggal, i.nominal, i.created_at, i.tahun_ajaran_id,
+            `SELECT MAX(i.id) as id, 
+                    MAX(i.tanggal) as tanggal, 
+                    SUM(i.nominal) as nominal, 
+                    i.created_at, 
+                    MAX(i.tahun_ajaran_id) as tahun_ajaran_id,
                     s.nama as siswa_nama, s.nis, k.nama as kelas_nama,
-                    ta.tahun as tahun_ajaran
+                    MAX(ta.tahun) as tahun_ajaran,
+                    COUNT(i.id) as count_hari
              FROM infaq_harian i
              JOIN siswa s ON i.siswa_id = s.id
              LEFT JOIN kelas k ON s.kelas_id = k.id
              LEFT JOIN tahun_ajaran ta ON i.tahun_ajaran_id = ta.id
              ${whereClause}
+             GROUP BY i.created_at, i.siswa_id, s.nama, s.nis, k.nama
              ORDER BY i.created_at DESC
              LIMIT ? OFFSET ?`,
             [...params, limit, offset]
         );
 
         const [countResult] = await pool.query(
-            `SELECT COUNT(*) as total FROM infaq_harian i JOIN siswa s ON i.siswa_id = s.id ${whereClause}`,
+            `SELECT COUNT(*) as total FROM (
+                SELECT 1 FROM infaq_harian i JOIN siswa s ON i.siswa_id = s.id 
+                ${whereClause} GROUP BY i.created_at, i.siswa_id
+            ) as t`,
             params
         );
 
@@ -404,7 +455,7 @@ router.get('/history/:siswaId', async (req, res) => {
 
         // Include created_at for payment date tooltip
         const [history] = await pool.query(
-            'SELECT tanggal, nominal, created_at, tahun_ajaran_id FROM infaq_harian WHERE siswa_id = ? ORDER BY tanggal DESC',
+            'SELECT id, tanggal, nominal, created_at, tahun_ajaran_id FROM infaq_harian WHERE siswa_id = ? ORDER BY tanggal DESC',
             [siswaId]
         );
 
@@ -498,6 +549,49 @@ router.put('/siswa/:siswaId/enrollment', async (req, res) => {
         const { tanggal_masuk } = req.body;
         await pool.query('UPDATE siswa SET tanggal_masuk = ? WHERE id = ?', [tanggal_masuk || null, siswaId]);
         res.json({ message: 'Tanggal masuk diperbarui' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// --- EXPORT INFAQ ---
+router.get('/export', async (req, res) => {
+    try {
+        const { startDate, endDate, tahun_ajaran_id } = req.query;
+        let query = `
+            SELECT DATE_FORMAT(i.created_at, '%Y-%m-%d %H:%i:%s') as 'Waktu Bayar', 
+                   s.nama as 'Nama Siswa', 
+                   s.nis as 'NIS', 
+                   k.nama as 'Kelas',
+                   COUNT(i.id) as 'Jumlah Hari',
+                   SUM(i.nominal) as 'Total Bayar (Rp)', 
+                   GROUP_CONCAT(DATE_FORMAT(i.tanggal, '%d/%m/%Y') SEPARATOR ', ') as 'Rincian Tanggal Infaq',
+                   COALESCE(MAX(u.nama), 'Sistem') as 'Petugas Penerima'
+            FROM infaq_harian i
+            JOIN siswa s ON i.siswa_id = s.id
+            LEFT JOIN kelas k ON s.kelas_id = k.id
+            LEFT JOIN users u ON i.user_id = u.id
+            WHERE 1=1
+        `;
+        const params = [];
+        if (startDate && endDate) {
+            query += ' AND i.tanggal BETWEEN ? AND ?';
+            params.push(startDate, endDate);
+        }
+        if (tahun_ajaran_id) {
+            query += ' AND i.tahun_ajaran_id = ?';
+            params.push(tahun_ajaran_id);
+        }
+        query += ' GROUP BY i.created_at, i.siswa_id, s.nama, s.nis, k.nama ORDER BY MAX(i.created_at) DESC';
+
+        const [rows] = await pool.query(query, params);
+
+        const ws = xlsx.utils.json_to_sheet(rows);
+        const wb = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(wb, ws, "Laporan Infaq");
+        const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="Laporan_Infaq_${getLocalDateStr()}.xlsx"`);
+        res.send(buffer);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

@@ -1,0 +1,13 @@
+
+[2026-04-15T10:28:29.228Z] /api/admin/whatsapp/restart
+TypeError: waService.restart is not a function
+    at C:\dev\schoolapps\backend\routes\admin\whatsappRoutes.js:17:36
+    at Layer.handleRequest (C:\dev\schoolapps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\dev\schoolapps\backend\node_modules\router\lib\route.js:157:13)
+    at authMiddleware (C:\dev\schoolapps\backend\middleware\auth.js:28:9)
+    at Layer.handleRequest (C:\dev\schoolapps\backend\node_modules\router\lib\layer.js:152:17)
+    at next (C:\dev\schoolapps\backend\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\dev\schoolapps\backend\node_modules\router\lib\route.js:117:3)
+    at handle (C:\dev\schoolapps\backend\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\dev\schoolapps\backend\node_modules\router\lib\layer.js:152:17)
+    at C:\dev\schoolapps\backend\node_modules\router\index.js:295:15

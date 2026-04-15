@@ -26,7 +26,7 @@ const pageTitles = {
     'generate-tagihan': 'Generate Tagihan',
     'keuangan-dashboard': 'Dashboard Keuangan',
     'infaq': 'Infaq Harian',
-    'infaq-libur': 'Pengaturan Libur',
+    'infaq-settings': 'Pengaturan Infaq & Libur',
     'users': 'Manajemen User',
     'student-menus': 'Menu Siswa',
     'pengaturan': 'Pengaturan',
