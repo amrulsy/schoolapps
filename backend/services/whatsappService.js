@@ -29,10 +29,17 @@ class WhatsAppService {
         this.hourlyLimit = parseInt(process.env.WA_HOURLY_LIMIT) || 50;
 
         // Anti-ban config
-        this.MIN_DELAY = 5000;
-        this.MAX_DELAY = 15000;
+        this.MIN_DELAY = 15000;
+        this.MAX_DELAY = 35000;
+        this.BURST_SIZE = 3; 
+        this.BURST_COOLDOWN = 60000; // Increased to 60 seconds
+        this.processedInBurst = 0;
+        
         this.sentCount = 0;
         this.sentCountResetTime = Date.now();
+        this.lastPresenceUpdate = 0;
+        this.peerLastSent = new Map(); // Untuk per-peer throttling
+        this.menuCooldown = new Map(); // Cooldown menu agar tidak spamming auto-reply
 
         this.logger = null;
         this.store = null;
@@ -63,7 +70,8 @@ class WhatsAppService {
         const {
             useMultiFileAuthState,
             DisconnectReason,
-            fetchLatestBaileysVersion
+            fetchLatestBaileysVersion,
+            Browsers
         } = baileys;
 
         const { default: pino } = await import("pino");
@@ -80,14 +88,43 @@ class WhatsAppService {
 
         console.log(`[WA Service] Menggunakan Baileys v${version.join('.')} (Latest: ${isLatest})`);
 
-        this.sock = makeWASocket({
+        // Generator Fingerprint Hardware/Browser Acak
+        const getRandomBrowser = () => {
+            const osOptions = [
+                ['Windows', 'Chrome', '120.0.6099.109'],
+                ['Mac OS', 'Safari', '17.2'],
+                ['Windows', 'Edge', '120.0.2210.121'],
+                ['Mac OS', 'Chrome', '120.0.6099.109'],
+                ['Ubuntu', 'Firefox', '121.0']
+            ];
+            return osOptions[Math.floor(Math.random() * osOptions.length)];
+        };
+
+        const currentBrowser = getRandomBrowser();
+        console.log(`[WA Service] 🛡️ Spoofing Device Fingerprint: ${currentBrowser.join(' - ')}`);
+
+        let socketConfig = {
             version,
             logger: this.logger,
             printQRInTerminal: true,
             auth: state,
-            browser: ["SIAS SMK PPRQ", "Chrome", "1.0.0"],
-            markOnlineOnConnect: true
-        });
+            browser: currentBrowser,
+            markOnlineOnConnect: false
+        };
+
+        // 🛡️ Integrasi Agen Lapisan Proxy jika diletakkan di hosting / `.env`
+        if (process.env.WA_PROXY_URL) {
+            try {
+                const { HttpsProxyAgent } = await import('https-proxy-agent');
+                const proxyAgent = new HttpsProxyAgent(process.env.WA_PROXY_URL);
+                socketConfig.agent = proxyAgent;
+                console.log(`[WA Service] 🛡️ Terhubung melalui Custom Proxy: ${process.env.WA_PROXY_URL}`);
+            } catch (err) {
+                console.warn('[WA Service] ⚠️ WA_PROXY_URL terdeteksi tapi module `https-proxy-agent` belum diinstall. Koneksi direct dilanjutkan.');
+            }
+        }
+
+        this.sock = makeWASocket(socketConfig);
 
         // this.store.bind(this.sock.ev);
 
@@ -124,10 +161,82 @@ class WhatsAppService {
                 this.isReady = true;
                 this.qrCode = null;
                 this.statusMessage = 'Terhubung & Siap';
+                
+                // Start Ghost Protocol: Heartbeat Online
+                this._startHeartbeat();
             }
         });
 
         this.sock.ev.on('creds.update', saveCreds);
+
+        // --- GHOST PROTOCOL: AUTO-READ & INTERACTION ---
+        this.sock.ev.on('messages.upsert', async ({ messages, type }) => {
+            if (type !== 'notify') return;
+            for (const msg of messages) {
+                if (!msg.key.fromMe && !msg.key.remoteJid.includes('@g.us')) {
+                    const jid = msg.key.remoteJid;
+                    const msgText = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
+                    
+                    // 1. Simulasi orang buka chat (Hanya membanca 80% dari total pesan, random Delay 5-15s)
+                    if (Math.random() > 0.2) { // 80% probabilitas dbaca, 20% dibiarkan unread sbg bukti logis manusia
+                        const readDelay = Math.floor(Math.random() * 10000) + 5000;
+                        setTimeout(async () => {
+                            try {
+                                if (this.sock && this.isReady) {
+                                    await this.sock.readMessages([msg.key]);
+                                    console.log(`[WA Service] 👁️ Auto-read pesan dari ${jid}`);
+                                }
+                            } catch (err) { /* silent fail */ }
+                        }, readDelay);
+                    }
+
+                    // 2. Guardian Level 4: Auto-Menu (Reputation Building)
+                    const lastMenu = this.menuCooldown.get(jid) || 0;
+                    if (Date.now() - lastMenu > 3600000) { // Hanya muncul 1 jam sekali per user
+                        this.menuCooldown.set(jid, Date.now());
+                        
+                        setTimeout(async () => {
+                            if (this.sock && this.isReady) {
+                                const menuText = this.applySpintax(
+                                    "{Halo|Hai|Assalamualaikum}! Ini adalah Layanan Otomatis *SMK PPRQ*. 🤖\n\n" +
+                                    "Nomor ini digunakan untuk pengiriman notifikasi Infaq/SPP.\n\n" +
+                                    "Ketik *INFO* untuk bantuan lebih lanjut."
+                                );
+                                await this._sendInternal(jid.split('@')[0], menuText);
+                                console.log(`[WA Service] 🛡️ Guardian Menu terkirim ke ${jid}`);
+                            }
+                        }, readDelay + 3000);
+                    }
+                }
+            }
+        });
+    }
+
+    _startHeartbeat() {
+        // Simulasi user buka app setiap 20-40 menit
+        const heartbeat = () => {
+            if (this.sock && this.isReady) {
+                const hour = new Date().getHours();
+                // Tidak "Online" jika jam tidur (23 - 05)
+                if (hour >= 6 && hour < 23) {
+                    this.sock.sendPresenceUpdate('available');
+                    console.log('[WA Service] 💓 Ghost Heartbeat: Status Set Online');
+                    
+                    // Guardian Level 4: Contact Sync Simulation
+                    if (Math.random() > 0.8) { // Cukup mensimulasikan sync lebih jarang
+                        console.log('[WA Service] 🛡️ Guardian Sync: Mensimulasikan sinkronisasi kontak...');
+                        try { this.sock.ev.emit('contacts.upsert', []); } catch(e) {}
+                    }
+
+                    setTimeout(() => {
+                        this.sock?.sendPresenceUpdate('unavailable');
+                    }, 60000); // Online selama 1 menit
+                }
+            }
+            const nextIn = Math.floor(Math.random() * 1200000) + 1200000; // 20-40 mins
+            setTimeout(heartbeat, nextIn);
+        };
+        heartbeat();
     }
 
     getStatus() {
@@ -153,6 +262,26 @@ class WhatsAppService {
             cleaned = '62' + cleaned;
         }
         return cleaned + '@s.whatsapp.net'; // Baileys uses @s.whatsapp.net for users
+    }
+
+    applySpintax(text) {
+        // 1. Spintax {A|B|C}
+        let regex = /\{([^{}]+)\}/g;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            let options = match[1].split('|');
+            let randomOption = options[Math.floor(Math.random() * options.length)];
+            text = text.replace(match[0], randomOption);
+            regex.lastIndex = 0;
+        }
+
+        // 2. Spatial Randomizer (Aman)
+        // Daripada pakai zero-width char (yang memicu spam ML), lebih baik sisipkan spasi/newline transparan acak di ujung kalimat
+        // Ini memastikan Hash karakter untuk sistem anti-spam berbeda, tanpa red-flag.
+        const randomSpaces = ' '.repeat(Math.floor(Math.random() * 3));
+        const randomNewline = Math.random() > 0.5 ? '\n' : '';
+        
+        return text + randomSpaces + randomNewline;
     }
 
     async sendMessage(phone, message) {
@@ -197,12 +326,36 @@ class WhatsAppService {
             const { id, phone, message } = this.queue.shift();
 
             try {
+                // Guardian Level 4: Per-Peer Throttling
+                const lastSent = this.peerLastSent.get(phone) || 0;
+                const timeSinceLast = Date.now() - lastSent;
+                if (timeSinceLast < 20000) { // Jika baru kirim ke orang yang sama < 20 detik
+                    console.log(`[WA Service] 🛡️ Per-Peer Throttle: Memberi jeda ekstra untuk ${phone}...`);
+                    await new Promise(resolve => setTimeout(resolve, 15000));
+                }
+
+                // Check jam (Mode Tidur 23:00 - 05:00)
+                const hour = new Date().getHours();
+                if (hour >= 23 || hour < 5) {
+                    console.log('[WA Service] 🌙 Mode Malam: Memperlambat antrean...');
+                    await new Promise(resolve => setTimeout(resolve, 60000)); 
+                }
+
                 if (this.mode === 'internal') {
+                    const jid = this.formatPhone(phone);
+                    const [result] = await this.sock.onWhatsApp(jid);
+                    if (!result || !result.exists) {
+                        throw new Error('Nomor tidak terdaftar di WhatsApp');
+                    }
+                    
                     await this._sendInternal(phone, message);
                 } else {
                     await this._sendExternal(phone, message);
                 }
+                
                 this.sentCount++;
+                this.processedInBurst++;
+                this.peerLastSent.set(phone, Date.now()); // Update per-peer timestamp
                 this._updateHistoryStatus(id, 'sent');
             } catch (err) {
                 console.error(`[WA Service] Gagal kirim ke ${phone}:`, err.message);
@@ -210,8 +363,15 @@ class WhatsAppService {
             }
 
             if (this.queue.length > 0) {
-                const delay = Math.floor(Math.random() * (this.MAX_DELAY - this.MIN_DELAY + 1)) + this.MIN_DELAY;
-                await new Promise(resolve => setTimeout(resolve, delay));
+                let delayMs;
+                if (this.processedInBurst >= this.BURST_SIZE) {
+                    console.log(`[WA Service] 💤 Burst limit (${this.BURST_SIZE}) reached. Cooling down for ${this.BURST_COOLDOWN/1000}s...`);
+                    delayMs = this.BURST_COOLDOWN + (Math.random() * 10000);
+                    this.processedInBurst = 0;
+                } else {
+                    delayMs = Math.floor(Math.random() * (this.MAX_DELAY - this.MIN_DELAY + 1)) + this.MIN_DELAY;
+                }
+                await new Promise(resolve => setTimeout(resolve, delayMs));
             }
         }
         this.isProcessing = false;
@@ -222,7 +382,23 @@ class WhatsAppService {
             throw new Error('WhatsApp belum terhubung. Silakan scan QR Code terlebih dahulu.');
         }
         const jid = this.formatPhone(phone);
-        await this.sock.sendMessage(jid, { text: message });
+        const finalMessage = this.applySpintax(message);
+
+        // Simulation "Typing..." dengan Dynamic Delay yang lebih manusiawi mengikuti panjang teks
+        await this.sock.sendPresenceUpdate('composing', jid);
+        const charsLength = finalMessage.length;
+        // Hitung ~50ms sampai 100ms ketikan per karakter
+        const typingDelayMsPerChar = 50 + Math.floor(Math.random() * 50); 
+        let typingDelay = charsLength * typingDelayMsPerChar;
+        
+        if (typingDelay < 2000) typingDelay = 2000 + Math.floor(Math.random() * 1000); // minimal 2-3 detik
+        if (typingDelay > 15000) typingDelay = 15000; // Maksimal batas wajar typing sebelum dikira glitch oleh server (15 detik)
+
+        await new Promise(resolve => setTimeout(resolve, typingDelay));
+
+        await this.sock.sendMessage(jid, { text: finalMessage });
+        await this.sock.sendPresenceUpdate('paused', jid);
+
         console.log(`[WA Service] ✅ Pesan berhasil dikirim ke ${phone} (Baileys)`);
     }
 
