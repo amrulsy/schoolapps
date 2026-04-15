@@ -781,7 +781,7 @@
 /* --- MODERN HERO HEADERS --- */
 .cms-hero-header {
     margin-bottom: 32px;
-    padding: 40px;
+    padding: clamp(20px, 4vw, 40px);
     border-radius: 24px;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -791,7 +791,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 24px;
+    gap: 20px;
+    flex-wrap: wrap;
     transition: var(--transition-base);
 }
 
@@ -840,45 +841,22 @@
     background: linear-gradient(135deg, var(--bg-card), #1e293b);
 }
 
-@media (max-width: 768px) {
-    .cms-hero-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 32px 24px;
-    }
-
-    .cms-hero-badge-outline {
-        display: none;
-    }
-
-    .cms-hero-actions {
-        width: 100%;
-        margin-top: 20px;
-        flex-wrap: wrap;
-    }
-
-    .cms-hero-actions button,
-    .cms-hero-actions a {
-        flex: 1;
-        justify-content: center;
-    }
-}
-
 .cms-hero-title {
-    font-size: 2.5rem;
+    font-size: clamp(1.4rem, 4vw, 2.5rem);
     font-weight: 900;
     letter-spacing: -1px;
     margin: 0;
     margin-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
     color: var(--text-color);
     line-height: 1.1;
 }
 
 .cms-hero-subtitle {
-    font-size: 1.05rem;
+    font-size: clamp(0.85rem, 2vw, 1.05rem);
     color: var(--text-muted);
     max-width: 650px;
     line-height: 1.6;
@@ -889,11 +867,48 @@
 .cms-hero-actions {
     display: flex;
     gap: 12px;
+    flex-shrink: 0;
 }
 
-@media (max-width: 1024px) {
-    .cms-hero-title {
-        font-size: 2rem;
+/* Tablet: keep side-by-side but adjust sizes */
+@media (min-width: 769px) and (max-width: 1023px) {
+    .cms-hero-header {
+        padding: 28px;
+        margin-bottom: 24px;
+        border-radius: 18px;
+    }
+
+    .cms-stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .cms-hero-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 16px;
+    }
+
+    .cms-hero-badge-outline {
+        display: none;
+    }
+
+    .cms-hero-actions {
+        width: 100%;
+        margin-top: 16px;
+        flex-wrap: wrap;
+    }
+
+    .cms-hero-actions button,
+    .cms-hero-actions a {
+        flex: 1;
+        justify-content: center;
+        min-width: 120px;
     }
 }
 

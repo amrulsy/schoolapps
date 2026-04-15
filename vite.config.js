@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg'],
+      includeAssets: ['cover.png'],
       manifest: {
         name: 'SIAS Portal Siswa',
         short_name: 'SIASku',
@@ -19,9 +19,9 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           {
-            src: '/vite.svg',
-            sizes: '192x192 512x512',
-            type: 'image/svg+xml',
+            src: '/cover.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]

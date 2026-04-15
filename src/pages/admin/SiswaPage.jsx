@@ -20,30 +20,32 @@ const styles = /*css*/`
   }
   @media (max-width: 768px) {
     .table {
-      min-width: 800px;
+      min-width: 700px;
     }
   }
   .siswa-header {
     background: var(--bg-card);
-    padding: 24px 32px;
+    padding: clamp(16px, 3vw, 24px) clamp(16px, 4vw, 32px);
     border-radius: 32px;
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
   }
   .bento-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: 24px;
-    margin-bottom: 32px;
+    gap: 20px;
+    margin-bottom: 24px;
   }
   .bento-card {
     background: var(--bg-card);
     border-radius: 28px;
-    padding: 32px;
+    padding: clamp(16px, 3vw, 32px);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -57,10 +59,25 @@ const styles = /*css*/`
     border-color: var(--primary-300);
   }
   .bento-main { grid-column: span 7; }
-  .bento-side { grid-column: span 5; display: flex; flex-direction: column; gap: 24px; }
+  .bento-side { grid-column: span 5; display: flex; flex-direction: column; gap: 20px; }
   
-  @media (max-width: 992px) {
+  @media (max-width: 1023px) {
     .bento-main, .bento-side { grid-column: span 12; }
+    .bento-grid { gap: 16px; }
+  }
+
+  .siswa-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+  }
+  @media (max-width: 767px) {
+    .siswa-search-wrap {
+      min-width: unset;
+      max-width: unset;
+      width: 100%;
+    }
   }
 
   .icon-box-soft {
@@ -80,11 +97,12 @@ const styles = /*css*/`
   .gender-stat {
     background: var(--bg-stripe);
     border-radius: 16px;
-    padding: 16px;
+    padding: 14px;
     display: flex;
     align-items: center;
     gap: 12px;
     flex: 1;
+    min-width: 0;
     border: 1px solid transparent;
     transition: all 0.2s;
   }
@@ -102,6 +120,8 @@ const styles = /*css*/`
     border: 1px solid var(--border-color);
     background: var(--bg-stripe);
     color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .filter-pill.active {
     background: var(--primary-600);
@@ -114,8 +134,8 @@ const styles = /*css*/`
     color: var(--text-primary);
   }
   .student-avatar {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 12px;
     background: var(--bg-hover);
     border: 1px solid var(--border-color);
@@ -124,9 +144,10 @@ const styles = /*css*/`
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 1.1rem;
+    font-size: 1rem;
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
     transition: all 0.2s;
+    flex-shrink: 0;
   }
   .activity-item:hover .student-avatar {
     background: var(--primary-50);
@@ -143,6 +164,8 @@ const styles = /*css*/`
     justify-content: center;
     transition: all 0.2s;
     border: none;
+    cursor: pointer;
+    flex-shrink: 0;
   }
   .quick-action-btn:hover {
     transform: scale(1.1);
@@ -167,64 +190,98 @@ const styles = /*css*/`
     animation: shimmer 1s linear infinite forwards;
   }
 
+  /* --- Status / Kelas filter row --- */
+  .siswa-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .siswa-filter-pills {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 1;
+    padding-bottom: 2px;
+  }
+  .siswa-filter-pills::-webkit-scrollbar { display: none; }
+
+  /* --- Pagination row --- */
+  .siswa-pagination-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
   @media (max-width: 767px) {
     .siswa-header {
       flex-direction: column;
       align-items: flex-start;
-      padding: 16px 20px;
-      gap: 16px;
+      padding: 16px 18px;
+      gap: 12px;
       border-radius: 20px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
-    .siswa-header .d-flex.gap-2 {
+    .siswa-header > div:last-child {
       width: 100%;
+      display: flex;
       flex-wrap: wrap;
+      gap: 8px;
     }
-    .siswa-header .d-flex.gap-2 button {
+    .siswa-header > div:last-child button {
       flex: 1;
       min-width: 0;
       justify-content: center;
     }
     .bento-grid {
-      gap: 16px;
-      margin-bottom: 20px;
+      gap: 12px;
+      margin-bottom: 16px;
     }
     .bento-card {
-      padding: 20px;
+      padding: 16px;
       border-radius: 20px;
     }
     .bento-card h1 {
-      font-size: 2.5rem !important;
+      font-size: clamp(2rem, 8vw, 3rem) !important;
     }
-    .d-flex.gap-3.mt-4 {
+    .gender-stat {
+      padding: 12px;
+    }
+    .siswa-filter-row {
       flex-direction: column;
-      gap: 10px !important;
+      align-items: flex-start;
     }
-    .filter-pill {
-      padding: 6px 12px;
-      font-size: 0.75rem;
-      white-space: nowrap;
-    }
-    .d-flex.gap-2.ms-md-auto {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      flex-wrap: nowrap;
-      padding-bottom: 4px;
-    }
-    .d-flex.gap-2.flex-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      flex-wrap: nowrap !important;
-      padding-bottom: 4px;
+    .siswa-pagination-row {
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      text-align: center;
     }
     .card.shadow-sm {
       border-radius: 20px !important;
     }
     .card-body.p-4 {
-      padding: 16px !important;
+      padding: 14px !important;
     }
   }
+
+  @media (max-width: 480px) {
+    .filter-pill {
+      padding: 6px 10px;
+      font-size: 0.75rem;
+    }
+    .student-avatar { width: 36px; height: 36px; font-size: 0.9rem; }
+    .quick-action-btn { width: 32px; height: 32px; }
+    .icon-box-soft { width: 40px; height: 40px; margin-bottom: 12px; }
+  }
 `;
+
 
 export default function SiswaPage() {
     const { students, addStudent, updateStudent, deleteStudent, importStudents, units, addToast } = useApp()

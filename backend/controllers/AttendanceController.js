@@ -50,6 +50,48 @@ class AttendanceController {
     }
 
     /**
+     * Mengecek data Siswa dan face_descriptor tanpa mencatat presensi
+     * GET /api/attendance/check-rfid/:rfid_uid
+     */
+    static async checkRfid(req, res) {
+        const { rfid_uid } = req.params;
+        try {
+            const [students] = await pool.query(
+                'SELECT s.id, s.nama, s.nisn, s.kelas_id, s.jk, s.face_descriptor, k.nama as kelas_nama FROM siswa s LEFT JOIN kelas k ON s.kelas_id = k.id WHERE s.rfid_uid = ? AND s.status = "aktif"',
+                [rfid_uid]
+            );
+            if (students.length === 0) {
+                return res.status(404).json({ error: 'Siswa tidak ditemukan' });
+            }
+            res.json({ success: true, student: students[0] });
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    }
+
+    /**
+     * Mendaftarkan fitur Face Recognition untuk Siswa
+     * PUT /api/students/:id/face
+     */
+    static async registerFace(req, res) {
+        const { id } = req.params;
+        const { face_descriptor } = req.body;
+
+        try {
+            await pool.query(
+                'UPDATE siswa SET face_descriptor = ? WHERE id = ?',
+                [face_descriptor ? JSON.stringify(face_descriptor) : null, id]
+            );
+            res.json({
+                success: true,
+                message: face_descriptor ? 'Data Wajah berhasil disimpan' : 'Data Wajah berhasil dihapus'
+            });
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    }
+
+    /**
      * Scan RFID untuk Presensi (Masuk/Pulang)
      * POST /api/attendance/scan
      * 
@@ -261,7 +303,8 @@ class AttendanceController {
                 },
                 status: status_tap,
                 keterangan: current_status,
-                time: nowTime
+                time: nowTime,
+                face_verified: req.body.face_verified || false
             };
 
             io.emit('scan_success', responseData);

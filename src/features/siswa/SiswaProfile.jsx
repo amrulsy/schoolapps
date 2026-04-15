@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 import { API_BASE } from '../../services/api'
 import { useCustomAlert } from '../../hooks/useCustomAlert'
-import { User, FileText, Download, Upload, CheckCircle2, GraduationCap, Users, Shield, ArrowLeft, Save, X, Edit3, Trash2, IdCard, BookOpen, FileCheck, Hash, EyeOff, Activity, Home, Heart, Eye } from 'lucide-react'
+import FaceEnrollment from './FaceEnrollment'
+import { User, FileText, Download, Upload, CheckCircle2, GraduationCap, Users, Shield, ArrowLeft, Save, X, Edit3, Trash2, IdCard, BookOpen, FileCheck, Hash, EyeOff, Activity, Home, Heart, Eye, Camera } from 'lucide-react'
 
 /* ─────────────── helpers ─────────────── */
 const fmtDate = (d) => {
@@ -309,6 +310,7 @@ export default function SiswaProfile({ data, onClose }) {
         { id: 'diri', icon: <User size={17} />, label: 'Data Identitas' },
         { id: 'ortu', icon: <Users size={17} />, label: 'Orang Tua & Wali' },
         { id: 'dokumen', icon: <FileCheck size={17} />, label: 'Berkas Digital' },
+        { id: 'wajah', icon: <Camera size={17} />, label: 'Registrasi Wajah' },
     ]
 
     /* ────────────── fv = form value helper ────────────── */
@@ -532,6 +534,19 @@ export default function SiswaProfile({ data, onClose }) {
                                     />
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {/* ══════════════ TAB: WAJAH ══════════════ */}
+                    {activeTab === 'wajah' && (
+                        <div className="tab-pane-content fade-in">
+                            <FaceEnrollment 
+                                siswa={p} 
+                                addToast={addToast} 
+                                onComplete={(updatedSiswa) => {
+                                    setStudents(prev => prev.map(s => s.id === p.id ? { ...s, face_descriptor: updatedSiswa.face_descriptor } : s));
+                                }}
+                            />
                         </div>
                     )}
                 </div>

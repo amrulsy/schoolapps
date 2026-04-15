@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
-import { Search, CreditCard, User, Trash2 } from 'lucide-react'
+import { Search, CreditCard, User, Trash2, Camera, X } from 'lucide-react'
 import { usePagination } from '../../hooks/usePagination'
 import EmptyState from '../../components/EmptyState'
+import FaceEnrollment from '../../features/siswa/FaceEnrollment'
 import api from '../../services/api'
 
 export default function RfidEnrollment({ hideHeader = false }) {
@@ -10,6 +11,7 @@ export default function RfidEnrollment({ hideHeader = false }) {
     const [search, setSearch] = useState('')
     const [filterKelas, setFilterKelas] = useState('')
     const [enrollModal, setEnrollModal] = useState({ show: false, student: null, rfid: '' })
+    const [faceModal, setFaceModal] = useState({ show: false, student: null })
     const rfidInputRef = useRef(null)
 
     const allKelas = units.flatMap(u => u.kelas)
@@ -170,7 +172,14 @@ export default function RfidEnrollment({ hideHeader = false }) {
                                                     className={`btn btn-sm rounded-pill px-4 ${s.rfid_uid ? 'btn-outline-primary' : 'btn-primary'}`}
                                                     onClick={() => setEnrollModal({ show: true, student: s, rfid: '' })}
                                                 >
-                                                    {s.rfid_uid ? 'Ganti Kartu' : 'Daftarkan'}
+                                                    {s.rfid_uid ? 'Ganti Kartu' : 'Daftar RFID'}
+                                                </button>
+                                                <button
+                                                    className={`btn btn-sm rounded-pill px-3 ${s.face_descriptor ? 'btn-outline-success' : 'btn-success'}`}
+                                                    onClick={() => setFaceModal({ show: true, student: s })}
+                                                >
+                                                    <Camera size={14} style={{ display: 'inline', marginRight: 4 }} />
+                                                    {s.face_descriptor ? 'Ubah Wajah' : 'Daftar Wajah'}
                                                 </button>
                                             </div>
                                         </td>
@@ -232,6 +241,29 @@ export default function RfidEnrollment({ hideHeader = false }) {
                                 <button type="submit" className="btn btn-primary py-3 grow rounded-3" disabled={!enrollModal.rfid}>Hubungkan Kartu</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Face Enrollment */}
+            {faceModal.show && (
+                <div style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflowY: 'auto' }}>
+                    <div className="bg-white rounded-5 shadow-2xl position-relative animate-bounceIn" style={{ width: '90%', maxWidth: 800, margin: 'auto' }}>
+                        <button 
+                            className="btn btn-light rounded-circle shadow-sm position-absolute" 
+                            style={{ top: 15, right: 15, zIndex: 10, width: 40, height: 40, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            onClick={() => setFaceModal({ show: false, student: null })}
+                        >
+                            <X size={20} />
+                        </button>
+                        <div className="p-4 pt-5">
+                            <FaceEnrollment 
+                                siswa={faceModal.student}
+                                onComplete={(updatedSiswa) => {
+                                    setStudents(prev => prev.map(s => s.id === updatedSiswa.id ? updatedSiswa : s));
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             )}

@@ -1334,6 +1334,52 @@ tbody tr:hover {
 }
 
 /* =========================================
+   Tablet Overrides (769px - 1023px)
+   ========================================= */
+@media (min-width: 769px) and (max-width: 1023px) {
+    /* Modal: keep centered on tablet, not bottom-sheet */
+    .modal-backdrop {
+        padding: 16px;
+        align-items: center;
+    }
+
+    .modal {
+        max-height: 88vh;
+        border-radius: var(--radius-2xl);
+    }
+
+    /* Form row: keep 2 cols on tablet */
+    .form-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* Stats grid: 2-3 cols on tablet */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Btn padding slightly tighter */
+    .btn {
+        padding: 8px 15px;
+    }
+
+    /* Buttons in modal footer stay horizontal on tablet */
+    .modal-footer {
+        flex-direction: row;
+    }
+
+    .modal-footer .btn {
+        width: auto;
+    }
+
+    /* Pagination stays in one row on tablet */
+    .pagination {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+}
+
+/* =========================================
    Mobile Card-Table View
    Transforms regular tables into stacked card views
    ========================================= */

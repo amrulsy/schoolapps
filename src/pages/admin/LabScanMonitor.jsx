@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { io } from 'socket.io-client'
-import { Package, AlertTriangle, Clock, ArrowRight, RotateCcw, Search } from 'lucide-react'
+import * as faceapi from '@vladmandic/face-api'
+import { Package, AlertTriangle, Clock, ArrowRight, RotateCcw, Search, Scan } from 'lucide-react'
 import api, { API_BASE } from '../../services/api'
 
 export default function LabScanMonitor() {
@@ -17,9 +18,47 @@ export default function LabScanMonitor() {
     const [kioskMode, setKioskMode] = useState('pinjam') // 'pinjam' | 'kembali'
     const [studentLoans, setStudentLoans] = useState(null) // { student, loans }
     const [isProcessing, setIsProcessing] = useState(false)
+    const [isModelsLoaded, setIsModelsLoaded] = useState(false)
 
     const inputRef = useRef(null)
     const timerRef = useRef(null)
+    const videoRef = useRef(null)
+    const [stream, setStream] = useState(null)
+
+    // Load FaceAPI Models
+    useEffect(() => {
+        const loadModels = async () => {
+            try {
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+                ])
+                setIsModelsLoaded(true)
+            } catch (err) {
+                console.error('FaceAPI Init Error', err)
+            }
+        }
+        loadModels()
+    }, [])
+
+    // Start Webcam once models load
+    useEffect(() => {
+        if (!isModelsLoaded) return
+        let mediaStream = null
+        const startVideo = async () => {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true })
+                setStream(mediaStream)
+            } catch (err) {
+                console.error("Camera access denied", err)
+            }
+        }
+        startVideo()
+        return () => {
+            if (mediaStream) mediaStream.getTracks().forEach(track => track.stop())
+        }
+    }, [isModelsLoaded])
 
     // Load data
     useEffect(() => {
@@ -110,7 +149,7 @@ export default function LabScanMonitor() {
             }
         }
 
-        setTimeout(() => speakMessage(speech), 200)
+        speakMessage(speech)
 
         timerRef.current = setTimeout(() => {
             setScanData(null)
@@ -126,7 +165,7 @@ export default function LabScanMonitor() {
         setScanData(null)
         setScanInfo(data)
         playBuzzer()
-        setTimeout(() => speakMessage('Mohon maaf, ' + data.message), 300)
+        speakMessage('Mohon maaf, ' + data.message)
         timerRef.current = setTimeout(() => setScanInfo(null), 5000)
     }, [timerRef])
 
@@ -154,6 +193,62 @@ export default function LabScanMonitor() {
         if (!input || isProcessing) return
 
         setIsProcessing(true)
+
+        // Anti-Titip Absen: Face Check (Only for initial scan)
+        if ((kioskMode === 'pinjam' || (kioskMode === 'kembali' && !studentLoans)) && schoolSettings?.face_recognition_enabled === 'true') {
+            try {
+                const checkRes = await api.get(`/attendance/check-rfid/${input}`)
+                const student = checkRes.data.student
+                
+                if (student.face_descriptor) {
+                    if (!videoRef.current) {
+                        showScanInfo({ message: 'Kamera tidak aktif', type: 'warning' })
+                        throw new Error('Kamera mati')
+                    }
+                    // Face detection with retries to account for motion blur during tap
+                    let detection = null;
+                    const options = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.35 });
+                    for (let attempt = 1; attempt <= 5; attempt++) {
+                        detection = await faceapi.detectSingleFace(videoRef.current, options).withFaceLandmarks().withFaceDescriptor();
+                        if (detection) break;
+                        if (attempt < 5) await new Promise(r => setTimeout(r, 200));
+                    }
+
+                    if (!detection) {
+                        showScanInfo({ 
+                            message: 'Wajah Tidak Terlihat', 
+                            type: 'warning', 
+                            subMessage: 'Harap hadapkan wajah ke kamera (Tahan sebentar)' 
+                        })
+                        throw new Error('No face in camera')
+                    }
+                    
+                    const savedDescriptor = new Float32Array(JSON.parse(student.face_descriptor))
+                    const distance = faceapi.euclideanDistance(detection.descriptor, savedDescriptor)
+                    if (distance > 0.48) {
+                        showScanInfo({ 
+                            message: 'Wajah Tidak Cocok!', 
+                            subMessage: 'Akses Ditolak (Anti-Peminjaman Palsu)',
+                            type: 'warning' 
+                        })
+                        throw new Error('Face mismatch')
+                    } else {
+                        showScanInfo({ 
+                            message: 'Wajah Belum Diregistrasi', 
+                            subMessage: 'Hubungi admin untuk mendaftarkan wajah Anda',
+                            type: 'warning' 
+                        })
+                        throw new Error('Belum registrasi wajah')
+                    }
+                }
+            } catch (checkErr) {
+                const msg = checkErr.message;
+                if (['No face in camera', 'Face mismatch', 'Kamera mati', 'Belum registrasi wajah'].includes(msg)) {
+                     setIsProcessing(false)
+                     return; // abort tap
+                }
+            }
+        }
 
         if (kioskMode === 'pinjam') {
             if (!selectedItem) {
@@ -237,7 +332,25 @@ export default function LabScanMonitor() {
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             transition: 'background 0.5s ease'
         }}>
-
+            
+            {/* WEBCAM PIP */}
+            {isModelsLoaded && schoolSettings?.face_recognition_enabled === 'true' && (
+                <div style={{
+                    position: 'absolute', bottom: 30, right: 30, width: 200, height: 150,
+                    borderRadius: 16, overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', 
+                    border: '4px solid rgba(255,255,255,0.15)', background: '#000'
+                }}>
+                    <video ref={el => {
+                            videoRef.current = el;
+                            if (el && stream && el.srcObject !== stream) {
+                                el.srcObject = stream;
+                            }
+                        }} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
+                    <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0, 0, 0, 0.6)', padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 600, color: 'white' }}>
+                        <div className="animate-pulse" style={{ width: 8, height: 8, background: '#fff', borderRadius: '50%' }} /> REC
+                    </div>
+                </div>
+            )}
 
             {/* Header */}
             <header style={{ padding: '16px 32px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>

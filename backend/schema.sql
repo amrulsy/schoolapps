@@ -801,6 +801,7 @@ CREATE TABLE IF NOT EXISTS `siswa` (
   `rfid_uid` varchar(100) DEFAULT NULL,
   `jenis_pendaftaran` enum('Baru','Pindahan') DEFAULT 'Baru',
   `tanggal_mulai_sekolah` date DEFAULT NULL,
+  `face_descriptor` text DEFAULT NULL,
   PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,
   UNIQUE KEY `nisn` (`nisn`),
   UNIQUE KEY `nis` (`nis`),

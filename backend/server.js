@@ -133,6 +133,8 @@ app.use('/api/guru/wali-kelas',      authMiddleware, guruWaliKelasRoutes);
 
 // ─── RFID Attendance ──────────────────────────────────────────────────────────
 app.put( '/api/students/:id/rfid',          authMiddleware, AttendanceController.registerRfid);
+app.put( '/api/students/:id/face',          authMiddleware, AttendanceController.registerFace);
+app.get( '/api/attendance/check-rfid/:rfid_uid', AttendanceController.checkRfid);
 app.post('/api/attendance/scan',            AttendanceController.scanRfid);  // Public/Gate
 app.get( '/api/admin/attendance/settings',  authMiddleware, AttendanceController.getSettings);
 app.post('/api/admin/attendance/settings',  authMiddleware, AttendanceController.updateSettings);

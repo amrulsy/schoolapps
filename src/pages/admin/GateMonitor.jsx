@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { io } from 'socket.io-client'
+import * as faceapi from '@vladmandic/face-api'
 import {
     School, Clock, CheckCircle, ArrowRight, ArrowLeft, AlertTriangle, Volume2, History,
-    SortDesc, SortAsc, X, Download, Search
+    SortDesc, SortAsc, X, Download, Search, Scan
 } from 'lucide-react'
 import api, { API_BASE } from '../../services/api'
 
@@ -20,9 +21,47 @@ export default function GateMonitor() {
     const [sortOldest, setSortOldest] = useState(false)
     const [newEntryId, setNewEntryId] = useState(null)
     const [isShaking, setIsShaking] = useState(false)
+    const [isModelsLoaded, setIsModelsLoaded] = useState(false)
 
     const inputRef = useRef(null)
-    const timerRef = useRef(null)
+    const timerRef = useRef({})
+    const videoRef = useRef(null)
+    const [stream, setStream] = useState(null)
+
+    // Load FaceAPI Models
+    useEffect(() => {
+        const loadModels = async () => {
+            try {
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+                ])
+                setIsModelsLoaded(true)
+            } catch (err) {
+                console.error('FaceAPI Init Error', err)
+            }
+        }
+        loadModels()
+    }, [])
+
+    // Start Webcam once models load
+    useEffect(() => {
+        if (!isModelsLoaded) return
+        let mediaStream = null
+        const startVideo = async () => {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true })
+                setStream(mediaStream)
+            } catch (err) {
+                console.error("Camera access denied", err)
+            }
+        }
+        startVideo()
+        return () => {
+            if (mediaStream) mediaStream.getTracks().forEach(track => track.stop())
+        }
+    }, [isModelsLoaded])
 
     // Load Settings + initial tap log
     useEffect(() => {
@@ -140,8 +179,8 @@ export default function GateMonitor() {
             playBeep();
         }
 
-        // Timeout sedikit agar suara beep selesai dulu
-        setTimeout(() => speakMessage(speechText), 200);
+        // Panggil langsung tanpa timeout
+        speakMessage(speechText);
 
         timerRef.current = setTimeout(() => {
             setScanData(null)
@@ -171,7 +210,7 @@ export default function GateMonitor() {
 
         if (audioUnlocked) {
             playBuzzer();
-            setTimeout(() => speakMessage('Mohon maaf, ' + data.message), 300);
+            speakMessage('Mohon maaf, ' + data.message);
         } else {
             // Bug 3 Fix: No audio available — shake the screen so operator notices visually
             setIsShaking(true)
@@ -217,8 +256,74 @@ export default function GateMonitor() {
         if (!rfidInput || isProcessing) return
 
         setIsProcessing(true)
+        let isFaceVerified = false;
         try {
-            const { data } = await api.post('/attendance/scan', { rfid_uid: rfidInput.trim() })
+            // Anti-Titip Absen: Face Check
+            try {
+                if (schoolSettings?.face_recognition_enabled === 'true') {
+                    const checkRes = await api.get(`/attendance/check-rfid/${rfidInput.trim()}`)
+                    const student = checkRes.data.student
+                    
+                    if (student.face_descriptor) {
+                        if (!videoRef.current) {
+                        showScanInfo({ message: 'Kamera tidak aktif', type: 'warning' })
+                        throw new Error('Kamera mati')
+                    }
+                        // Face detection with retries to account for motion blur during tap
+                        let detection = null;
+                        const options = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.35 });
+                        for (let attempt = 1; attempt <= 5; attempt++) {
+                            detection = await faceapi.detectSingleFace(videoRef.current, options).withFaceLandmarks().withFaceDescriptor();
+                            if (detection) break;
+                            if (attempt < 5) await new Promise(r => setTimeout(r, 200));
+                        }
+
+                        if (!detection) {
+                            showScanInfo({ 
+                                student: { nama: student.nama, kelas: student.kelas_nama, nisn: student.nisn },
+                                message: 'Wajah Tidak Terlihat', 
+                                type: 'warning', 
+                                subMessage: 'Harap hadapkan wajah ke kamera (Tahan sebentar)' 
+                            })
+                            throw new Error('No face in camera')
+                        }
+                    
+                    const savedDescriptor = new Float32Array(JSON.parse(student.face_descriptor))
+                    const distance = faceapi.euclideanDistance(detection.descriptor, savedDescriptor)
+                    // The lower the distance, the higher the accuracy. > 0.45 threshold.
+                    if (distance > 0.48) {
+                        showScanInfo({ 
+                            student: { nama: student.nama, kelas: student.kelas_nama, nisn: student.nisn },
+                            message: 'Wajah Tidak Cocok!', 
+                            subMessage: 'Akses Ditolak (Anti-Titip Absen)',
+                            type: 'warning' 
+                        })
+                        setIsShaking(true)
+                        setTimeout(() => setIsShaking(false), 700)
+                        throw new Error('Face mismatch')
+                    }
+                    isFaceVerified = true;
+                    } else {
+                        showScanInfo({ 
+                            student: { nama: student.nama, kelas: student.kelas_nama, nisn: student.nisn },
+                            message: 'Wajah Belum Diregistrasi', 
+                            subMessage: 'Hubungi admin untuk mendaftarkan wajah Anda',
+                            type: 'warning' 
+                        })
+                        throw new Error('Belum registrasi wajah')
+                    }
+                }
+            } catch (checkErr) {
+                const msg = checkErr.message;
+                if (['No face in camera', 'Face mismatch', 'Kamera mati', 'Belum registrasi wajah'].includes(msg)) {
+                     setRfidInput('')
+                     setIsProcessing(false)
+                     return; // Abort tap
+                }
+                // Other errors (like 404/429) proceed to api.post for standard handling
+            }
+
+            const { data } = await api.post('/attendance/scan', { rfid_uid: rfidInput.trim(), face_verified: isFaceVerified })
             if (data.success) {
                 showScanResult(data)
             } else {
@@ -296,7 +401,7 @@ export default function GateMonitor() {
         <div className={`gate-monitor-container${isShaking ? ' gate-shake' : ''}`} style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: getBgColor(), color: '#fff', zIndex: 9999,
-            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
             transition: 'background 0.5s ease',
             outline: isShaking ? '6px solid #ef4444' : 'none'
         }}>
@@ -313,33 +418,33 @@ export default function GateMonitor() {
             </form>
 
             {/* HEADER */}
-            <header style={{ padding: '20px 40px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                    <div style={{ width: 60, height: 60, background: '#fff', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <header className="gate-header">
+                <div className="gate-header-left">
+                    <div className="gate-header-logo">
                         {schoolSettings?.logo_url ? (
                             <img src={`${API_BASE.replace('/api', '')}${schoolSettings.logo_url}`} alt="Logo" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
                         ) : '🏫'}
                     </div>
                     <div>
-                        <h1 style={{ fontSize: '1.8rem', fontWeight: 900, margin: 0, letterSpacing: '-0.025em' }}>GATE MONITOR</h1>
+                        <h1 className="gate-title">GATE MONITOR</h1>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', fontWeight: 600 }}>
                             {schoolSettings?.nama_sekolah || "SISTEM PRESENSI TERPADU"}
                         </p>
                     </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '2.2rem', fontWeight: 800, fontFamily: 'monospace', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                <div className="gate-header-right">
+                    <div className="gate-time">
                         {formatWIBTime(currentTime)}
                     </div>
-                    <div style={{ fontSize: '1rem', color: '#cbd5e1', fontWeight: 500 }}>
+                    <div className="gate-date">
                         {formatWIBDate(currentTime)}
                     </div>
                 </div>
             </header>
 
-            <main style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
+            <main className="gate-main">
                 {/* CENTER: Main scan area */}
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                <div className="gate-center-area">
 
                     {/* AUDIO UNLOCK OVERLAY (For browser compatibility) */}
                     {!audioUnlocked && (
@@ -419,20 +524,10 @@ export default function GateMonitor() {
 
                     {/* SUCCESS SCREEN */}
                     {scanData && (
-                        <div className="card shadow-2xl p-5 animate-bounceIn" style={{
-                            width: '90%', maxWidth: 900, background: '#fff', color: '#0f172a',
-                            borderRadius: 40, overflow: 'hidden', display: 'flex', gap: 40,
-                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
-                        }}>
+                        <div className="gate-success-card">
                             {/* Avatar Section - PHOTO VERIFICATION */}
-                            <div style={{ flexShrink: 0 }}>
-                                <div style={{
-                                    width: 300, height: 350, background: '#f8fafc',
-                                    borderRadius: 30, border: '4px solid #e2e8f0',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '8rem', color: '#94a3b8', overflow: 'hidden',
-                                    boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)'
-                                }}>
+                            <div style={{ flexShrink: 0, alignSelf: 'center' }}>
+                                <div className="gate-avatar">
                                     {scanData.student.foto ? (
                                         <img src={`${API_BASE.replace('/api', '')}${scanData.student.foto}`} alt="Foto Siswa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
@@ -460,24 +555,26 @@ export default function GateMonitor() {
                                     </div>
                                 </div>
 
-                                <h1 style={{ fontSize: '3.8rem', fontWeight: 900, margin: '0 0 10px', letterSpacing: '-0.05em', lineHeight: 1 }}>
+                                <h1 className="gate-student-name">
                                     {scanData.student.nama}
                                 </h1>
-                                <div style={{ fontSize: '1.8rem', color: '#475569', fontWeight: 600, marginBottom: 35 }}>
-                                    {scanData.student.kelas} • <span className="mono">{scanData.student.nisn}</span>
+                                <div className="gate-student-info">
+                                    <span>{scanData.student.kelas} • <span className="mono">{scanData.student.nisn}</span></span>
+                                    {scanData.face_verified && (
+                                        <div className="animate-bounceIn" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '1rem', padding: '6px 14px', background: '#ecfdf5', color: '#059669', borderRadius: 20, border: '2px solid #34d399', fontWeight: 700, boxShadow: '0 4px 10px rgba(52,211,153,0.2)' }}>
+                                            <Scan size={18} /> Wajah Cocok
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div style={{
-                                    padding: '24px',
+                                <div className="gate-success-box" style={{
                                     background: scanData.status === 'masuk' ? (scanData.keterangan === 'Terlambat' ? '#fef2f2' : '#f0fdf4') : '#f0f9ff',
-                                    borderRadius: 24,
                                     border: `2px solid ${scanData.status === 'masuk' ? (scanData.keterangan === 'Terlambat' ? '#fecaca' : '#bbf7d0') : '#bae6fd'}`,
-                                    display: 'flex', alignItems: 'center', gap: 20
                                 }}>
                                     <div style={{ color: scanData.status === 'masuk' ? (scanData.keterangan === 'Terlambat' ? '#ef4444' : '#22c55e') : '#3b82f6' }}>
                                         {scanData.keterangan === 'Terlambat' ? <AlertTriangle size={48} /> : <CheckCircle size={48} />}
                                     </div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: scanData.status === 'masuk' ? (scanData.keterangan === 'Terlambat' ? '#991b1b' : '#166534') : '#0369a1' }}>
+                                    <div className="gate-success-msg" style={{ color: scanData.status === 'masuk' ? (scanData.keterangan === 'Terlambat' ? '#991b1b' : '#166534') : '#0369a1' }}>
                                         {scanData.status === 'masuk'
                                             ? (scanData.keterangan === 'Terlambat' ? 'Maaf, Anda Datang Terlambat!' : 'Selamat Datang, Selamat Belajar!')
                                             : 'Sampai Jumpa, Hati-hati di Jalan!'}
@@ -488,17 +585,26 @@ export default function GateMonitor() {
                     )}
                 </div>{/* end center area */}
 
+                {/* WEBCAM PIP */}
+                {isModelsLoaded && schoolSettings?.face_recognition_enabled === 'true' && (
+                    <div className="gate-webcam-pip">
+                        <video ref={el => {
+                            videoRef.current = el;
+                            if (el && stream && el.srcObject !== stream) {
+                                el.srcObject = stream;
+                            }
+                        }} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
+                        <div style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(239, 68, 68, 0.9)', padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div className="animate-pulse" style={{ width: 8, height: 8, background: '#fff', borderRadius: '50%' }} /> REC
+                        </div>
+                        <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0, 0, 0, 0.6)', padding: '4px 8px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 600 }}>
+                            <Scan size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> AI Aktif
+                        </div>
+                    </div>
+                )}
+
                 {/* RIGHT: Live Tap Log Panel — always visible */}
-                <div style={{
-                    width: 290,
-                    background: 'rgba(0,0,0,0.4)',
-                    backdropFilter: 'blur(16px)',
-                    borderLeft: '1px solid rgba(255,255,255,0.08)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                    flexShrink: 0
-                }}>
+                <div className="gate-sidebar">
                     {/* Log Header */}
                     <div style={{
                         padding: '12px 14px',
@@ -650,6 +756,218 @@ export default function GateMonitor() {
                     0% { transform: translateX(100vw); }
                     100% { transform: translateX(-100%); }
                 }
+
+                /* Mobile Optimizations */
+                .gate-header {
+                    padding: 20px 40px;
+                    border-bottom: 1px solid rgba(255,255,255,0.1);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background: rgba(0,0,0,0.2);
+                }
+                .gate-header-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 15px;
+                }
+                .gate-header-logo {
+                    width: 60px;
+                    height: 60px;
+                    background: #fff;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: hidden;
+                }
+                .gate-title {
+                    font-size: clamp(1.2rem, 4vw, 1.8rem);
+                    font-weight: 900;
+                    margin: 0;
+                    letter-spacing: -0.025em;
+                }
+                .gate-header-right {
+                    text-align: right;
+                }
+                .gate-time {
+                    font-size: clamp(1.4rem, 5vw, 2.2rem);
+                    font-weight: 800;
+                    font-family: monospace;
+                    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+                }
+                .gate-date {
+                    font-size: clamp(0.7rem, 2vw, 1rem);
+                    color: #cbd5e1;
+                    font-weight: 500;
+                }
+                
+                .gate-main {
+                    flex: 1;
+                    display: flex;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .gate-center-area {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                }
+
+                .gate-success-card {
+                    width: 90%;
+                    max-width: 900px;
+                    background: #fff;
+                    color: #0f172a;
+                    border-radius: 40px;
+                    overflow: hidden;
+                    display: flex;
+                    gap: 40px;
+                    padding: 20px;
+                    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+                    animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                }
+                .gate-avatar {
+                    width: 300px;
+                    height: 350px;
+                    background: #f8fafc;
+                    border-radius: 30px;
+                    border: 4px solid #e2e8f0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 8rem;
+                    color: #94a3b8;
+                    overflow: hidden;
+                    box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+                }
+                .gate-student-name {
+                    font-size: clamp(1.8rem, 6vw, 3.8rem);
+                    font-weight: 900;
+                    margin: 0 0 10px;
+                    letter-spacing: -0.05em;
+                    line-height: 1;
+                }
+                .gate-student-info {
+                    font-size: clamp(1rem, 3vw, 1.8rem);
+                    color: #475569;
+                    font-weight: 600;
+                    margin-bottom: 35px;
+                    display: flex;
+                    align-items: center;
+                    gap: 15px;
+                    flex-wrap: wrap;
+                }
+                .gate-success-msg {
+                    font-size: clamp(1.1rem, 3vw, 1.5rem);
+                    font-weight: 800;
+                }
+
+                .gate-success-box {
+                    padding: 24px;
+                    border-radius: 24px;
+                    display: flex;
+                    align-items: center;
+                    gap: 20px;
+                }
+
+                .gate-webcam-pip {
+                    position: absolute;
+                    bottom: 30px;
+                    right: 320px;
+                    width: 280px;
+                    height: 210px;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                    border: 4px solid rgba(255,255,255,0.15);
+                    background: #000;
+                }
+
+                .gate-sidebar {
+                    width: 290px;
+                    background: rgba(0,0,0,0.4);
+                    backdrop-filter: blur(16px);
+                    border-left: 1px solid rgba(255,255,255,0.08);
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    flex-shrink: 0;
+                }
+
+                @media (max-width: 1024px) {
+                    .gate-main {
+                        flex-direction: column;
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                    }
+                    .gate-sidebar {
+                        width: 100%;
+                        max-height: 350px;
+                        border-left: none;
+                        border-top: 1px solid rgba(255,255,255,0.08);
+                        flex-shrink: 0;
+                    }
+                    .gate-success-card {
+                        flex-direction: column;
+                        text-align: center;
+                        gap: 20px;
+                        border-radius: 20px;
+                        margin: 20px 0;
+                    }
+                    .gate-student-info {
+                        justify-content: center;
+                        margin-bottom: 15px;
+                    }
+                    .gate-avatar {
+                        width: 150px;
+                        height: 150px;
+                        border-radius: 20px;
+                        font-size: 4rem;
+                        margin: 0 auto;
+                    }
+                    .gate-webcam-pip {
+                        right: 20px;
+                        bottom: auto;
+                        top: 20px;
+                        width: 140px;
+                        height: 105px;
+                    }
+                }
+
+                @media (max-width: 768px) {
+                    .gate-header {
+                        padding: 15px 20px;
+                        flex-direction: column;
+                        gap: 10px;
+                        text-align: center;
+                    }
+                    .gate-header-left {
+                        flex-direction: column;
+                        gap: 8px;
+                    }
+                    .gate-header-right {
+                        text-align: center;
+                    }
+                    .gate-time {
+                        font-size: 1.8rem;
+                    }
+                    .gate-center-area {
+                        padding: 10px;
+                    }
+                    .gate-success-card {
+                        padding: 15px;
+                        margin: 10px 0;
+                    }
+                    .gate-success-card > div:last-child > div:last-child {
+                        flex-direction: column;
+                        text-align: center;
+                        padding: 15px;
+                    }
+                }
+
                 @keyframes gate-shake {
                     0%, 100% { transform: translateX(0); }
                     15% { transform: translateX(-10px); }

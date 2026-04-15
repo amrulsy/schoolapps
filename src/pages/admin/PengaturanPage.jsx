@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext'
 import {
     Save, Upload, AlertTriangle, Calendar, Clock,
     MessageSquare, Database, Shield, Layout,
-    CheckCircle, XCircle, RefreshCw, Trash2, Plus, FileText, Printer
+    CheckCircle, XCircle, RefreshCw, Trash2, Plus, FileText, Printer, Scan
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import api, { API_BASE, getMediaUrl } from '../../services/api'
@@ -32,6 +32,7 @@ export default function PengaturanPage() {
     const [maintenanceMode, setMaintenanceMode] = useState(false)
     const [receiptConfig, setReceiptConfig] = useState({})
     const [previewSize, setPreviewSize] = useState('58mm')
+    const [faceRecognitionEnabled, setFaceRecognitionEnabled] = useState(false)
 
     // Initialize local profile from context
     useEffect(() => {
@@ -46,6 +47,7 @@ export default function PengaturanPage() {
                 nip_kepsek: schoolSettings.school_principal_nip || '',
                 school_logo: schoolSettings.school_logo || ''
             })
+            setFaceRecognitionEnabled(schoolSettings.face_recognition_enabled === 'true')
             setReceiptConfig({
                 header1: schoolSettings.receipt_header1 || schoolSettings.school_name || '',
                 header2: schoolSettings.receipt_header2 || schoolSettings.school_address || '',
@@ -59,6 +61,12 @@ export default function PengaturanPage() {
         const isChecked = e.target.checked
         setMaintenanceMode(isChecked)
         await updateSchoolSettings({ maintenance_mode: isChecked ? 'true' : 'false' })
+    }
+
+    const handleToggleFaceRecongition = async (e) => {
+        const isChecked = e.target.checked
+        setFaceRecognitionEnabled(isChecked)
+        await updateSchoolSettings({ face_recognition_enabled: isChecked ? 'true' : 'false' })
     }
 
     // Load other settings when tab changes
@@ -683,6 +691,35 @@ export default function PengaturanPage() {
 
                     {activeTab === 'sistem' && (
                         <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                            
+                            {/* Feature Toggles */}
+                            <div className="card fade-in" style={{ gridColumn: '1 / -1' }}>
+                                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                    <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Scan size={20} color="var(--primary-600)" />
+                                        Fitur Pengenalan Wajah AI (Face Recognition)
+                                    </h3>
+                                    <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontWeight: 600, color: faceRecognitionEnabled ? 'var(--primary-600)' : 'var(--slate-500)', fontSize: '0.9rem' }}>
+                                            {faceRecognitionEnabled ? 'Aktif' : 'Non-Aktif'}
+                                        </span>
+                                        <input
+                                            type="checkbox"
+                                            checked={faceRecognitionEnabled}
+                                            onChange={handleToggleFaceRecongition}
+                                            style={{ width: 44, height: 24, cursor: 'pointer', accentColor: 'var(--primary-500)' }}
+                                        />
+                                    </label>
+                                </div>
+                                <div>
+                                    <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>
+                                        Aktifkan fitur deteksi wajah di gerbang (Gate Monitor) dan peminjaman inventaris lab. 
+                                        Ini mencegah manipulasi (titip absen/titip pinjam). 
+                                        Sistem akan otomatis mencocokkan wajah siswa di depan kamera dengan data referensi yang ada. 
+                                    </p>
+                                </div>
+                            </div>
+                            
                             <div className="card fade-in" style={{ gridColumn: '1 / -1' }}>
                                 <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>

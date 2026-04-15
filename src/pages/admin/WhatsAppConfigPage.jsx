@@ -65,6 +65,14 @@ const styles = `
     .wa-card .d-flex.align-items-center.gap-20 { gap: 12px !important; }
     .wa-card h2 { font-size: 1.25rem !important; }
     .wa-card p { font-size: 0.8rem !important; }
+    .wa-tips-grid { grid-template-columns: 1fr !important; }
+    .wa-card-header-row { flex-wrap: wrap; gap: 12px; }
+    .wa-card-header-row h3 { font-size: 0.95rem !important; }
+  }
+  @media (max-width: 480px) {
+    .wa-card { padding: 14px; border-radius: 18px; margin-bottom: 14px; }
+    .wa-wizard-step { padding: 14px; }
+    .wa-test-input { font-size: 15px; }
   }
 `
 
@@ -482,21 +490,21 @@ export default function WhatsAppConfigPage() {
                 <h4 style={{ fontWeight: 800, margin: '0 0 12px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <AlertCircle size={18} /> Tips Keamanan
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                <div className="wa-tips-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     <div style={{ display: 'flex', gap: 10 }}>
-                        <div style={{ color: '#25D366' }}>•</div>
+                        <div style={{ color: '#25D366', flexShrink: 0 }}>•</div>
                         <div><strong>Jeda Acak:</strong> Tiap pesan diberi jeda 5-15 detik otomatis untuk menghindari deteksi bot.</div>
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
-                        <div style={{ color: '#25D366' }}>•</div>
+                        <div style={{ color: '#25D366', flexShrink: 0 }}>•</div>
                         <div><strong>Batas Per Jam:</strong> Disarankan tidak lebih dari 50 pesan/jam untuk akun baru/jarang dipakai.</div>
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
-                        <div style={{ color: '#25D366' }}>•</div>
+                        <div style={{ color: '#25D366', flexShrink: 0 }}>•</div>
                         <div><strong>Konten Dinamis:</strong> Sistem menambahkan waktu pengiriman agar isi pesan tidak identik 100%.</div>
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
-                        <div style={{ color: '#25D366' }}>•</div>
+                        <div style={{ color: '#25D366', flexShrink: 0 }}>•</div>
                         <div><strong>Nomor Aktif:</strong> Gunakan nomor yang sering digunakan untuk chat (bukan nomor baru beli sekali pakai).</div>
                     </div>
                 </div>

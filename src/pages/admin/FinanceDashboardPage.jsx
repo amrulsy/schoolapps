@@ -210,8 +210,8 @@ export default function DashboardPage() {
                         <Target size={20} color="var(--primary-500)" /> Rasio Penagihan per Kategori
                     </h3>
                 </div>
-                <div className="table-container" style={{ border: 'none', boxShadow: 'none' }}>
-                    <table>
+                <div className="table-container" style={{ border: 'none', boxShadow: 'none', overflowX: 'auto' }}>
+                    <table style={{ minWidth: 600 }}>
                         <thead>
                             <tr>
                                 <th>Kategori</th>
