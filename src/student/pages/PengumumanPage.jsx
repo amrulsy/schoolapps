@@ -1,4 +1,4 @@
-import { useStudent } from '../StudentApp'
+import { useStudent } from '../StudentContext'
 import { useState } from 'react'
 import * as LucideIcons from 'lucide-react'
 import {

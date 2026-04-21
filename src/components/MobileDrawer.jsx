@@ -8,7 +8,7 @@ import {
     UserCog, Settings, Database, Layout, X, LogOut,
     ChevronDown, LayoutDashboard, Search, LayoutTemplate,
     Package, Wallet, ShieldCheck, Globe, MessageCircle, Monitor,
-    HandHeart, CalendarOff
+    HandHeart
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 

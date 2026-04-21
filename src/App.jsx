@@ -60,7 +60,6 @@ const CmsHomePage = lazy(() => import('./features/cms/pages/CmsHomePage'))
 import LoadingSpinner from './components/LoadingSpinner';
 import OfflineBanner from './components/OfflineBanner';
 import { useApp } from './context/AppContext';
-import { API_BASE } from './services/api';
 
 export default function App() {
   const { schoolSettings } = useApp();

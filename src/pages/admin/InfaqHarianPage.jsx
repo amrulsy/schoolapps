@@ -579,6 +579,7 @@ function HistoryModal({ siswa, onClose, refreshParent, addToast }) {
         } catch (err) {
             addToast?.('danger', 'Gagal memuat riwayat')
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [siswa.id, viewDate, addToast])
 
     useEffect(() => { fetchHistory() }, [fetchHistory])

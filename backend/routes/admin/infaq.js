@@ -70,14 +70,6 @@ router.delete('/holidays/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// --- HELPER: Find tahun_ajaran_id for a given date ---
-async function findTahunAjaranForDate(dateStr, connection = pool) {
-    const [rows] = await connection.query(
-        'SELECT id FROM tahun_ajaran WHERE ? BETWEEN tanggal_mulai AND tanggal_selesai LIMIT 1',
-        [dateStr]
-    );
-    return rows.length > 0 ? rows[0].id : null;
-}
 
 // --- INFAQ LOGIC ---
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { MessageCircle, Send, ArrowLeft } from 'lucide-react'
-import { useStudent } from '../StudentApp'
+import { useStudent } from '../StudentContext'
 
 export default function PesanPage() {
     const { pesanList, sendMessage, fetchStudentData } = useStudent()

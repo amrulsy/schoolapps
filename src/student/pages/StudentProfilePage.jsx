@@ -1,4 +1,4 @@
-import { useStudent } from '../StudentApp'
+import { useStudent } from '../StudentContext'
 import { User, FileText, Shield, LogOut } from 'lucide-react'
 import { useState } from 'react'
 

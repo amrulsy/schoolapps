@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as faceapi from '@vladmandic/face-api';
 import { Camera, CheckCircle2, AlertCircle, Loader2, Save, Trash2 } from 'lucide-react';
 import { API_BASE } from '../../services/api';
@@ -32,6 +32,7 @@ export default function FaceEnrollment({ siswa, addToast, onComplete }) {
         };
         loadModels();
         return () => stopWebcam(); // Cleanup
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Start Webcam
