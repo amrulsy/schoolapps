@@ -7,7 +7,7 @@ import {
     CreditCard, BookOpen, UserCog, Settings,
     ChevronLeft, ChevronDown, History, Zap, Layout, Database, LayoutTemplate,
     Package, Wallet, ShieldCheck, Globe, MessageCircle, Monitor,
-    HandHeart, CalendarOff
+    HandHeart
 } from 'lucide-react'
 
 const menuSections = [

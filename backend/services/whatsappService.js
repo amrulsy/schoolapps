@@ -70,8 +70,7 @@ class WhatsAppService {
         const {
             useMultiFileAuthState,
             DisconnectReason,
-            fetchLatestBaileysVersion,
-            Browsers
+            fetchLatestBaileysVersion
         } = baileys;
 
         const { default: pino } = await import("pino");
@@ -175,11 +174,10 @@ class WhatsAppService {
             for (const msg of messages) {
                 if (!msg.key.fromMe && !msg.key.remoteJid.includes('@g.us')) {
                     const jid = msg.key.remoteJid;
-                    const msgText = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
                     
                     // 1. Simulasi orang buka chat (Hanya membanca 80% dari total pesan, random Delay 5-15s)
+                    const readDelay = Math.floor(Math.random() * 10000) + 5000;
                     if (Math.random() > 0.2) { // 80% probabilitas dbaca, 20% dibiarkan unread sbg bukti logis manusia
-                        const readDelay = Math.floor(Math.random() * 10000) + 5000;
                         setTimeout(async () => {
                             try {
                                 if (this.sock && this.isReady) {
@@ -225,7 +223,9 @@ class WhatsAppService {
                     // Guardian Level 4: Contact Sync Simulation
                     if (Math.random() > 0.8) { // Cukup mensimulasikan sync lebih jarang
                         console.log('[WA Service] 🛡️ Guardian Sync: Mensimulasikan sinkronisasi kontak...');
-                        try { this.sock.ev.emit('contacts.upsert', []); } catch(e) {}
+                        try { this.sock.ev.emit('contacts.upsert', []); } catch(e) {
+                            // silent fail
+                        }
                     }
 
                     setTimeout(() => {
@@ -475,7 +475,7 @@ class WhatsAppService {
 }
 
 // Tangkal error websocket yang tiba-tiba putus (seperti code "1006") agar server Node.js tidak ikut crash
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
     if (String(reason) === '1006' || String(reason) === '1005') {
         console.warn('[WA Service] Peringatan: Socket terputus paksa dengan statushode', reason);
     } else {

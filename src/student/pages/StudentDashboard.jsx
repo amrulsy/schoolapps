@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts'
-import { useStudent } from '../StudentApp'
+import { useStudent } from '../StudentContext'
 import { useNavigate } from 'react-router-dom'
 
 import * as LucideIcons from 'lucide-react'

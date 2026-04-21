@@ -16,9 +16,8 @@ import PesanPage from './pages/PesanPage'
 import MaintenancePage from '../pages/public/MaintenancePage'
 import './student.css'
 
-import { StudentContext, useStudent } from './StudentContext'
+import { StudentContext } from './StudentContext'
 
-export { useStudent }
 
 export default function StudentApp() {
     const [student, setStudent] = useState(null)

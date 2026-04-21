@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import * as LucideIcons from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer } from 'recharts'
-import { useStudent } from '../StudentApp'
+import { useStudent } from '../StudentContext'
 
 const statusConfig = {
     hadir: { color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)', icon: LucideIcons.UserCheck, label: 'Hadir' },

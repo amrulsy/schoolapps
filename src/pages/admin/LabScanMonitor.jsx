@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { io } from 'socket.io-client'
 import * as faceapi from '@vladmandic/face-api'
-import { Package, AlertTriangle, Clock, ArrowRight, RotateCcw, Search, Scan } from 'lucide-react'
+import { Package, AlertTriangle, Clock, ArrowRight, RotateCcw, Search } from 'lucide-react'
 import api, { API_BASE } from '../../services/api'
 
 export default function LabScanMonitor() {

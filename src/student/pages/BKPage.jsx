@@ -1,5 +1,5 @@
 import { Award, AlertTriangle, Calendar, Star, TrendingUp, TrendingDown } from 'lucide-react'
-import { useStudent } from '../StudentApp'
+import { useStudent } from '../StudentContext'
 
 export default function BKPage() {
     const { bkData } = useStudent()

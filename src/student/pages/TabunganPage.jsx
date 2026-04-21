@@ -1,5 +1,5 @@
 import { TrendingUp, CreditCard, ShoppingBag, Coffee, Wallet } from 'lucide-react'
-import { useStudent } from '../StudentApp'
+import { useStudent } from '../StudentContext'
 
 // Static Mock Data for V4 'Digital Vault' Preview
 const MOCK_SAVINGS_HISTORY = [
